@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import Nav from './components/Nav.jsx'
 import Landing from './pages/Landing.jsx'
-import ChooseBase from './pages/ChooseBase.jsx'
 import ProductPage from './pages/ProductPage.jsx'
 import StickerSoon from './pages/StickerSoon.jsx'
 import Footer from './components/Footer.jsx'
@@ -13,11 +12,9 @@ import { getMe, logout } from './api.js'
 function ScrollManager() {
   const { pathname, hash } = useLocation()
   useEffect(() => {
-    if (hash) {
-      const el = document.getElementById(hash.slice(1))
-      if (el) return el.scrollIntoView()
-    }
-    window.scrollTo(0, 0)
+    const el = hash && document.getElementById(hash.slice(1))
+    if (el) el.scrollIntoView()
+    else window.scrollTo(0, 0)
   }, [pathname, hash])
   return null
 }
@@ -53,7 +50,7 @@ export default function App() {
       <main>
         <Routes>
           <Route path="/" element={<Landing />} />
-          <Route path="/combo/:slug" element={<ChooseBase />} />
+          <Route path="/combo/:slug" element={<Navigate to="/#combo" replace />} />
           <Route path="/combo/:slug/:product" element={<ProductPage />} />
           <Route path="/combo/:slug/:product/sticker" element={<StickerSoon />} />
           <Route path="*" element={<Navigate to="/" replace />} />

@@ -1,7 +1,8 @@
-import { Link } from 'react-router-dom'
+import { useState } from 'react'
 import { useCombos } from '../data/useCombos.js'
 import { formatPrice } from '../data/products.js'
 import Sticker from './Sticker.jsx'
+import ProductPickerModal from './ProductPickerModal.jsx'
 
 const ACCENT = {
   sun: ['var(--sun)', 'star'],
@@ -12,6 +13,7 @@ const ACCENT = {
 
 export default function Combos() {
   const combos = useCombos()
+  const [picking, setPicking] = useState(null)
 
   const hasPlaceholder = combos.some((c) => c.placeholder)
 
@@ -47,16 +49,18 @@ export default function Combos() {
                   <li key={it}>{it}</li>
                 ))}
               </ul>
-              <Link
-                to={`/combo/${c.slug}`}
+              <button
+                type="button"
                 className={`btn ${c.featured ? 'btn-light' : 'btn-glass'} btn-block`}
+                onClick={() => setPicking(c)}
               >
                 Chọn {c.name}
-              </Link>
+              </button>
             </article>
           )
         })}
       </div>
+      {picking && <ProductPickerModal combo={picking} onClose={() => setPicking(null)} />}
     </section>
   )
 }

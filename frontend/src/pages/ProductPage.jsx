@@ -58,7 +58,7 @@ const TABS = ['Mô tả', 'Bảng size', 'Bảo quản']
 export default function ProductPage() {
   const { slug, product } = useParams()
   const combo = useCombos().find((c) => c.slug === slug)
-  if (!PRODUCTS[product]) return <Navigate to={`/combo/${slug}`} replace />
+  if (!PRODUCTS[product]) return <Navigate to="/#combo" replace />
   if (!combo) return <ComboMissing />
   // key: đổi combo/món thì bắt đầu lại lựa chọn từ đầu
   return <ProductView key={`${slug}/${product}`} combo={combo} product={PRODUCTS[product]} />
@@ -159,7 +159,7 @@ function ProductView({ combo, product }) {
     const showPrint = big && (side === 'front' ? printsFront : printsBack)
     return (
       <div className={`pp-art pp-art-${product.key}`}>
-        <Art fill={c.fill} seam={c.seam} side={side} className="pp-svg" />
+        <Art fill={c.fill} seam={c.seam} side={side} outline className="pp-svg" />
         {showPrint &&
           DEMO_STICKERS[product.key][side].map((k, i) => (
             <Sticker
@@ -242,7 +242,7 @@ function ProductView({ combo, product }) {
           <nav className="crumbs" aria-label="Đường dẫn">
             <Link to="/">Trang chủ</Link>
             <span aria-hidden="true">›</span>
-            <Link to={`/combo/${combo.slug}`}>{combo.name}</Link>
+            <Link to="/#combo">{combo.name}</Link>
             <span aria-hidden="true">›</span>
             <span aria-current="page">{product.name}</span>
           </nav>
