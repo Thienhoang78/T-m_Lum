@@ -13,7 +13,7 @@ const CHOICES = [
 export default function ProductPickerModal({ combo, onClose }) {
   const dialogRef = useRef(null)
   const navigate = useNavigate()
-  const { stickers } = methodOf(combo)
+  const { stickers, note } = methodOf(combo)
 
   useEffect(() => {
     const d = dialogRef.current
@@ -82,6 +82,7 @@ export default function ProductPickerModal({ combo, onClose }) {
                       <li key={it}>{it}</li>
                     ))}
                   </ul>
+                  {note && <p className="combo-note">{note}</p>}
                   <span className="choose-cta">Chọn {name.toLowerCase()} →</span>
                 </div>
               </button>

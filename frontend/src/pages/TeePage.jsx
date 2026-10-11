@@ -255,6 +255,7 @@ export default function TeePage({ combo, user }) {
                           <li key={it}>{it}</li>
                         ))}
                       </ul>
+                      {methodOf(c).note && <span className="combo-note">{methodOf(c).note}</span>}
                     </label>
                   ))}
                 </div>

@@ -665,6 +665,17 @@ main,
   background: var(--accent);
 }
 
+/* Ghi chú nhỏ dưới thành phần combo, vd. sticker tính tiền riêng */
+.combo-note {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--brand-deep);
+}
+.combo.featured .combo-note {
+  color: var(--navy);
+}
+
 /* ---------- Nav: tài khoản ---------- */
 .nav-actions {
   display: flex;

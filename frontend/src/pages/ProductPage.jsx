@@ -290,6 +290,7 @@ function ProductView({ combo, product }) {
 
           <div className="pp-includes">
             <p className="eyebrow">Trong {combo.name} có</p>
+            {method.note && <p className="combo-note">{method.note}</p>}
             <ul>
               {contentsOf(combo, product.key).map((it, i) => (
                 <li key={it}>

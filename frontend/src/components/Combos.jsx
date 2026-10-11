@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useCombos } from '../data/useCombos.js'
-import { formatPrice } from '../data/products.js'
+import { formatPrice, methodOf } from '../data/products.js'
 import Sticker from './Sticker.jsx'
 import ProductPickerModal from './ProductPickerModal.jsx'
 
@@ -47,6 +47,7 @@ export default function Combos() {
                   <li key={it}>{it}</li>
                 ))}
               </ul>
+              {methodOf(c).note && <p className="combo-note">{methodOf(c).note}</p>}
               <button
                 type="button"
                 className={`btn ${c.featured ? 'btn-dark' : 'btn-glass'} btn-block`}
