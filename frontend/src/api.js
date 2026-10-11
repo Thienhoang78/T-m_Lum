@@ -43,3 +43,21 @@ export const getMe = () =>
   authRequest('me')
     .then((d) => d.user)
     .catch(() => null)
+
+// ---------- Đơn hàng ----------
+export async function createOrder(order) {
+  let res
+  try {
+    res = await fetch(`${API}/api/orders`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(order),
+    })
+  } catch {
+    throw new OfflineError('Chưa kết nối được máy chủ, đơn chưa được gửi.')
+  }
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(data.error || 'Chưa đặt được hàng, thử lại sau.')
+  return data
+}

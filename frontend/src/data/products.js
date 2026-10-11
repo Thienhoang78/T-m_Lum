@@ -1,28 +1,27 @@
-// Cấu hình 2 món nền khách chọn trong mỗi combo. Màu, size và số đo là NỘI DUNG MẪU, thay khi có số liệu thật.
+// Cấu hình 2 món nền khách chọn trong mỗi combo. Áo: chỉ áo trắng, bảng size thật.
+// Túi: màu và số đo vẫn là NỘI DUNG MẪU, thay khi có số liệu thật.
 export const PRODUCTS = {
   ao: {
     key: 'ao',
     name: 'Áo thun',
     unit: 'áo',
-    title: 'Áo thun cotton',
-    blurb: 'Áo thun cotton form suông, mặt trước và mặt sau đủ rộng để trang trí theo ý bạn.',
-    colors: [
-      { key: 'trang', name: 'Trắng', fill: '#f7f4ee', seam: '#cfc7b8' },
-      { key: 'den', name: 'Đen', fill: '#25202c', seam: '#6b6276' },
-      { key: 'kem', name: 'Kem', fill: '#eadfc8', seam: '#bfae8c' },
-    ],
-    sizes: ['S', 'M', 'L', 'XL'],
+    title: 'Áo thun cotton trắng',
+    blurb:
+      'Áo thun cotton trắng trơn, form oversize vai rơi, cổ bo gân; mặt trước và mặt sau đủ rộng để trang trí theo ý bạn.',
+    photo: '/images/ao-trang.png', // áo trắng trơn oversize, cổ bo gân
+    colors: [{ key: 'trang', name: 'Trắng', fill: '#f7f4ee', seam: '#cfc7b8' }],
+    sizes: ['S', 'M', 'L', 'XL', 'XXL'],
     extras: ['Tay trái', 'Tay phải', 'Nhãn áo tùy chỉnh'],
-    // Số đo tham khảo (cm): rộng ngực, dài áo, cân nặng gợi ý (kg)
     sizeChart: {
-      head: ['Size', 'Rộng ngực', 'Dài áo', 'Cân nặng'],
+      head: ['Size', 'Chiều cao', 'Cân nặng', 'Ngang ngực', 'Dài áo'],
       rows: [
-        ['S', '48', '66', '40–50'],
-        ['M', '51', '69', '50–60'],
-        ['L', '54', '72', '60–70'],
-        ['XL', '57', '74', '70–80'],
+        ['S', '<160cm', '<50kg', '51cm', '70cm'],
+        ['M', '161–169cm', '51–65kg', '54cm', '72cm'],
+        ['L', '170–175cm', '66–70kg', '57cm', '74cm'],
+        ['XL', '176–180cm', '71–85kg', '60cm', '76cm'],
+        ['XXL', '181–190cm', '86–100kg', '63cm', '78cm'],
       ],
-      note: 'Đơn vị: cm, cân nặng tính bằng kg. Số đo mẫu, chờ cập nhật số đo thật.',
+      note: 'Sai số 1–3cm.',
     },
   },
   tui: {

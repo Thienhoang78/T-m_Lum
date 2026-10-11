@@ -809,7 +809,8 @@ button.btn-glass {
   font-size: 0.85rem;
   font-weight: 500;
 }
-.field input {
+.field input,
+.field textarea {
   font: inherit;
   color: var(--navy);
   background: var(--surface);
@@ -821,12 +822,14 @@ button.btn-glass {
     border-color 0.2s,
     box-shadow 0.2s;
 }
-.field input:focus {
+.field input:focus,
+.field textarea:focus {
   outline: none;
   border-color: var(--brand-strong);
   box-shadow: 0 0 0 3px rgba(100, 181, 246, 0.4);
 }
-.field input[aria-invalid='true'] {
+.field input[aria-invalid='true'],
+.field textarea[aria-invalid='true'] {
   border-color: var(--danger);
 }
 .field-err {

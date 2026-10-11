@@ -9,13 +9,16 @@ import AuthModal from './components/AuthModal.jsx'
 import { getMe, logout } from './api.js'
 
 // Đổi trang thì lên đầu trang; link dạng /#combo thì cuộn tới đúng mục.
+// Điều hướng kèm state { keepScroll: true } (vd. đổi combo ngay trên trang áo) thì giữ nguyên vị trí.
 function ScrollManager() {
-  const { pathname, hash } = useLocation()
+  const { pathname, hash, state } = useLocation()
+  const keep = !!state?.keepScroll
   useEffect(() => {
+    if (keep) return
     const el = hash && document.getElementById(hash.slice(1))
     if (el) el.scrollIntoView()
     else window.scrollTo(0, 0)
-  }, [pathname, hash])
+  }, [pathname, hash, keep])
   return null
 }
 
@@ -45,7 +48,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/combo/:slug" element={<Navigate to="/#combo" replace />} />
-          <Route path="/combo/:slug/:product" element={<ProductPage />} />
+          <Route path="/combo/:slug/:product" element={<ProductPage user={user} />} />
           <Route path="/combo/:slug/:product/sticker" element={<StickerSoon />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

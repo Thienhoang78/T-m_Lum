@@ -1,4 +1,4 @@
-import { useId, useState } from 'react'
+import { useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { useCombos } from '../data/useCombos.js'
 import { useCart } from '../cart.jsx'
@@ -6,6 +6,8 @@ import { PRINT_SIDES, PRODUCTS, contentsOf, formatPrice, methodOf, productFor } 
 import { KitArt, KitIcons, TeeArt, ToteArt } from '../components/GarmentArt.jsx'
 import Sticker from '../components/Sticker.jsx'
 import ComboMissing from './ComboMissing.jsx'
+import TeePage from './TeePage.jsx'
+import { OptionGroup, Pills, SizeChart, Stepper } from '../components/ProductParts.jsx'
 
 const ART = { ao: TeeArt, tui: ToteArt }
 
@@ -67,11 +69,13 @@ const POLICIES = [
 
 const TABS = ['Mô tả', 'Bảng size', 'Bảo quản']
 
-export default function ProductPage() {
+export default function ProductPage({ user }) {
   const { slug, product } = useParams()
   const combo = useCombos().find((c) => c.slug === slug)
   if (!PRODUCTS[product]) return <Navigate to="/#combo" replace />
   if (!combo) return <ComboMissing />
+  // Áo: trang riêng có chọn combo + thanh toán; key cố định để đổi combo không mất lựa chọn
+  if (product === 'ao') return <TeePage key="ao" combo={combo} user={user} />
   // key: đổi combo/món thì bắt đầu lại lựa chọn từ đầu
   return (
     <ProductView key={`${slug}/${product}`} combo={combo} product={productFor(PRODUCTS[product], combo)} />
@@ -540,102 +544,6 @@ function ProductView({ combo, product }) {
           )}
         </div>
       </section>
-    </div>
-  )
-}
-
-function OptionGroup({ label, note, aside, children }) {
-  const id = useId()
-  return (
-    <div className="opt" role="group" aria-labelledby={id}>
-      <div className="opt-head">
-        <p className="opt-label" id={id}>
-          Chọn {label.toLowerCase()}
-          {note && <small> ({note})</small>}
-        </p>
-        {aside}
-      </div>
-      <div className="pills">{children}</div>
-    </div>
-  )
-}
-
-function Pills({ label, note, aside, options, value, onChange, multi }) {
-  return (
-    <OptionGroup label={label} note={note} aside={aside}>
-      {options.map((o) => (
-        <button
-          key={o}
-          type="button"
-          className="pill"
-          aria-pressed={multi ? value.includes(o) : value === o}
-          onClick={() => onChange(o)}
-        >
-          {o}
-        </button>
-      ))}
-    </OptionGroup>
-  )
-}
-
-function Stepper({ value, label, onChange }) {
-  return (
-    <div className="stepper">
-      <button
-        type="button"
-        aria-label={`Bớt 1, ${label}`}
-        onClick={() => onChange(value - 1)}
-        disabled={value === 0}
-      >
-        −
-      </button>
-      <input
-        type="number"
-        inputMode="numeric"
-        min="0"
-        max="999"
-        value={value}
-        aria-label={label}
-        onChange={(e) => onChange(e.target.value)}
-        onFocus={(e) => e.target.select()}
-      />
-      <button type="button" aria-label={`Thêm 1, ${label}`} onClick={() => onChange(value + 1)}>
-        +
-      </button>
-    </div>
-  )
-}
-
-function SizeChart({ chart }) {
-  return (
-    <div className="size-chart">
-      <table>
-        <thead>
-          <tr>
-            {chart.head.map((h) => (
-              <th key={h} scope="col">
-                {h}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {chart.rows.map((r) => (
-            <tr key={r[0]}>
-              {r.map((v, i) =>
-                i === 0 ? (
-                  <th key={i} scope="row">
-                    {v}
-                  </th>
-                ) : (
-                  <td key={i}>{v}</td>
-                )
-              )}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <p className="size-note">{chart.note}</p>
     </div>
   )
 }
