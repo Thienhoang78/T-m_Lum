@@ -34,7 +34,7 @@ export default function Nav({ user, onLogin, onRegister, onLogout }) {
               <button type="button" className="nav-login" onClick={onLogin}>
                 Đăng nhập
               </button>
-              <button type="button" className="btn btn-light btn-sm" onClick={onRegister}>
+              <button type="button" className="btn btn-brand btn-sm" onClick={onRegister}>
                 Đăng ký
               </button>
             </>

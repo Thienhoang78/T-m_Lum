@@ -4,7 +4,7 @@ const WORDS = ['áo thun', 'túi tote', 'sticker', 'in ép nhiệt', 'tự chọ
 const SHAPES = [
   ['star', 'var(--sun)'],
   ['heart', 'var(--pink)'],
-  ['bolt', 'var(--sky)'],
+  ['bolt', 'var(--brand-strong)'],
   ['flower', 'var(--mint)'],
 ]
 

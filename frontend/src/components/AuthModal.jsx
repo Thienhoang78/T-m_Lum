@@ -151,7 +151,7 @@ export default function AuthModal({ mode, onModeChange, onClose, onAuthed }) {
             </p>
           )}
 
-          <button type="submit" className="btn btn-light btn-block" disabled={busy}>
+          <button type="submit" className="btn btn-brand btn-block" disabled={busy}>
             {busy ? 'Đang xử lý…' : isReg ? 'Tạo tài khoản' : 'Đăng nhập'}
           </button>
         </form>

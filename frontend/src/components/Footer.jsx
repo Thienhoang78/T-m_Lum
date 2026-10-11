@@ -41,7 +41,7 @@ export default function Footer({ onRegister }) {
           </h2>
           <p className="lede">Tạo tài khoản để lưu combo yêu thích và theo dõi đơn in của bạn.</p>
         </div>
-        <button type="button" className="btn btn-light" onClick={onRegister}>
+        <button type="button" className="btn btn-dark" onClick={onRegister}>
           Đăng ký tài khoản
         </button>
         <Sticker shape="smile" color="var(--sun)" className="footer-cta-sticker" style={{ width: 72 }} />

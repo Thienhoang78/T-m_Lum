@@ -21,7 +21,7 @@ export default function Sticker({ shape = 'star', color = 'var(--sun)', label, c
         </g>
         <g fill={color}>{SHAPES[shape]}</g>
         {shape === 'smile' && (
-          <g fill="none" stroke="#1b1424" strokeWidth="5" strokeLinecap="round">
+          <g fill="none" stroke="var(--navy)" strokeWidth="5" strokeLinecap="round">
             <path d="M33 58c9 12 25 12 34 0" />
             <path d="M37 38v6M63 38v6" />
           </g>

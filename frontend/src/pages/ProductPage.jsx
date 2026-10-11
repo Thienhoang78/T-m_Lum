@@ -18,14 +18,14 @@ const DEMO_STICKERS = {
       { shape: 'blob', color: 'var(--mint)', x: 44, y: 74, r: 4, s: 18, label: 'tùm lum' },
     ],
     back: [
-      { shape: 'flower', color: 'var(--sky)', x: 50, y: 46, r: 10, s: 22 },
+      { shape: 'flower', color: 'var(--brand-strong)', x: 50, y: 46, r: 10, s: 22 },
       { shape: 'heart', color: 'var(--pink)', x: 42, y: 72, r: -8, s: 13 },
     ],
   },
   tui: {
     front: [
       { shape: 'heart', color: 'var(--pink)', x: 36, y: 56, r: 10, s: 20 },
-      { shape: 'bolt', color: 'var(--sky)', x: 64, y: 66, r: -8, s: 18 },
+      { shape: 'bolt', color: 'var(--brand-strong)', x: 64, y: 66, r: -8, s: 18 },
       { shape: 'flower', color: 'var(--sun)', x: 46, y: 82, r: 14, s: 19 },
     ],
     back: [{ shape: 'smile', color: 'var(--mint)', x: 50, y: 66, r: -6, s: 26 }],
@@ -178,7 +178,7 @@ function ProductView({ combo, product }) {
               <Sticker
                 key={x}
                 shape="star"
-                color="var(--sky)"
+                color="var(--brand-strong)"
                 className="pp-sticker"
                 style={{ left: `${SLEEVES[x][side]}%`, top: '22%', width: '9%' }}
               />
@@ -392,12 +392,12 @@ function ProductView({ combo, product }) {
           <div className="pp-actions">
             <button
               type="button"
-              className="btn btn-light btn-block"
+              className="btn btn-dark btn-block"
               onClick={() => navigate(`/combo/${combo.slug}/${product.key}/sticker`)}
             >
               Chọn sticker
             </button>
-            <button type="button" className="btn btn-glass btn-block" onClick={addToCart}>
+            <button type="button" className="btn btn-brand btn-block" onClick={addToCart}>
               Thêm vào giỏ hàng
             </button>
             {error && (

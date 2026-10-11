@@ -34,12 +34,6 @@ export default function App() {
 
   return (
     <>
-      <div className="backdrop" aria-hidden="true">
-        <span className="blob b1" />
-        <span className="blob b2" />
-        <span className="blob b3" />
-        <span className="grain" />
-      </div>
       <Nav
         user={user}
         onLogin={() => setAuthMode('login')}

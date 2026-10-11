@@ -9,7 +9,7 @@ const TEE_STICKERS = [
 ]
 const TOTE_STICKERS = [
   { shape: 'heart', color: 'var(--pink)', x: 36, y: 50, r: 10, s: 58, d: 0.7 },
-  { shape: 'bolt', color: 'var(--sky)', x: 64, y: 62, r: -8, s: 52, d: 2.1 },
+  { shape: 'bolt', color: 'var(--brand-strong)', x: 64, y: 62, r: -8, s: 52, d: 2.1 },
   { shape: 'flower', color: 'var(--sun)', x: 46, y: 78, r: 14, s: 54, d: 3.5 },
 ]
 const CYCLE = 7
@@ -48,7 +48,7 @@ export default function GarmentStage() {
         {place(TOTE_STICKERS)}
         <span className="tag">TÚI TOTE · CANVAS</span>
       </div>
-      <Sticker shape="star" color="var(--sky)" className="float f1" style={{ width: 40 }} />
+      <Sticker shape="star" color="var(--brand-strong)" className="float f1" style={{ width: 40 }} />
       <Sticker shape="heart" color="var(--sun)" className="float f2" style={{ width: 34 }} />
       <Sticker shape="smile" color="var(--mint)" className="float f3" style={{ width: 44 }} />
     </div>

@@ -13,7 +13,7 @@ export default function StickerSoon() {
       <p className="lede">
         Bộ chọn sticker sẽ có ở bản tiếp theo. Bây giờ bạn có thể thêm món vào giỏ và chọn sticker tại studio.
       </p>
-      <Link to={`/combo/${slug}/${product}`} className="btn btn-light">
+      <Link to={`/combo/${slug}/${product}`} className="btn btn-brand">
         ← Quay lại chọn món
       </Link>
     </section>

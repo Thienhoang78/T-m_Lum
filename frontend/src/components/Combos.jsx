@@ -7,7 +7,7 @@ import ProductPickerModal from './ProductPickerModal.jsx'
 const ACCENT = {
   sun: ['var(--sun)', 'star'],
   pink: ['var(--pink)', 'heart'],
-  sky: ['var(--sky)', 'bolt'],
+  sky: ['var(--brand-strong)', 'bolt'],
   mint: ['var(--mint)', 'flower'],
 }
 
@@ -51,7 +51,7 @@ export default function Combos() {
               </ul>
               <button
                 type="button"
-                className={`btn ${c.featured ? 'btn-light' : 'btn-glass'} btn-block`}
+                className={`btn ${c.featured ? 'btn-dark' : 'btn-glass'} btn-block`}
                 onClick={() => setPicking(c)}
               >
                 Chọn {c.name}
