@@ -1,6 +1,6 @@
 import Sticker from './Sticker.jsx'
 
-const WORDS = ['áo thun', 'túi tote', 'sticker', 'in ép nhiệt', 'tự chọn', 'không đụng hàng']
+const WORDS = ['áo thun', 'túi tote', 'sticker', 'in ép nhiệt', 'in lụa', 'không đụng hàng']
 const SHAPES = [
   ['star', 'var(--sun)'],
   ['heart', 'var(--pink)'],

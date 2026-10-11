@@ -121,6 +121,28 @@
   margin: 0;
   color: var(--muted);
 }
+.choose-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+.choose-items li {
+  display: flex;
+  gap: 8px;
+}
+.choose-items li::before {
+  content: '';
+  flex: none;
+  width: 7px;
+  height: 7px;
+  margin-top: 0.6em;
+  border-radius: 50%;
+  background: var(--brand-strong);
+}
 .choose-cta {
   margin-top: 8px;
   font-weight: 600;
@@ -296,6 +318,60 @@
 .pp-blurb {
   margin: 0;
   color: var(--muted);
+}
+
+/* Trong combo có: món nền + bộ sticker / bộ in lụa */
+.pp-includes {
+  display: grid;
+  gap: 12px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  background: var(--brand-soft);
+  border: 1px solid rgba(30, 136, 229, 0.25);
+}
+.pp-includes ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.pp-includes li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 500;
+}
+.pp-inc-icon {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 48px;
+  height: 48px;
+  padding: 4px 6px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+.pp-inc-svg {
+  height: 100%;
+  width: auto;
+}
+.pp-inc-tool {
+  width: 30px;
+  height: 30px;
+}
+
+/* Ảnh bộ in lụa trong thư viện ảnh */
+.pp-main > .pp-kit-art {
+  width: 78%;
+  height: auto;
+}
+.pp-thumb .pp-kit-art {
+  width: 100%;
+  height: auto;
 }
 
 /* Nhóm tuỳ chọn */

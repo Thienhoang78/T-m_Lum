@@ -2,8 +2,8 @@ import { useId, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { useCombos } from '../data/useCombos.js'
 import { useCart } from '../cart.jsx'
-import { ORDER_MODES, PRINT_METHOD, PRINT_SIDES, PRODUCTS, formatPrice } from '../data/products.js'
-import { TeeArt, ToteArt } from '../components/GarmentArt.jsx'
+import { PRINT_SIDES, PRODUCTS, contentsOf, formatPrice, methodOf, productFor } from '../data/products.js'
+import { KitArt, KitIcons, TeeArt, ToteArt } from '../components/GarmentArt.jsx'
 import Sticker from '../components/Sticker.jsx'
 import ComboMissing from './ComboMissing.jsx'
 
@@ -31,18 +31,30 @@ const DEMO_STICKERS = {
     back: [{ shape: 'smile', color: 'var(--mint)', x: 50, y: 66, r: -6, s: 26 }],
   },
 }
+// Combo in lụa: hình minh hoạ in phẳng một màu mực thay cho sticker
+const INK = 'var(--brand-strong)'
 // Tay áo: nhìn mặt trước thì tay trái của người mặc nằm bên phải hình
 const SLEEVES = {
   'Tay trái': { front: 80, back: 20 },
   'Tay phải': { front: 20, back: 80 },
 }
 
-const STEPS = [
+const ORDER_START = [
   ['Đặt hàng', 'Chọn món, màu, size, số lượng rồi thêm vào giỏ.'],
   ['Nhận mã đơn', 'Studio gửi mã đơn và xác nhận lại lựa chọn với bạn.'],
-  ['Chọn hoặc gửi sticker', 'Chọn từ kho sticker của studio, hoặc gửi thiết kế riêng của bạn.'],
-  ['In ép nhiệt', 'Studio in ép nhiệt, bạn nhận tại studio hoặc nhận hàng giao tận nơi.'],
 ]
+const STEPS = {
+  sticker: [
+    ...ORDER_START,
+    ['Chọn hoặc gửi sticker', 'Chọn từ kho sticker của studio, hoặc gửi thiết kế riêng của bạn.'],
+    ['In ép nhiệt', 'Studio in ép nhiệt, bạn nhận tại studio hoặc nhận hàng giao tận nơi.'],
+  ],
+  screen: [
+    ...ORDER_START,
+    ['Chọn hình in', 'Gửi hình của bạn, hoặc nhờ Tùm Lum thiết kế hình cho khuôn in.'],
+    ['Tự in lụa', 'Nhận món đồ cùng khuôn in, dao gạt mực và chai mực, rồi tự tay in lụa.'],
+  ],
+}
 
 const POLICIES = [
   ['Giao hàng', 'M3 7h11v9H3zM14 10h4l3 3v3h-7'],
@@ -61,12 +73,14 @@ export default function ProductPage() {
   if (!PRODUCTS[product]) return <Navigate to="/#combo" replace />
   if (!combo) return <ComboMissing />
   // key: đổi combo/món thì bắt đầu lại lựa chọn từ đầu
-  return <ProductView key={`${slug}/${product}`} combo={combo} product={PRODUCTS[product]} />
+  return (
+    <ProductView key={`${slug}/${product}`} combo={combo} product={productFor(PRODUCTS[product], combo)} />
+  )
 }
 
-function initialState(product) {
+function initialState(product, method) {
   return {
-    orderMode: ORDER_MODES[0],
+    orderMode: method.orderModes[0],
     printSide: PRINT_SIDES[0],
     extras: [],
     color: product.colors[0].key,
@@ -78,7 +92,8 @@ function initialState(product) {
 function ProductView({ combo, product }) {
   const navigate = useNavigate()
   const { add } = useCart()
-  const [opts, setOpts] = useState(() => initialState(product))
+  const method = methodOf(combo)
+  const [opts, setOpts] = useState(() => initialState(product, method))
   const [view, setView] = useState({ color: product.colors[0].key, side: 'front' }) // side: front | back | size
   const [error, setError] = useState(null)
   const [tab, setTab] = useState(0)
@@ -97,7 +112,7 @@ function ProductView({ combo, product }) {
 
   function pickColor(key) {
     set({ color: key })
-    setView((v) => ({ color: key, side: v.side === 'size' ? 'front' : v.side }))
+    setView((v) => ({ color: key, side: v.side === 'size' || v.side === 'kit' ? 'front' : v.side }))
   }
 
   function pickSide(side) {
@@ -117,7 +132,7 @@ function ProductView({ combo, product }) {
   }
 
   function reset() {
-    setOpts(initialState(product))
+    setOpts(initialState(product, method))
     setView({ color: product.colors[0].key, side: 'front' })
     setError(null)
   }
@@ -142,7 +157,7 @@ function ProductView({ combo, product }) {
         orderMode: opts.orderMode,
         printSide: opts.printSide,
         extras: opts.extras,
-        method: PRINT_METHOD,
+        method: method.label,
       },
       quantities,
       total,
@@ -159,13 +174,14 @@ function ProductView({ combo, product }) {
     const showPrint = big && (side === 'front' ? printsFront : printsBack)
     return (
       <div className={`pp-art pp-art-${product.key}`}>
-        <Art fill={c.fill} seam={c.seam} side={side} outline className="pp-svg" />
+        <Art fill={c.fill} seam={c.seam} side={side} pattern={combo.patterned} outline className="pp-svg" />
         {showPrint &&
           DEMO_STICKERS[product.key][side].map((k, i) => (
             <Sticker
               key={i}
               shape={k.shape}
-              color={k.color}
+              color={method.stickers ? k.color : INK}
+              flat={!method.stickers}
               label={k.label}
               className="pp-sticker"
               style={{ left: `${k.x}%`, top: `${k.y}%`, width: `${k.s}%`, rotate: `${k.r}deg` }}
@@ -178,7 +194,8 @@ function ProductView({ combo, product }) {
               <Sticker
                 key={x}
                 shape="star"
-                color="var(--brand-strong)"
+                color={INK}
+                flat={!method.stickers}
                 className="pp-sticker"
                 style={{ left: `${SLEEVES[x][side]}%`, top: '22%', width: '9%' }}
               />
@@ -192,6 +209,7 @@ function ProductView({ combo, product }) {
       { color: c.key, side: 'front', label: `${c.name}, mặt trước` },
       { color: c.key, side: 'back', label: `${c.name}, mặt sau` },
     ]),
+    ...(method.stickers ? [] : [{ color: view.color, side: 'kit', label: 'Bộ dụng cụ in lụa' }]),
     { color: view.color, side: 'size', label: 'Bảng size' },
   ]
 
@@ -203,6 +221,11 @@ function ProductView({ combo, product }) {
           <div className="pp-main">
             {view.side === 'size' ? (
               <SizeChart chart={product.sizeChart} />
+            ) : view.side === 'kit' ? (
+              <>
+                <KitArt className="pp-kit-art" />
+                <span className="pp-view-tag">Bộ in lụa · khuôn, dao gạt, mực</span>
+              </>
             ) : (
               <>
                 {stage(view.color, view.side, true)}
@@ -214,8 +237,8 @@ function ProductView({ combo, product }) {
           </div>
           <ul className="pp-thumbs" aria-label="Ảnh sản phẩm">
             {thumbs.map((t) => {
-              const active =
-                view.side === 'size' ? t.side === 'size' : t.side === view.side && t.color === view.color
+              const special = view.side === 'size' || view.side === 'kit'
+              const active = special ? t.side === view.side : t.side === view.side && t.color === view.color
               return (
                 <li key={`${t.color}-${t.side}`}>
                   <button
@@ -227,6 +250,8 @@ function ProductView({ combo, product }) {
                   >
                     {t.side === 'size' ? (
                       <span className="pp-thumb-size">Bảng size</span>
+                    ) : t.side === 'kit' ? (
+                      <KitArt className="pp-kit-art" />
                     ) : (
                       stage(t.color, t.side)
                     )}
@@ -259,9 +284,35 @@ function ProductView({ combo, product }) {
           </p>
           <p className="pp-blurb">{product.blurb}</p>
 
+          <div className="pp-includes">
+            <p className="eyebrow">Trong {combo.name} có</p>
+            <ul>
+              {contentsOf(combo, product.key).map((it, i) => (
+                <li key={it}>
+                  <span className="pp-inc-icon">
+                    {i === 0 ? (
+                      <Art
+                        fill={product.colors[0].fill}
+                        seam={product.colors[0].seam}
+                        pattern={combo.patterned}
+                        outline
+                        className="pp-inc-svg"
+                      />
+                    ) : method.stickers ? (
+                      <Sticker shape="star" color="var(--sun)" style={{ width: 26 }} />
+                    ) : (
+                      <KitIcons className="pp-inc-tool" />
+                    )}
+                  </span>
+                  {it}
+                </li>
+              ))}
+            </ul>
+          </div>
+
           <Pills
             label="Cách đặt hàng"
-            options={ORDER_MODES}
+            options={method.orderModes}
             value={opts.orderMode}
             onChange={(v) => set({ orderMode: v })}
           />
@@ -276,7 +327,7 @@ function ProductView({ combo, product }) {
               multi
             />
           )}
-          <Pills label="Công nghệ in" options={[PRINT_METHOD]} value={PRINT_METHOD} onChange={() => {}} />
+          <Pills label="Công nghệ in" options={[method.label]} value={method.label} onChange={() => {}} />
 
           <OptionGroup label={product.key === 'ao' ? 'Màu áo' : 'Màu túi'}>
             {product.colors.map((c) => (
@@ -390,13 +441,15 @@ function ProductView({ combo, product }) {
           </div>
 
           <div className="pp-actions">
-            <button
-              type="button"
-              className="btn btn-dark btn-block"
-              onClick={() => navigate(`/combo/${combo.slug}/${product.key}/sticker`)}
-            >
-              Chọn sticker
-            </button>
+            {method.stickers && (
+              <button
+                type="button"
+                className="btn btn-dark btn-block"
+                onClick={() => navigate(`/combo/${combo.slug}/${product.key}/sticker`)}
+              >
+                Chọn sticker
+              </button>
+            )}
             <button type="button" className="btn btn-brand btn-block" onClick={addToCart}>
               Thêm vào giỏ hàng
             </button>
@@ -413,7 +466,7 @@ function ProductView({ combo, product }) {
           <div className="pp-howto">
             <p className="eyebrow">Cách đặt hàng</p>
             <ol>
-              {STEPS.map(([t, d]) => (
+              {STEPS[method.stickers ? 'sticker' : 'screen'].map(([t, d]) => (
                 <li key={t}>
                   <strong>{t}</strong>
                   <span>{d}</span>
@@ -470,8 +523,10 @@ function ProductView({ combo, product }) {
                 Nội dung mẫu: mô tả chất liệu và định lượng sẽ được thay khi có thông tin thật.
               </p>
               <p>
-                {product.title} thuộc {combo.name}. {product.blurb} Sticker được in ép nhiệt trực tiếp tại
-                studio nên bám chắc, không bong khi mặc và giặt đúng cách.
+                {product.title} thuộc {combo.name}. {product.blurb}{' '}
+                {method.stickers
+                  ? 'Sticker được in ép nhiệt trực tiếp tại studio nên bám chắc, không bong khi mặc và giặt đúng cách.'
+                  : 'Combo kèm khuôn in (stencil), dao gạt mực và một chai mực in để bạn tự tay in lụa lên món đồ.'}
               </p>
             </>
           )}

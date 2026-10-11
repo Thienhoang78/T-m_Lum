@@ -4,8 +4,8 @@ export const PRODUCTS = {
     key: 'ao',
     name: 'Áo thun',
     unit: 'áo',
-    title: 'Áo thun cotton in sticker',
-    blurb: 'Áo thun trắng trơn, form suông, để dán sticker kín mặt trước hoặc mặt sau.',
+    title: 'Áo thun cotton',
+    blurb: 'Áo thun cotton form suông, mặt trước và mặt sau đủ rộng để trang trí theo ý bạn.',
     colors: [
       { key: 'trang', name: 'Trắng', fill: '#f7f4ee', seam: '#cfc7b8' },
       { key: 'den', name: 'Đen', fill: '#25202c', seam: '#6b6276' },
@@ -29,8 +29,8 @@ export const PRODUCTS = {
     key: 'tui',
     name: 'Túi tote',
     unit: 'túi',
-    title: 'Túi tote canvas in sticker',
-    blurb: 'Túi tote vải canvas dày, quai đeo vai, mặt túi phẳng để dán sticker thoải mái.',
+    title: 'Túi tote canvas',
+    blurb: 'Túi tote vải canvas dày, quai đeo vai, mặt túi phẳng để trang trí thoải mái.',
     colors: [
       { key: 'moc', name: 'Mộc', fill: '#d8c7a6', seam: '#a8956f' },
       { key: 'den', name: 'Đen', fill: '#25202c', seam: '#6b6276' },
@@ -46,9 +46,37 @@ export const PRODUCTS = {
   },
 }
 
-export const ORDER_MODES = ['Chọn sticker tại studio', 'Bạn tự thiết kế', 'Tùm Lum thiết kế hộ']
 export const PRINT_SIDES = ['Chỉ in mặt trước', 'Chỉ in mặt sau', 'In cả 2 mặt']
-export const PRINT_METHOD = 'In ép nhiệt'
+
+// Cách in theo combo: sticker ép nhiệt tại studio, hoặc bộ dụng cụ để khách tự in lụa.
+export const METHODS = {
+  'heat-transfer': {
+    label: 'In ép nhiệt',
+    stickers: true,
+    orderModes: ['Chọn sticker tại studio', 'Bạn tự thiết kế', 'Tùm Lum thiết kế hộ'],
+  },
+  'screen-print': {
+    label: 'In lụa (tự in bằng bộ dụng cụ)',
+    stickers: false,
+    orderModes: ['Bạn tự thiết kế', 'Tùm Lum thiết kế hộ'],
+  },
+}
+export const methodOf = (combo) => METHODS[combo.method] ?? METHODS['heat-transfer']
+
+// Combo có món nền in sẵn hoạ tiết đen trắng: chỉ một nền trắng, hoạ tiết đen.
+const PATTERN_COLOR = { key: 'hoa-tiet', name: 'Trắng – hoạ tiết đen', fill: '#f7f4ee', seam: '#cfc7b8' }
+
+// Món nền đúng theo combo: đổi tiêu đề và bảng màu khi món in sẵn hoạ tiết.
+export function productFor(product, combo) {
+  if (!combo.patterned) return product
+  return { ...product, title: `${product.title} hoạ tiết đen trắng`, colors: [PATTERN_COLOR] }
+}
+
+// Thành phần combo cho một món nền. Dữ liệu cũ lưu items là mảng chung thì dùng luôn mảng đó.
+export function contentsOf(combo, key) {
+  const items = combo.items
+  return Array.isArray(items) ? items : (items?.[key] ?? [])
+}
 
 export const formatPrice = (p) =>
   p == null ? 'Giá: chờ cập nhật' : `${new Intl.NumberFormat('vi-VN').format(p)}₫`

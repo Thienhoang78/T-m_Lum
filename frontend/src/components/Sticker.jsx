@@ -1,4 +1,5 @@
 // Sticker kiểu die-cut: hình màu có viền trắng dày như sticker thật.
+// flat: bỏ viền trắng, trông như hình in lụa một màu in thẳng lên vải.
 const SHAPES = {
   star: <path d="M50 6l12.6 27.6 30 3.4-22.4 20.3 6.3 29.7L50 71.8 23.5 87l6.3-29.7L7.4 37l30-3.4z" />,
   heart: (
@@ -12,13 +13,22 @@ const SHAPES = {
   blob: <path d="M18 30c8-18 38-26 56-14s22 40 8 56-46 18-60 4S10 48 18 30z" />,
 }
 
-export default function Sticker({ shape = 'star', color = 'var(--sun)', label, className = '', style }) {
+export default function Sticker({
+  shape = 'star',
+  color = 'var(--sun)',
+  label,
+  flat,
+  className = '',
+  style,
+}) {
   return (
     <span className={`sticker ${className}`} style={style} aria-hidden="true">
       <svg viewBox="0 0 100 100">
-        <g className="die" fill="#fff" stroke="#fff" strokeWidth="14" strokeLinejoin="round">
-          {SHAPES[shape]}
-        </g>
+        {!flat && (
+          <g className="die" fill="#fff" stroke="#fff" strokeWidth="14" strokeLinejoin="round">
+            {SHAPES[shape]}
+          </g>
+        )}
         <g fill={color}>{SHAPES[shape]}</g>
         {shape === 'smile' && (
           <g fill="none" stroke="var(--navy)" strokeWidth="5" strokeLinecap="round">

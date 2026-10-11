@@ -648,6 +648,7 @@ main,
   display: grid;
   gap: 8px;
   flex: 1;
+  align-content: start;
 }
 .combo-items li {
   display: flex;

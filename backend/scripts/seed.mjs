@@ -1,22 +1,36 @@
-// Nạp 3 combo MẪU vào MongoDB. Sửa tên/giá/thành phần rồi chạy: npm run seed
+// Nạp 3 combo vào MongoDB (thành phần thật, tên và giá chờ cập nhật). Sửa rồi chạy: npm run seed
 import mongoose from 'mongoose'
+
+const KIT_LUA = '1 bộ in lụa: 1 khuôn in (stencil), 1 dao gạt mực, 1 chai mực in'
 
 const combos = [
   {
     slug: 'combo-1',
     name: 'Combo 1',
-    tagline: 'Tên combo chờ cập nhật',
+    tagline: 'Trơn + sticker ép nhiệt',
     price: null,
-    items: ['1 áo thun trơn', '3 sticker tự chọn', 'In ép nhiệt tại studio'],
+    method: 'heat-transfer',
+    patterned: false,
+    summary: ['1 áo thun hoặc túi tote trơn', '1 bộ sticker ép nhiệt'],
+    items: {
+      ao: ['1 áo thun trơn', '1 bộ sticker ép nhiệt'],
+      tui: ['1 túi tote trơn', '1 bộ sticker ép nhiệt'],
+    },
     accent: 'sun',
     order: 1,
   },
   {
     slug: 'combo-2',
     name: 'Combo 2',
-    tagline: 'Tên combo chờ cập nhật',
+    tagline: 'Hoạ tiết đen trắng + sticker ép nhiệt',
     price: null,
-    items: ['1 túi tote canvas', '4 sticker tự chọn', 'In ép nhiệt tại studio'],
+    method: 'heat-transfer',
+    patterned: true,
+    summary: ['1 áo thun hoặc túi tote in sẵn hoạ tiết đen trắng', '1 bộ sticker ép nhiệt'],
+    items: {
+      ao: ['1 áo thun in sẵn nền/hoạ tiết đen trắng', '1 bộ sticker ép nhiệt'],
+      tui: ['1 túi tote in sẵn nền/hoạ tiết đen trắng', '1 bộ sticker ép nhiệt'],
+    },
     accent: 'pink',
     featured: true,
     order: 2,
@@ -24,9 +38,15 @@ const combos = [
   {
     slug: 'combo-3',
     name: 'Combo 3',
-    tagline: 'Tên combo chờ cập nhật',
+    tagline: 'Bộ tự in lụa',
     price: null,
-    items: ['1 áo thun + 1 túi tote', '6 sticker tự chọn', 'In ép nhiệt tại studio'],
+    method: 'screen-print',
+    patterned: false,
+    summary: ['1 áo thun hoặc túi tote trơn', '1 bộ in lụa: khuôn in, dao gạt mực, chai mực in'],
+    items: {
+      ao: ['1 áo thun trơn', KIT_LUA],
+      tui: ['1 túi tote trơn', KIT_LUA],
+    },
     accent: 'sky',
     order: 3,
   },

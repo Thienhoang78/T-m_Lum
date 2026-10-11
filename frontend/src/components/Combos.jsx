@@ -15,7 +15,7 @@ export default function Combos() {
   const combos = useCombos()
   const [picking, setPicking] = useState(null)
 
-  const hasPlaceholder = combos.some((c) => c.placeholder)
+  const hasPending = combos.some((c) => c.placeholder || c.price == null)
 
   return (
     <section className="section" id="combo">
@@ -24,10 +24,8 @@ export default function Combos() {
         <h2 className="display-sm">
           3 combo để bắt đầu <em>tùm lum</em>.
         </h2>
-        {hasPlaceholder && (
-          <p className="placeholder-note">
-            Nội dung mẫu: tên, giá và thành phần combo sẽ được thay khi có thông tin thật.
-          </p>
+        {hasPending && (
+          <p className="placeholder-note">Tên và giá combo sẽ được cập nhật khi có thông tin thật.</p>
         )}
       </div>
       <div className="combos">
@@ -45,7 +43,7 @@ export default function Combos() {
               <p className="combo-tag">{c.tagline}</p>
               <p className="combo-price">{formatPrice(c.price)}</p>
               <ul className="combo-items">
-                {c.items.map((it) => (
+                {(c.summary ?? (Array.isArray(c.items) ? c.items : [])).map((it) => (
                   <li key={it}>{it}</li>
                 ))}
               </ul>

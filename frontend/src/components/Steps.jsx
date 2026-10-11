@@ -1,15 +1,15 @@
 const STEPS = [
   {
     title: 'Chọn món nền',
-    body: 'Áo thun trơn hoặc túi tote canvas. Chọn màu và size ngay tại quầy.',
+    body: 'Áo thun hoặc túi tote, trơn hoặc in sẵn hoạ tiết đen trắng. Chọn màu và size ngay tại quầy.',
   },
   {
-    title: 'Chọn sticker',
-    body: 'Lục kho sticker, xếp thử vị trí trên áo cho tới khi ưng ý.',
+    title: 'Chọn sticker hoặc bộ in lụa',
+    body: 'Lục kho sticker, xếp thử vị trí trên áo cho tới khi ưng ý; hoặc lấy bộ in lụa để tự tay in.',
   },
   {
-    title: 'In ép nhiệt & mang về',
-    body: 'Studio ép sticker lên vải bằng máy ép nhiệt. Bạn nhận món đồ của riêng mình.',
+    title: 'In ép nhiệt hoặc tự in lụa',
+    body: 'Studio ép sticker lên vải bằng máy ép nhiệt, hoặc bạn tự in với khuôn, dao gạt và mực trong bộ.',
   },
 ]
 
