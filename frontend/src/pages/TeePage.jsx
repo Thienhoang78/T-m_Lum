@@ -306,7 +306,11 @@ export default function TeePage({ combo, user }) {
                           type="radio"
                           name={`${uid}-set`}
                           checked={setKey === s.key}
-                          onChange={() => setSetKey(s.key)}
+                          onChange={() => {
+                            // Mới chọn bộ: mặc định số bộ = số áo (mỗi áo kèm 1 bộ)
+                            if (!setKey) setStickerQty(qty)
+                            setSetKey(s.key)
+                          }}
                         />
                         <span className="tee-set-art" aria-hidden="true">
                           {s.stickers.map(([shape, color], i) => (
@@ -316,7 +320,9 @@ export default function TeePage({ combo, user }) {
                         <span className="tee-set-name">
                           {s.name} <small>(mẫu)</small>
                         </span>
-                        <span className="tee-set-price">+{vnd(PRICING.stickerSet)} / bộ</span>
+                        <span className="tee-set-price">
+                          1 bộ / áo kèm combo · thêm {vnd(PRICING.stickerSet)} / bộ
+                        </span>
                       </label>
                     ))}
                   </div>
@@ -450,14 +456,30 @@ export default function TeePage({ combo, user }) {
                         <td>{vnd(q.aoTotal)}</td>
                       </tr>
                       {stickerSet && (
-                        <tr>
-                          <th scope="row">
-                            {stickerSet.name}
-                            <small>{vnd(PRICING.stickerSet)} / bộ</small>
-                          </th>
-                          <td>{stickerQty}</td>
-                          <td>{vnd(q.stickerTotal)}</td>
-                        </tr>
+                        <>
+                          <tr>
+                            <th scope="row">{stickerSet.name}</th>
+                            <td>{stickerQty}</td>
+                            <td>{vnd(q.stickerTotal)}</td>
+                          </tr>
+                          {q.freeSets > 0 && (
+                            <tr className="tee-bill-sub">
+                              <th scope="row">Đã gồm trong combo</th>
+                              <td>{q.freeSets}</td>
+                              <td>0₫</td>
+                            </tr>
+                          )}
+                          {q.paidSets > 0 && (
+                            <tr className="tee-bill-sub">
+                              <th scope="row">
+                                Mua thêm
+                                <small>{vnd(PRICING.stickerSet)} / bộ</small>
+                              </th>
+                              <td>{q.paidSets}</td>
+                              <td>{vnd(q.stickerTotal)}</td>
+                            </tr>
+                          )}
+                        </>
                       )}
                     </tbody>
                     <tfoot>

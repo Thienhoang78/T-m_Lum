@@ -22,6 +22,8 @@ const OrderSchema = new mongoose.Schema(
     totals: {
       unit: Number,
       aoTotal: Number,
+      freeSets: Number,
+      paidSets: Number,
       stickerTotal: Number,
       goods: Number,
       shipping: Number,
