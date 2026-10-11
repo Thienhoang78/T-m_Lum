@@ -1,23 +1,27 @@
+import { Link } from 'react-router-dom'
+import CartButton from './CartButton.jsx'
+
 export default function Nav({ user, onLogin, onRegister, onLogout }) {
   return (
     <header className="nav-wrap">
       <nav className="nav glass" aria-label="Chính">
-        <a href="#top" className="brand">
+        <Link to="/" className="brand">
           <span className="brand-dot" aria-hidden="true" />
           Tùm Lum <em>Studio</em>
-        </a>
+        </Link>
         <ul className="nav-links">
           <li>
-            <a href="#cach-lam">Cách làm</a>
+            <Link to="/#cach-lam">Cách làm</Link>
           </li>
           <li>
-            <a href="#combo">Combo</a>
+            <Link to="/#combo">Combo</Link>
           </li>
           <li>
             <a href="#lien-he">Liên hệ</a>
           </li>
         </ul>
         <div className="nav-actions">
+          <CartButton />
           {user ? (
             <>
               <span className="nav-user">Chào, {user.name.split(' ').pop()}</span>

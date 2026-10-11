@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import Sticker from './Sticker.jsx'
 
 const SOON = 'Sắp có'
@@ -6,8 +7,8 @@ const COLUMNS = [
   {
     title: 'Khám phá',
     links: [
-      { label: 'Cách làm', href: '#cach-lam' },
-      { label: '3 combo', href: '#combo' },
+      { label: 'Cách làm', href: '/#cach-lam' },
+      { label: '3 combo', href: '/#combo' },
       { label: 'Kho sticker', soon: true },
       { label: 'Áo & túi trơn', soon: true },
     ],
@@ -80,7 +81,7 @@ export default function Footer({ onRegister }) {
                       {l.label} <span className="soon">{SOON}</span>
                     </span>
                   ) : (
-                    <a href={l.href}>{l.label}</a>
+                    <Link to={l.href}>{l.label}</Link>
                   )}
                 </li>
               ))}

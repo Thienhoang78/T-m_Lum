@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
-import { fetchCombos } from '../api.js'
-import { PLACEHOLDER_COMBOS } from '../data/combos.js'
+import { Link } from 'react-router-dom'
+import { useCombos } from '../data/useCombos.js'
+import { formatPrice } from '../data/products.js'
 import Sticker from './Sticker.jsx'
 
 const ACCENT = {
@@ -10,14 +10,8 @@ const ACCENT = {
   mint: ['var(--mint)', 'flower'],
 }
 
-const formatPrice = (p) => (p == null ? 'Giá: chờ cập nhật' : `${new Intl.NumberFormat('vi-VN').format(p)}₫`)
-
 export default function Combos() {
-  const [combos, setCombos] = useState(PLACEHOLDER_COMBOS)
-
-  useEffect(() => {
-    fetchCombos().then(setCombos)
-  }, [])
+  const combos = useCombos()
 
   const hasPlaceholder = combos.some((c) => c.placeholder)
 
@@ -53,9 +47,12 @@ export default function Combos() {
                   <li key={it}>{it}</li>
                 ))}
               </ul>
-              <a href="#lien-he" className={`btn ${c.featured ? 'btn-light' : 'btn-glass'} btn-block`}>
+              <Link
+                to={`/combo/${c.slug}`}
+                className={`btn ${c.featured ? 'btn-light' : 'btn-glass'} btn-block`}
+              >
                 Chọn {c.name}
-              </a>
+              </Link>
             </article>
           )
         })}

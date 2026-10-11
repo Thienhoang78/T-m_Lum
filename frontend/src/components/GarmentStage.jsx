@@ -1,4 +1,5 @@
 import Sticker from './Sticker.jsx'
+import { TeeArt, ToteArt } from './GarmentArt.jsx'
 
 // Sân khấu hero: áo thun + túi tote, sticker bay vào và "dán" lên theo vòng lặp.
 const TEE_STICKERS = [
@@ -38,29 +39,12 @@ export default function GarmentStage() {
   return (
     <div className="stage" role="img" aria-label="Minh hoạ áo thun và túi tote được dán sticker">
       <div className="garment tee">
-        <svg viewBox="0 0 300 320" className="garment-svg">
-          <path
-            d="M100 18c10 18 28 26 50 26s40-8 50-26l70 34-28 64-34-14v200H92V102l-34 14-28-64z"
-            fill="var(--cotton)"
-          />
-          <path d="M100 18c10 18 28 26 50 26s40-8 50-26" fill="none" stroke="var(--seam)" strokeWidth="5" />
-          <path d="M92 102v200M208 102v200" stroke="var(--seam)" strokeWidth="1.5" opacity=".5" />
-        </svg>
+        <TeeArt />
         {place(TEE_STICKERS)}
         <span className="tag">ÁO THUN · COTTON</span>
       </div>
       <div className="garment tote">
-        <svg viewBox="0 0 240 320" className="garment-svg">
-          <path
-            d="M70 110V70a50 50 0 01100 0v40"
-            fill="none"
-            stroke="var(--canvas-dark)"
-            strokeWidth="14"
-            strokeLinecap="round"
-          />
-          <rect x="22" y="100" width="196" height="210" rx="6" fill="var(--canvas)" />
-          <path d="M22 122h196" stroke="var(--canvas-dark)" strokeWidth="2" strokeDasharray="5 5" />
-        </svg>
+        <ToteArt />
         {place(TOTE_STICKERS)}
         <span className="tag">TÚI TOTE · CANVAS</span>
       </div>
