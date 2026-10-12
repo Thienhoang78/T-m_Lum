@@ -1,5 +1,6 @@
 import { connectDB } from '@/lib/mongodb'
 import Combo from '@/models/Combo'
+import { requireAdmin } from '@/lib/admin'
 
 export async function GET(_req, { params }) {
   await connectDB()
@@ -9,8 +10,10 @@ export async function GET(_req, { params }) {
   return Response.json(combo)
 }
 
-// TODO: thêm xác thực admin
+// Cần header x-admin-token (xem lib/admin.js)
 export async function PATCH(req, { params }) {
+  const denied = requireAdmin(req)
+  if (denied) return denied
   await connectDB()
   const { id } = await params
   const combo = await Combo.findOneAndUpdate({ slug: id }, await req.json(), { new: true }).lean()

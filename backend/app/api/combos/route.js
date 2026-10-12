@@ -1,5 +1,6 @@
 import { connectDB } from '@/lib/mongodb'
 import Combo from '@/models/Combo'
+import { requireAdmin } from '@/lib/admin'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,8 +10,10 @@ export async function GET() {
   return Response.json(combos)
 }
 
-// TODO: thêm xác thực admin trước khi mở cho production
+// Cần header x-admin-token (xem lib/admin.js)
 export async function POST(req) {
+  const denied = requireAdmin(req)
+  if (denied) return denied
   await connectDB()
   const body = await req.json()
   const combo = await Combo.create(body)

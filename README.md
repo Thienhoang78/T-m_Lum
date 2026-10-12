@@ -42,18 +42,78 @@ VS Code: mở thư mục gốc, cài các extension được gợi ý (ESLint, P
 | ----------- | ------------------ | ------------------------------------------------- |
 | GET         | /api/health        | Kiểm tra kết nối MongoDB                          |
 | GET         | /api/combos        | Danh sách combo đang bán                          |
-| POST        | /api/combos        | Tạo combo (chưa có xác thực admin)                |
-| GET / PATCH | /api/combos/:slug  | Xem / sửa 1 combo                                 |
+| POST        | /api/combos        | Tạo combo (cần header `x-admin-token`)            |
+| GET / PATCH | /api/combos/:slug  | Xem / sửa 1 combo (sửa cần `x-admin-token`)       |
+| POST        | /api/orders        | Đặt áo: kiểm tra dữ liệu, tính lại giá, lưu đơn   |
 | POST        | /api/auth/register | Đăng ký (họ tên, email, SĐT, mật khẩu ≥ 8 ký tự)  |
 | POST        | /api/auth/login    | Đăng nhập, đặt cookie phiên `tl_session` (7 ngày) |
 | POST        | /api/auth/logout   | Đăng xuất                                         |
 | GET         | /api/auth/me       | Người dùng đang đăng nhập (hoặc `null`)           |
 
 Mật khẩu được băm bằng bcrypt; phiên đăng nhập là JWT trong cookie httpOnly. Cần đặt `JWT_SECRET` trong `backend/.env.local`.
+API tạo / sửa combo chỉ chạy khi gửi header `x-admin-token` trùng biến `ADMIN_TOKEN`; để trống `ADMIN_TOKEN` thì các API này bị khoá.
+
+## Triển khai (GitHub + Vercel + MongoDB Atlas)
+
+Code đưa lên GitHub, Vercel tự build mỗi lần push. Tạo **2 project Vercel từ cùng một repo**: một cho `backend` (API), một cho `frontend` (web).
+Trình duyệt chỉ gọi domain frontend; `frontend/vercel.json` chuyển `/api/*` sang backend nên cookie đăng nhập vẫn hoạt động.
+
+### 1. Đưa code lên GitHub
+
+Tạo repo mới (nên để **Private**) trên github.com, không tick tạo README. Rồi chạy ở thư mục gốc:
+
+```bash
+git remote add origin https://github.com/<tai-khoan>/<ten-repo>.git
+git push -u origin main
+```
+
+File `.env.local` đã nằm trong `.gitignore`, không bị đẩy lên.
+
+### 2. Tạo database MongoDB Atlas (miễn phí)
+
+1. Vào https://www.mongodb.com/cloud/atlas, tạo cluster **M0 (Free)**.
+2. Database Access: tạo user + mật khẩu.
+3. Network Access: thêm `0.0.0.0/0` (Vercel không có IP cố định).
+4. Connect → Drivers: chép chuỗi kết nối, thêm tên database `tumlum`, ví dụ
+   `mongodb+srv://user:matkhau@cluster0.xxxxx.mongodb.net/tumlum?retryWrites=true&w=majority`.
+5. Nạp 3 combo vào Atlas từ máy của bạn:
+
+```bash
+MONGODB_URI="mongodb+srv://..." npm run seed:remote -w backend
+```
+
+PowerShell:
+
+```powershell
+$env:MONGODB_URI="mongodb+srv://..."; npm run seed:remote -w backend; Remove-Item Env:MONGODB_URI
+```
+
+### 3. Deploy backend (API) trên Vercel
+
+Vercel → Add New → Project → chọn repo → **Root Directory: `backend`** (Framework: Next.js). Thêm Environment Variables:
+
+| Biến              | Giá trị                                                                 |
+| ----------------- | ----------------------------------------------------------------------- |
+| `MONGODB_URI`     | chuỗi kết nối Atlas ở bước 2                                            |
+| `JWT_SECRET`      | chuỗi ngẫu nhiên dài (vd. `openssl rand -base64 32`)                    |
+| `FRONTEND_ORIGIN` | domain frontend, vd. `https://tum-lum.vercel.app` (cập nhật sau bước 4) |
+| `ADMIN_TOKEN`     | (tuỳ chọn) mã bí mật để tạo / sửa combo qua API                         |
+
+Deploy xong, mở `https://<domain-backend>/api/health` để kiểm tra kết nối database.
+
+### 4. Deploy frontend (web) trên Vercel
+
+1. Mở `frontend/vercel.json`, đổi `https://tum-lum-api.vercel.app` thành domain backend thật ở bước 3, commit và push.
+2. Vercel → Add New → Project → cùng repo → **Root Directory: `frontend`** (Framework: Vite). Không cần biến môi trường
+   (để trống `VITE_API_URL`).
+3. Deploy xong, đặt `FRONTEND_ORIGIN` của backend bằng domain frontend rồi Redeploy backend.
+
+Mỗi lần `git push` lên nhánh `main`, Vercel tự build lại cả hai. Nếu bước cài đặt trên Vercel báo lỗi do repo dùng
+npm workspaces, vào Settings → Build and Deployment của project đó, đặt Install Command là `cd .. && npm install`.
 
 ## Còn thiếu
 
-- Tên, giá, thành phần thật của 3 combo (đang là nội dung mẫu).
+- Tên và giá thật của 3 combo (giá trên trang áo đang là giá mẫu trong `frontend/src/data/pricing.js` và `backend/lib/pricing.js`).
 - Địa chỉ, giờ mở cửa, kênh liên hệ.
-- Trang chọn sticker, giỏ hàng, đặt hàng, phân quyền admin cho API combo.
+- Kho sticker thật, trang đặt túi tote, trang quản lý đơn hàng, cổng thanh toán thật.
 - Quên mật khẩu / xác minh email.
