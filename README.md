@@ -103,7 +103,7 @@ Deploy xong, mở `https://<domain-backend>/api/health` để kiểm tra kết n
 
 ### 4. Deploy frontend (web) trên Vercel
 
-1. Mở `frontend/vercel.json`, đổi `https://tum-lum-api.vercel.app` thành domain backend thật ở bước 3, commit và push.
+1. Mở `frontend/vercel.json`, đặt domain backend thật ở bước 3 (hiện là `https://t-m-lum.vercel.app`), commit và push.
 2. Vercel → Add New → Project → cùng repo → **Root Directory: `frontend`** (Framework: Vite). Không cần biến môi trường
    (để trống `VITE_API_URL`).
 3. Deploy xong, đặt `FRONTEND_ORIGIN` của backend bằng domain frontend rồi Redeploy backend.
