@@ -9,8 +9,9 @@ const OrderSchema = new mongoose.Schema(
   {
     code: { type: String, required: true, unique: true }, // TL-YYMMDD-XXXX
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    combo: { slug: String, name: String, method: String },
-    product: { type: String, enum: ['ao'], required: true },
+    combo: { slug: String, name: String, tier: String, method: String },
+    product: { type: String, enum: ['ao', 'tui'], required: true },
+    color: String,
     size: String,
     qty: { type: Number, min: 1 },
     stickerSet: { key: String, name: String, qty: Number },
@@ -21,7 +22,7 @@ const OrderSchema = new mongoose.Schema(
     voucher: String,
     totals: {
       unit: Number,
-      aoTotal: Number,
+      itemTotal: Number,
       stickerTotal: Number,
       goods: Number,
       shipping: Number,

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { PRODUCTS, contentsOf, formatPrice, methodOf, productFor } from '../data/products.js'
+import { PRODUCTS, methodOf, productFor } from '../data/products.js'
+import { priceOf, vnd } from '../data/pricing.js'
 import { TeeArt, ToteArt } from './GarmentArt.jsx'
 import Sticker from './Sticker.jsx'
 
@@ -9,11 +10,12 @@ const CHOICES = [
   { product: PRODUCTS.tui, Art: ToteArt, sticker: ['heart', 'var(--pink)'] },
 ]
 
-// Bấm "Chọn Combo X" → mờ trang phía sau, hiện 2 khối áo / túi để chọn món nền.
-export default function ProductPickerModal({ combo, onClose }) {
+// Bấm "Chọn Basic" → mờ trang phía sau, hiện 2 khối áo / túi; chọn xong vào trang đặt hàng của món đó,
+// nơi khách chọn Combo 1 hoặc Combo 2.
+export default function ProductPickerModal({ tier, combos, onClose }) {
   const dialogRef = useRef(null)
   const navigate = useNavigate()
-  const { stickers, note } = methodOf(combo)
+  const { note } = methodOf(combos[0])
 
   useEffect(() => {
     const d = dialogRef.current
@@ -28,8 +30,12 @@ export default function ProductPickerModal({ combo, onClose }) {
 
   function pick(key) {
     close()
-    navigate(`/combo/${combo.slug}/${key}`)
+    navigate(`/${tier.key}/${key}`)
   }
+
+  const choices = CHOICES.filter(({ product }) =>
+    combos.some((c) => (c.products ?? ['ao']).includes(product.key))
+  )
 
   return (
     <dialog
@@ -49,15 +55,16 @@ export default function ProductPickerModal({ combo, onClose }) {
         </button>
         <div className="picker-head">
           <p className="eyebrow">
-            {combo.name} · {formatPrice(combo.price)}
+            Gói {tier.name} · {combos.map((c) => c.name).join(' hoặc ')}
           </p>
           <h2 className="display-sm" id="picker-title">
-            {stickers ? 'Bạn muốn dán sticker lên' : 'Bạn muốn tự in lụa lên'} <em>món nào</em>?
+            Bạn muốn dán sticker lên <em>món nào</em>?
           </h2>
         </div>
         <div className="choose-grid">
-          {CHOICES.map(({ product, Art, sticker }) => {
-            const { key, name, colors } = productFor(product, combo)
+          {choices.map(({ product, Art, sticker }) => {
+            const { key, name, colors } = productFor(product, combos[0])
+            const prices = combos.map((c) => priceOf(key, c.slug)).filter((p) => p != null)
             return (
               <button
                 key={key}
@@ -66,20 +73,22 @@ export default function ProductPickerModal({ combo, onClose }) {
                 onClick={() => pick(key)}
               >
                 <div className="choose-art">
-                  <Art fill={colors[0].fill} seam={colors[0].seam} pattern={combo.patterned} />
+                  <Art fill={colors[0].fill} seam={colors[0].seam} />
                   <Sticker
                     shape={sticker[0]}
-                    color={stickers ? sticker[1] : 'var(--brand-strong)'}
-                    flat={!stickers}
+                    color={sticker[1]}
                     className="choose-sticker"
                     style={{ width: 52 }}
                   />
                 </div>
                 <div className="choose-copy">
                   <h3>{name}</h3>
-                  <ul className="choose-items" aria-label={`${combo.name} gồm`}>
-                    {contentsOf(combo, key).map((it) => (
-                      <li key={it}>{it}</li>
+                  {prices.length > 0 && <p className="choose-price">{vnd(Math.min(...prices))}</p>}
+                  <ul className="choose-items" aria-label={`Gói ${tier.name} cho ${name.toLowerCase()}`}>
+                    {combos.map((c) => (
+                      <li key={c.slug}>
+                        {c.name}: {c.tagline}
+                      </li>
                     ))}
                   </ul>
                   {note && <p className="combo-note">{note}</p>}

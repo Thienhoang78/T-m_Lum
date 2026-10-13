@@ -1,6 +1,9 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useCombos } from '../data/useCombos.js'
-import { formatPrice, methodOf } from '../data/products.js'
+import { TIERS } from '../data/combos.js'
+import { PRODUCTS, contentsOf, methodOf } from '../data/products.js'
+import { PRICING, priceOf, vnd } from '../data/pricing.js'
 import Sticker from './Sticker.jsx'
 import ProductPickerModal from './ProductPickerModal.jsx'
 
@@ -11,55 +14,92 @@ const ACCENT = {
   mint: ['var(--mint)', 'flower'],
 }
 
+// Giá thấp nhất của từng món trong gói (Basic: áo và túi; Premium: áo)
+function pricesOf(combos) {
+  const keys = [...new Set(combos.flatMap((c) => c.products ?? ['ao']))]
+  return keys
+    .map((k) => {
+      const list = combos.map((c) => priceOf(k, c.slug)).filter((p) => p != null)
+      return list.length ? { key: k, name: PRODUCTS[k].name, price: Math.min(...list) } : null
+    })
+    .filter(Boolean)
+}
+
 export default function Combos() {
   const combos = useCombos()
+  const navigate = useNavigate()
   const [picking, setPicking] = useState(null)
 
-  const hasPending = combos.some((c) => c.placeholder || c.price == null)
+  const tiers = [TIERS.basic, TIERS.premium]
+    .map((tier) => ({ tier, combos: combos.filter((c) => (c.tier ?? 'basic') === tier.key) }))
+    .filter((t) => t.combos.length)
+  const hasSample = combos.some((c) => PRICING.sample[c.slug])
 
   return (
     <section className="section" id="combo">
       <div className="section-head">
-        <p className="eyebrow">Combo</p>
+        <p className="eyebrow">Gói</p>
         <h2 className="display-sm">
-          3 combo để bắt đầu <em>tùm lum</em>.
+          {tiers.length} gói để bắt đầu <em>tùm lum</em>.
         </h2>
-        {hasPending && (
-          <p className="placeholder-note">Tên và giá combo sẽ được cập nhật khi có thông tin thật.</p>
+        {hasSample && (
+          <p className="placeholder-note">
+            Giá gói Premium đang tạm tính, sẽ cập nhật khi có giá chính thức.
+          </p>
         )}
       </div>
-      <div className="combos">
-        {combos.map((c) => {
-          const [color, shape] = ACCENT[c.accent] ?? ACCENT.sun
+      <div className="combos combos-2">
+        {tiers.map(({ tier, combos: list }) => {
+          const [color, shape] = ACCENT[tier.accent] ?? ACCENT.sun
+          const isBasic = tier.key === 'basic'
+          const note = methodOf(list[0]).note
           return (
             <article
-              key={c.slug}
-              className={`combo${c.featured ? ' featured' : ''}`}
+              key={tier.key}
+              className={`combo${tier.featured ? ' featured' : ''}`}
               style={{ '--accent': color }}
             >
               <Sticker shape={shape} color={color} className="combo-sticker" style={{ width: 64 }} />
-              {c.featured && <span className="badge">Được chọn nhiều</span>}
-              <h3 className="combo-name">{c.name}</h3>
-              <p className="combo-tag">{c.tagline}</p>
-              <p className="combo-price">{formatPrice(c.price)}</p>
-              <ul className="combo-items">
-                {(c.summary ?? (Array.isArray(c.items) ? c.items : [])).map((it) => (
-                  <li key={it}>{it}</li>
+              {tier.featured && <span className="badge">Tự tay in lụa</span>}
+              <h3 className="combo-name">{tier.name}</h3>
+              <p className="combo-tag">{tier.tagline}</p>
+              <ul className="combo-prices">
+                {pricesOf(list).map((p) => (
+                  <li key={p.key}>
+                    <span>{p.name}</span>
+                    <strong>
+                      {vnd(p.price)}
+                      {list.some((c) => PRICING.sample[c.slug]) && <small> tạm tính</small>}
+                    </strong>
+                  </li>
                 ))}
               </ul>
-              {methodOf(c).note && <p className="combo-note">{methodOf(c).note}</p>}
+              <ul className="combo-items">
+                {isBasic
+                  ? list.map((c) => (
+                      <li key={c.slug}>
+                        <span>
+                          <strong>{c.name}:</strong> {c.tagline}
+                        </span>
+                      </li>
+                    ))
+                  : contentsOf(list[0], 'ao').map((it) => <li key={it}>{it}</li>)}
+              </ul>
+              {note && <p className="combo-note">{note}</p>}
               <button
                 type="button"
-                className={`btn ${c.featured ? 'btn-dark' : 'btn-glass'} btn-block`}
-                onClick={() => setPicking(c)}
+                className={`btn ${tier.featured ? 'btn-dark' : 'btn-glass'} btn-block`}
+                onClick={() => (isBasic ? setPicking({ tier, combos: list }) : navigate('/premium'))}
               >
-                Chọn {c.name}
+                Chọn {tier.name}
               </button>
             </article>
           )
         })}
       </div>
-      {picking && <ProductPickerModal combo={picking} onClose={() => setPicking(null)} />}
+      {picking && (
+        <ProductPickerModal tier={picking.tier} combos={picking.combos} onClose={() => setPicking(null)} />
+      )}
     </section>
   )
 }

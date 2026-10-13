@@ -22,6 +22,16 @@ npm run dev                                  # chạy cả 2: web :5173, API :30
 Mở http://localhost:5173. Frontend tự chuyển `/api/*` sang backend nên cookie đăng nhập hoạt động khi dev.
 Nếu backend chưa chạy, trang vẫn hiện combo mẫu trong `frontend/src/data/combos.js`.
 
+## Gói và trang đặt hàng
+
+| Gói     | Món         | Combo                                                 | Trang                          |
+| ------- | ----------- | ----------------------------------------------------- | ------------------------------ |
+| Basic   | Áo thun     | Combo 1 (trơn), Combo 2 (in sẵn hoạ tiết đen trắng)   | `/basic/ao` (`?combo=combo-2`) |
+| Basic   | Túi tote    | Combo 1, Combo 2                                      | `/basic/tui`                   |
+| Premium | Chỉ áo thun | Áo trơn + bộ tự in lụa (khuôn, dao gạt mực, chai mực) | `/premium`                     |
+
+Basic ép nhiệt sticker (sticker chọn và tính tiền riêng), Premium in lụa. Link cũ `/combo/...` tự chuyển sang trang mới.
+
 ## Lệnh hay dùng
 
 | Lệnh                                  | Việc                             |
@@ -44,7 +54,7 @@ VS Code: mở thư mục gốc, cài các extension được gợi ý (ESLint, P
 | GET         | /api/combos        | Danh sách combo đang bán                          |
 | POST        | /api/combos        | Tạo combo (cần header `x-admin-token`)            |
 | GET / PATCH | /api/combos/:slug  | Xem / sửa 1 combo (sửa cần `x-admin-token`)       |
-| POST        | /api/orders        | Đặt áo: kiểm tra dữ liệu, tính lại giá, lưu đơn   |
+| POST        | /api/orders        | Đặt áo / túi: kiểm tra, tính lại giá, lưu đơn     |
 | POST        | /api/auth/register | Đăng ký (họ tên, email, SĐT, mật khẩu ≥ 8 ký tự)  |
 | POST        | /api/auth/login    | Đăng nhập, đặt cookie phiên `tl_session` (7 ngày) |
 | POST        | /api/auth/logout   | Đăng xuất                                         |
@@ -113,7 +123,7 @@ npm workspaces, vào Settings → Build and Deployment của project đó, đặ
 
 ## Còn thiếu
 
-- Tên và giá thật của 3 combo (giá trên trang áo đang là giá mẫu trong `frontend/src/data/pricing.js` và `backend/lib/pricing.js`).
+- Giá gói Premium (đang tạm tính), giá bộ sticker, phí vận chuyển và mã giảm giá thật. Bảng giá nằm ở `frontend/src/data/pricing.js` và `backend/lib/pricing.js` (phải sửa cả hai).
 - Địa chỉ, giờ mở cửa, kênh liên hệ.
-- Kho sticker thật, trang đặt túi tote, trang quản lý đơn hàng, cổng thanh toán thật.
+- Kho sticker thật, trang quản lý đơn hàng, cổng thanh toán thật.
 - Quên mật khẩu / xác minh email.

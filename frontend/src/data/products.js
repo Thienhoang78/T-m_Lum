@@ -77,6 +77,3 @@ export function contentsOf(combo, key) {
   const items = combo.items
   return Array.isArray(items) ? items : (items?.[key] ?? [])
 }
-
-export const formatPrice = (p) =>
-  p == null ? 'Giá: chờ cập nhật' : `${new Intl.NumberFormat('vi-VN').format(p)}₫`

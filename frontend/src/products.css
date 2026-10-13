@@ -143,6 +143,12 @@
   border-radius: 50%;
   background: var(--brand-strong);
 }
+.choose-price {
+  margin: 0;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--navy) !important;
+}
 .choose-cta {
   margin-top: 8px;
   font-weight: 600;
@@ -1214,6 +1220,9 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.7fr);
   gap: 10px;
+}
+.tee-actions-single {
+  grid-template-columns: 1fr;
 }
 
 /* Đặt hàng thành công */

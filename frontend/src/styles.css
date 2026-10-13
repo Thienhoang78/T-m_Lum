@@ -665,6 +665,36 @@ main,
   background: var(--accent);
 }
 
+/* Hai gói Basic / Premium: 2 thẻ, giữa trang */
+.combos-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 820px;
+}
+.combo-prices {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+.combo-prices li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+.combo-prices span {
+  color: var(--muted);
+}
+.combo-prices strong {
+  font-size: 1.3rem;
+  font-variant-numeric: tabular-nums;
+}
+.combo-prices small {
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
 /* Ghi chú nhỏ dưới thành phần combo, vd. sticker tính tiền riêng */
 .combo-note {
   margin: 0;
@@ -1061,6 +1091,9 @@ button.btn-glass {
 
 /* ---------- Responsive ---------- */
 @media (max-width: 880px) {
+  .combos-2 {
+    grid-template-columns: 1fr;
+  }
   .hero {
     grid-template-columns: 1fr;
   }

@@ -25,7 +25,7 @@ export default function Hero() {
           </p>
           <div className="hero-ctas rise" style={{ '--i': 3 }}>
             <a href="#combo" className="btn btn-dark">
-              Xem 3 combo
+              Xem gói Basic & Premium
             </a>
             <a href="#cach-lam" className="btn btn-glass">
               Cách làm

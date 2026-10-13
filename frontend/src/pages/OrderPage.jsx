@@ -1,41 +1,46 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { createOrder } from '../api.js'
-import { useCombos } from '../data/useCombos.js'
-import { PRODUCTS, contentsOf, methodOf } from '../data/products.js'
-import { DELIVERY, PAYMENTS, PRICING, findVoucher, quote, vnd } from '../data/pricing.js'
+import { tierOf } from '../data/combos.js'
+import { PRODUCTS, contentsOf, methodOf, productFor } from '../data/products.js'
+import { DELIVERY, PAYMENTS, PRICING, findVoucher, priceOf, quote, vnd } from '../data/pricing.js'
 import { STICKER_SETS } from '../data/stickerSets.js'
 import { OptionGroup, Pills, SizeChart, Stepper } from '../components/ProductParts.jsx'
 import Sticker from '../components/Sticker.jsx'
-import TeeVisual from '../components/TeeVisual.jsx'
+import ProductVisual from '../components/ProductVisual.jsx'
 import TryOnModal from '../components/TryOnModal.jsx'
 
-// Trang áo thun trắng: ảnh áo bên trái; bên phải theo thứ tự hướng dẫn size → chọn combo → size → số lượng
-// → bộ sticker (Combo 1, 2) → thanh toán (nhận hàng, thanh toán, mã giảm giá, bảng tính giá) → Phối thử / Đặt hàng.
-const product = PRODUCTS.ao
-const INK = 'var(--brand-strong)' // màu mực minh hoạ cho combo in lụa
+// Trang đặt hàng cho áo hoặc túi trong gói Basic (Combo 1 / Combo 2) và gói Premium (áo + bộ in lụa).
+// Ảnh món bên trái; bên phải: hướng dẫn size → chọn combo → (màu túi) → size → số lượng
+// → bộ sticker (gói ép nhiệt) → thanh toán (nhận hàng, thanh toán, mã giảm giá, bảng tính giá) → Phối thử / Đặt hàng.
+const INK = 'var(--brand-strong)' // màu mực minh hoạ cho gói in lụa
 const PHONE_RE = /^0\d{9}$/
-const TABS = ['Mô tả', 'Bảng size', 'Bảo quản']
 const EMPTY_CUSTOMER = { name: '', phone: '', address: '', note: '' }
 const clampInt = (n, lo, hi) => Math.min(hi, Math.max(lo, Math.floor(Number(n)) || lo))
 
 function validate({ size, customer, delivery }) {
   const e = {}
-  if (!size) e.size = 'Chọn size áo.'
+  if (!size) e.size = 'Chọn size.'
   if (!customer.name.trim()) e.name = 'Nhập họ tên người nhận.'
   if (!PHONE_RE.test(customer.phone.replace(/\s/g, ''))) e.phone = 'Số điện thoại gồm 10 số, bắt đầu bằng 0.'
   if (delivery === 'giao-hang' && !customer.address.trim()) e.address = 'Nhập địa chỉ nhận hàng.'
   return e
 }
 
-export default function TeePage({ combo, user }) {
-  const navigate = useNavigate()
-  const combos = useCombos()
+export default function OrderPage({ combos, combo, productKey, user }) {
+  const [, setSearchParams] = useSearchParams()
   const method = methodOf(combo)
+  const tier = tierOf(combo)
+  const product = productFor(PRODUCTS[productKey], combo)
+  const hasSizes = product.sizes.length > 1
+  const unit = product.unit
+  const sample = !!PRICING.sample[combo.slug]
+  const tabs = ['Mô tả', hasSizes ? 'Bảng size' : 'Kích thước', 'Bảo quản']
   const uid = useId()
 
   const [sizeOpen, setSizeOpen] = useState(false)
-  const [size, setSize] = useState(null)
+  const [size, setSize] = useState(hasSizes ? null : product.sizes[0])
+  const [colorKey, setColorKey] = useState(product.colors[0].key)
   const [qty, setQty] = useState(1)
   const [setKey, setSetKey] = useState(null) // null = không chọn bộ sticker
   const [stickerQty, setStickerQty] = useState(1)
@@ -68,12 +73,26 @@ export default function TeePage({ combo, user }) {
     if (placed) placedRef.current?.focus()
   }, [placed])
 
+  // Đổi sang combo hoạ tiết thì chỉ còn một màu nền: rơi về màu đầu tiên còn hợp lệ
+  const color = product.colors.find((c) => c.key === colorKey) ?? product.colors[0]
   const stickerSet = method.stickers ? (STICKER_SETS.find((s) => s.key === setKey) ?? null) : null
-  const q = quote({ combo: combo.slug, qty, stickerQty: stickerSet ? stickerQty : 0, delivery, voucher })
+  const q = quote({
+    product: productKey,
+    combo: combo.slug,
+    qty,
+    stickerQty: stickerSet ? stickerQty : 0,
+    delivery,
+    voucher,
+  })
   const v = findVoucher(voucher)
+  const visual = { productKey, color, pattern: combo.patterned }
 
+  // Combo lưu trên URL (?combo=combo-2), combo đầu tiên của gói thì để URL gọn
   function pickCombo(slug) {
-    navigate(`/combo/${slug}/ao`, { replace: true, state: { keepScroll: true } })
+    setSearchParams(slug === combos[0].slug ? {} : { combo: slug }, {
+      replace: true,
+      state: { keepScroll: true },
+    })
   }
 
   function setField(k, value) {
@@ -111,7 +130,8 @@ export default function TeePage({ combo, user }) {
     try {
       const res = await createOrder({
         combo: combo.slug,
-        product: 'ao',
+        product: productKey,
+        color: color.key,
         size,
         qty,
         stickerSet: stickerSet?.key ?? null,
@@ -126,6 +146,9 @@ export default function TeePage({ combo, user }) {
         code: res.code,
         totals: res.totals,
         comboName: combo.name,
+        productName: product.name,
+        colorName: color.name,
+        hasSizes,
         size,
         qty,
         stickerSet: stickerSet && { name: stickerSet.name, qty: stickerQty },
@@ -169,11 +192,12 @@ export default function TeePage({ combo, user }) {
         {/* ---------- Cột trái: ảnh áo trắng ---------- */}
         <div className="pp-gallery">
           <div className="pp-main tee-main">
-            <TeeVisual
+            <ProductVisual
+              {...visual}
               design={design}
               flat={!method.stickers}
               ink={INK}
-              alt="Áo thun trắng trơn form oversize, cổ bo gân"
+              alt={productKey === 'ao' ? 'Áo thun trắng trơn form oversize, cổ bo gân' : product.title}
             />
             {combo.patterned && (
               <span className="tee-badge">
@@ -190,16 +214,19 @@ export default function TeePage({ combo, user }) {
           <nav className="crumbs" aria-label="Đường dẫn">
             <Link to="/">Trang chủ</Link>
             <span aria-hidden="true">›</span>
-            <Link to="/#combo">{combo.name}</Link>
+            <Link to="/#combo">{tier.name}</Link>
             <span aria-hidden="true">›</span>
             <span aria-current="page">{product.name}</span>
           </nav>
           <h1 className="pp-title">
-            {product.title}
-            {combo.patterned && ' hoạ tiết đen trắng'} <em>· {combo.name}</em>
+            {product.title} <em>· {combo.slug === tier.key ? tier.name : `${tier.name} ${combo.name}`}</em>
           </h1>
           <p className="pp-price">
-            {vnd(q.unit)} <small>/ áo · giá mẫu</small>
+            {vnd(q.unit)}{' '}
+            <small>
+              / {unit}
+              {sample && ' · tạm tính'}
+            </small>
           </p>
           <p className="pp-blurb">{product.blurb}</p>
 
@@ -225,7 +252,7 @@ export default function TeePage({ combo, user }) {
                       strokeLinejoin="round"
                     />
                   </svg>
-                  Hướng dẫn chọn size
+                  {hasSizes ? 'Hướng dẫn chọn size' : `Kích thước ${unit}`}
                   <span className="tee-chevron" aria-hidden="true" />
                 </button>
                 <div id={`${uid}-guide`} className="tee-guide-panel" hidden={!sizeOpen}>
@@ -234,7 +261,7 @@ export default function TeePage({ combo, user }) {
               </div>
 
               {/* 2. Chọn combo */}
-              <OptionGroup label="Combo">
+              <OptionGroup label={combos.length > 1 ? 'Combo' : 'Gói'}>
                 <div className="tee-combos">
                   {combos.map((c) => (
                     <label key={c.slug} className="tee-combo">
@@ -247,11 +274,11 @@ export default function TeePage({ combo, user }) {
                       />
                       <span className="tee-combo-head">
                         <strong>{c.name}</strong>
-                        <span>{vnd(PRICING.combos[c.slug] ?? 0)}</span>
+                        <span>{vnd(priceOf(productKey, c.slug) ?? 0)}</span>
                       </span>
                       <span className="tee-combo-tag">{c.tagline}</span>
                       <ul>
-                        {contentsOf(c, 'ao').map((it) => (
+                        {contentsOf(c, productKey).map((it) => (
                           <li key={it}>{it}</li>
                         ))}
                       </ul>
@@ -261,19 +288,39 @@ export default function TeePage({ combo, user }) {
                 </div>
               </OptionGroup>
 
-              {/* 3. Size */}
-              <div id={`${uid}-size`} className="tee-size">
-                <Pills
-                  label="Size"
-                  options={product.sizes}
-                  value={size}
-                  onChange={(s) => {
-                    setSize(s)
-                    setErrors((e) => ({ ...e, size: undefined }))
-                  }}
-                />
-                {errors.size && <p className="field-err">{errors.size}</p>}
-              </div>
+              {/* Màu: túi trơn có nhiều màu; áo và món in sẵn hoạ tiết chỉ một màu */}
+              {product.colors.length > 1 && (
+                <OptionGroup label={`Màu ${unit}`}>
+                  {product.colors.map((c) => (
+                    <button
+                      key={c.key}
+                      type="button"
+                      className="swatch"
+                      aria-pressed={color.key === c.key}
+                      onClick={() => setColorKey(c.key)}
+                    >
+                      <span className="swatch-dot" style={{ background: c.fill }} aria-hidden="true" />
+                      {c.name}
+                    </button>
+                  ))}
+                </OptionGroup>
+              )}
+
+              {/* 3. Size (túi một size thì bỏ qua) */}
+              {hasSizes && (
+                <div id={`${uid}-size`} className="tee-size">
+                  <Pills
+                    label="Size"
+                    options={product.sizes}
+                    value={size}
+                    onChange={(s) => {
+                      setSize(s)
+                      setErrors((e) => ({ ...e, size: undefined }))
+                    }}
+                  />
+                  {errors.size && <p className="field-err">{errors.size}</p>}
+                </div>
+              )}
 
               {/* 4. Số lượng */}
               <OptionGroup label="Số lượng">
@@ -281,10 +328,10 @@ export default function TeePage({ combo, user }) {
                   <Stepper
                     value={qty}
                     min={1}
-                    label="Số lượng áo"
+                    label={`Số lượng ${unit}`}
                     onChange={(n) => setQty(clampInt(n, 1, 999))}
                   />
-                  <span>áo</span>
+                  <span>{unit}</span>
                 </div>
               </OptionGroup>
 
@@ -443,12 +490,14 @@ export default function TeePage({ combo, user }) {
                     <tbody>
                       <tr>
                         <th scope="row">
-                          Áo {combo.name}
-                          {size && ` · size ${size}`}
-                          <small>{vnd(q.unit)} / áo</small>
+                          {product.name} {combo.name}
+                          {hasSizes ? size && ` · size ${size}` : ` · ${color.name}`}
+                          <small>
+                            {vnd(q.unit)} / {unit}
+                          </small>
                         </th>
                         <td>{qty}</td>
-                        <td>{vnd(q.aoTotal)}</td>
+                        <td>{vnd(q.itemTotal)}</td>
                       </tr>
                       {stickerSet && (
                         <tr>
@@ -485,14 +534,21 @@ export default function TeePage({ combo, user }) {
                     </tfoot>
                   </table>
                 </div>
-                <p className="placeholder-note">Giá đang là giá mẫu, sẽ cập nhật khi có giá chính thức.</p>
+                <p className="placeholder-note">
+                  {sample
+                    ? `Giá gói ${tier.name} đang là giá tạm tính, sẽ cập nhật khi có giá chính thức.`
+                    : 'Giá dự kiến của studio. Giá bộ sticker, phí vận chuyển và mã giảm giá đang là số mẫu.'}
+                </p>
               </section>
 
               {/* 7. Phối thử + Đặt hàng */}
-              <div className="tee-actions">
-                <button type="button" className="btn btn-glass" onClick={() => setTryOn(true)}>
-                  Phối thử
-                </button>
+              {/* Gói in lụa không có sticker để phối nên ẩn Phối thử */}
+              <div className={`tee-actions${method.stickers ? '' : ' tee-actions-single'}`}>
+                {method.stickers && (
+                  <button type="button" className="btn btn-glass" onClick={() => setTryOn(true)}>
+                    Phối thử
+                  </button>
+                )}
                 <button type="button" className="btn btn-brand" onClick={placeOrder} disabled={busy}>
                   {busy ? 'Đang gửi đơn…' : `Đặt hàng · ${vnd(q.total)}`}
                 </button>
@@ -510,7 +566,7 @@ export default function TeePage({ combo, user }) {
       {/* ---------- Tab thông tin ---------- */}
       <section className="pp-tabs">
         <div className="auth-tabs" role="tablist" aria-label="Thông tin sản phẩm">
-          {TABS.map((t, i) => (
+          {tabs.map((t, i) => (
             <button
               key={t}
               type="button"
@@ -523,7 +579,7 @@ export default function TeePage({ combo, user }) {
               onKeyDown={(e) => {
                 const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0
                 if (!d) return
-                const next = (i + d + TABS.length) % TABS.length
+                const next = (i + d + tabs.length) % tabs.length
                 setTab(next)
                 document.getElementById(`${uid}-tab-${next}`)?.focus()
               }}
@@ -538,7 +594,7 @@ export default function TeePage({ combo, user }) {
               {product.blurb}{' '}
               {method.stickers
                 ? 'Sticker được in ép nhiệt trực tiếp tại studio nên bám chắc, không bong khi mặc và giặt đúng cách.'
-                : 'Combo kèm khuôn in (stencil), dao gạt mực và một chai mực in để bạn tự tay in lụa lên áo.'}
+                : `Gói kèm khuôn in (stencil), dao gạt mực và một chai mực in để bạn tự tay in lụa lên ${unit}.`}
             </p>
           )}
           {tab === 1 && <SizeChart chart={product.sizeChart} />}
@@ -555,6 +611,7 @@ export default function TeePage({ combo, user }) {
       {tryOn && (
         <TryOnModal
           stickerSet={stickerSet ?? STICKER_SETS[0]}
+          visual={visual}
           flat={!method.stickers}
           ink={INK}
           initial={design}
@@ -580,9 +637,11 @@ function OrderPlaced({ placed, panelRef, onAgain }) {
       </p>
       <dl className="tee-placed-sum">
         <div>
-          <dt>Áo {placed.comboName}</dt>
+          <dt>
+            {placed.productName} {placed.comboName}
+          </dt>
           <dd>
-            Size {placed.size} × {placed.qty}
+            {placed.hasSizes ? `Size ${placed.size}` : placed.colorName} × {placed.qty}
           </dd>
         </div>
         {placed.stickerSet && (

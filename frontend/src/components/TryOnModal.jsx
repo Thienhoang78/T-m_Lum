@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import Sticker from './Sticker.jsx'
-import TeeVisual from './TeeVisual.jsx'
+import ProductVisual from './ProductVisual.jsx'
 
-// Phối thử: kéo sticker từ khay lên áo (chuột hoặc cảm ứng), chọn một sticker để xoay, đổi cỡ hoặc bỏ.
-// Toạ độ lưu theo % khung ảnh vuông nên hiện lại đúng chỗ trên ảnh lớn của trang áo.
+// Phối thử: kéo sticker từ khay lên áo / túi (chuột hoặc cảm ứng), chọn một sticker để xoay, đổi cỡ hoặc bỏ.
+// Toạ độ lưu theo % khung ảnh vuông nên hiện lại đúng chỗ trên ảnh lớn của trang đặt hàng.
 const START_SIZE = 16 // % chiều rộng khung
 let nextId = 1
 
@@ -16,12 +16,13 @@ function toPct(stage, e) {
   }
 }
 
-export default function TryOnModal({ stickerSet, flat, ink, initial, onSave, onClose }) {
+export default function TryOnModal({ stickerSet, visual, flat, ink, initial, onSave, onClose }) {
   const dialogRef = useRef(null)
   const stageRef = useRef(null)
   const [items, setItems] = useState(() => initial.map((it) => ({ ...it, id: nextId++ })))
   const [selected, setSelected] = useState(null)
   const [dragId, setDragId] = useState(null)
+  const mon = visual?.productKey === 'tui' ? 'túi' : 'áo' // tên món trong câu chữ
 
   useEffect(() => {
     const d = dialogRef.current
@@ -100,7 +101,7 @@ export default function TryOnModal({ stickerSet, flat, ink, initial, onSave, onC
         <div className="tryon-head">
           <p className="eyebrow">Phối thử · {stickerSet.name}</p>
           <h2 className="display-sm" id="tryon-title">
-            Kéo {flat ? 'hình in' : 'sticker'} lên <em>áo của bạn</em>
+            Kéo {flat ? 'hình in' : 'sticker'} lên <em>{mon} của bạn</em>
           </h2>
         </div>
 
@@ -110,7 +111,7 @@ export default function TryOnModal({ stickerSet, flat, ink, initial, onSave, onC
             ref={stageRef}
             onPointerDown={(e) => e.target === e.currentTarget && setSelected(null)}
           >
-            <TeeVisual alt="">
+            <ProductVisual {...visual} alt="">
               {items.map((it, i) => (
                 <button
                   key={it.id}
@@ -130,7 +131,7 @@ export default function TryOnModal({ stickerSet, flat, ink, initial, onSave, onC
                   <Sticker shape={it.shape} color={flat ? ink : it.color} flat={flat} label={it.label} />
                 </button>
               ))}
-            </TeeVisual>
+            </ProductVisual>
           </div>
 
           <div className="tryon-side">
@@ -141,7 +142,7 @@ export default function TryOnModal({ stickerSet, flat, ink, initial, onSave, onC
                   key={i}
                   type="button"
                   className="tryon-tray-item"
-                  aria-label={`Thêm ${flat ? 'hình in' : 'sticker'} ${i + 1} lên áo`}
+                  aria-label={`Thêm ${flat ? 'hình in' : 'sticker'} ${i + 1} lên ${mon}`}
                   onPointerDown={(e) => {
                     e.preventDefault()
                     add(k, true)
@@ -153,7 +154,8 @@ export default function TryOnModal({ stickerSet, flat, ink, initial, onSave, onC
               ))}
             </div>
             <p className="tryon-hint">
-              Kéo từ khay thả lên áo. Bấm vào một {flat ? 'hình' : 'sticker'} trên áo để xoay, đổi cỡ hoặc bỏ.
+              Kéo từ khay thả lên {mon}. Bấm vào một {flat ? 'hình' : 'sticker'} trên {mon} để xoay, đổi cỡ
+              hoặc bỏ.
             </p>
 
             <div className="tryon-tools" aria-live="polite">
@@ -184,7 +186,9 @@ export default function TryOnModal({ stickerSet, flat, ink, initial, onSave, onC
                   </button>
                 </>
               ) : (
-                <p className="tryon-hint">Chưa chọn {flat ? 'hình' : 'sticker'} nào trên áo.</p>
+                <p className="tryon-hint">
+                  Chưa chọn {flat ? 'hình' : 'sticker'} nào trên {mon}.
+                </p>
               )}
             </div>
           </div>

@@ -1,6 +1,10 @@
-// GIÁ MẪU: giữ cùng số liệu với frontend/src/data/pricing.js. Đơn hàng luôn được tính lại giá ở đây.
+// Bảng giá: giữ cùng số liệu với frontend/src/data/pricing.js. Đơn hàng luôn được tính lại giá ở đây.
+// Basic: giá dự kiến của studio. Premium, bộ sticker, phí vận chuyển, mã giảm giá: SỐ MẪU (tạm tính).
 export const PRICING = {
-  combos: { 'combo-1': 199000, 'combo-2': 249000, 'combo-3': 299000 }, // giá mỗi áo
+  items: {
+    ao: { 'combo-1': 299000, 'combo-2': 299000, premium: 299000 },
+    tui: { 'combo-1': 219000, 'combo-2': 219000 },
+  },
   stickerSet: 35000,
   shipping: 30000,
   freeShipFrom: 500000,
@@ -23,18 +27,25 @@ export const PAYMENTS = {
   'chuyen-khoan': 'Chuyển khoản ngân hàng',
   'vi-dien-tu': 'Ví MoMo / ZaloPay',
 }
-export const AO_SIZES = ['S', 'M', 'L', 'XL', 'XXL']
+
+// Size và màu hợp lệ của từng món nền ('hoa-tiet' = nền trắng in sẵn hoạ tiết đen, chỉ dùng cho combo hoạ tiết)
+export const PRODUCT_RULES = {
+  ao: { name: 'Áo thun', sizes: ['S', 'M', 'L', 'XL', 'XXL'], colors: ['trang'] },
+  tui: { name: 'Túi tote', sizes: ['Một size'], colors: ['moc', 'den', 'kem'] },
+}
+export const PATTERN_COLOR = 'hoa-tiet'
 
 export const findVoucher = (code) => VOUCHERS[code?.trim().toUpperCase()] ?? null
+export const priceOf = (product, combo) => PRICING.items[product]?.[combo] ?? null
 
-export function quote({ combo, qty, stickerQty = 0, delivery, voucher }) {
-  const unit = PRICING.combos[combo] ?? 0
-  const aoTotal = unit * qty
+export function quote({ product, combo, qty, stickerQty = 0, delivery, voucher }) {
+  const unit = priceOf(product, combo) ?? 0
+  const itemTotal = unit * qty
   const stickerTotal = PRICING.stickerSet * stickerQty
-  const goods = aoTotal + stickerTotal
+  const goods = itemTotal + stickerTotal
   const v = findVoucher(voucher)
   const shipping =
     delivery === 'studio' || goods >= PRICING.freeShipFrom || v?.freeShip ? 0 : PRICING.shipping
   const discount = v?.percent ? Math.round((goods * v.percent) / 100) : 0
-  return { unit, aoTotal, stickerTotal, goods, shipping, discount, total: goods + shipping - discount }
+  return { unit, itemTotal, stickerTotal, goods, shipping, discount, total: goods + shipping - discount }
 }

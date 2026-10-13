@@ -85,7 +85,7 @@ export function ToteArt({
   )
 }
 
-// ---------- Bộ in lụa (Combo 3): khuôn in, dao gạt mực, chai mực ----------
+// ---------- Bộ in lụa (gói Premium): khuôn in, dao gạt mực, chai mực ----------
 const STAR = 'M50 6l12.6 27.6 30 3.4-22.4 20.3 6.3 29.7L50 71.8 23.5 87l6.3-29.7L7.4 37l30-3.4z'
 
 const TOOLS = {

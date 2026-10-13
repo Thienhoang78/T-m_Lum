@@ -2,8 +2,7 @@ import { useEffect, useState } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import Nav from './components/Nav.jsx'
 import Landing from './pages/Landing.jsx'
-import ProductPage from './pages/ProductPage.jsx'
-import StickerSoon from './pages/StickerSoon.jsx'
+import { BasicOrder, LegacyComboRedirect, PremiumOrder } from './pages/OrderRoutes.jsx'
 import Footer from './components/Footer.jsx'
 import AuthModal from './components/AuthModal.jsx'
 import { getMe, logout } from './api.js'
@@ -47,9 +46,11 @@ export default function App() {
       <main>
         <Routes>
           <Route path="/" element={<Landing />} />
+          <Route path="/basic/:product" element={<BasicOrder user={user} />} />
+          <Route path="/premium" element={<PremiumOrder user={user} />} />
+          {/* link cũ theo combo */}
           <Route path="/combo/:slug" element={<Navigate to="/#combo" replace />} />
-          <Route path="/combo/:slug/:product" element={<ProductPage user={user} />} />
-          <Route path="/combo/:slug/:product/sticker" element={<StickerSoon />} />
+          <Route path="/combo/:slug/:product/*" element={<LegacyComboRedirect />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

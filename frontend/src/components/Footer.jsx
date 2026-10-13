@@ -8,7 +8,7 @@ const COLUMNS = [
     title: 'Khám phá',
     links: [
       { label: 'Cách làm', href: '/#cach-lam' },
-      { label: '3 combo', href: '/#combo' },
+      { label: 'Gói Basic & Premium', href: '/#combo' },
       { label: 'Kho sticker', soon: true },
       { label: 'Áo & túi trơn', soon: true },
     ],

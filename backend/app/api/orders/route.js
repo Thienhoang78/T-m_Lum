@@ -1,6 +1,16 @@
 import { connectDB } from '@/lib/mongodb'
 import { getSessionUserId } from '@/lib/auth'
-import { AO_SIZES, DELIVERY, PAYMENTS, PRICING, STICKER_SETS, findVoucher, quote } from '@/lib/pricing'
+import {
+  DELIVERY,
+  PATTERN_COLOR,
+  PAYMENTS,
+  PRICING,
+  PRODUCT_RULES,
+  STICKER_SETS,
+  findVoucher,
+  priceOf,
+  quote,
+} from '@/lib/pricing'
 import Combo from '@/models/Combo'
 import Order from '@/models/Order'
 
@@ -18,16 +28,18 @@ function orderCode() {
   return `TL-${ymd.join('')}-${rand}`
 }
 
-// Đặt áo kèm combo. Giá luôn tính lại ở server theo bảng giá, không tin số tiền từ trình duyệt.
+// Đặt áo hoặc túi theo gói Basic (Combo 1, 2) / Premium. Giá luôn tính lại ở server, không tin số tiền từ trình duyệt.
 export async function POST(req) {
   const b = await req.json().catch(() => null)
   if (!b) return bad('Dữ liệu đơn hàng không hợp lệ.')
 
-  if (b.product !== 'ao') return bad('Hiện chỉ nhận đặt áo thun qua trang này.')
-  if (!(b.combo in PRICING.combos)) return bad('Combo không hợp lệ.')
-  if (!AO_SIZES.includes(b.size)) return bad('Vui lòng chọn size áo.')
+  const rules = PRODUCT_RULES[b.product]
+  if (!rules) return bad('Món hàng không hợp lệ.')
+  if (!Object.values(PRICING.items).some((m) => b.combo in m)) return bad('Combo không còn bán.')
+  if (priceOf(b.product, b.combo) == null) return bad(`Gói này không có ${rules.name.toLowerCase()}.`)
+  if (!rules.sizes.includes(b.size)) return bad('Vui lòng chọn size.')
   const qty = int(b.qty)
-  if (!(qty >= 1 && qty <= 999)) return bad('Số lượng áo từ 1 đến 999.')
+  if (!(qty >= 1 && qty <= 999)) return bad('Số lượng từ 1 đến 999.')
   if (!(b.delivery in DELIVERY)) return bad('Chọn hình thức nhận hàng.')
   if (!(b.payment in PAYMENTS)) return bad('Chọn phương thức thanh toán.')
 
@@ -44,6 +56,11 @@ export async function POST(req) {
   await connectDB()
   const combo = await Combo.findOne({ slug: b.combo, active: true }).lean()
   if (!combo) return bad('Combo không còn bán.')
+  if (combo.products?.length && !combo.products.includes(b.product))
+    return bad(`Gói này không có ${rules.name.toLowerCase()}.`)
+  const colors = combo.patterned ? [PATTERN_COLOR] : rules.colors
+  const color = b.color ?? colors[0]
+  if (!colors.includes(color)) return bad('Màu không hợp lệ.')
 
   let stickerSet = null
   if (b.stickerSet) {
@@ -68,6 +85,7 @@ export async function POST(req) {
     }))
 
   const totals = quote({
+    product: b.product,
     combo: b.combo,
     qty,
     stickerQty: stickerSet?.qty ?? 0,
@@ -77,8 +95,9 @@ export async function POST(req) {
 
   const doc = {
     user: (await getSessionUserId()) ?? undefined,
-    combo: { slug: combo.slug, name: combo.name, method: combo.method },
-    product: 'ao',
+    combo: { slug: combo.slug, name: combo.name, tier: combo.tier, method: combo.method },
+    product: b.product,
+    color,
     size: b.size,
     qty,
     stickerSet,

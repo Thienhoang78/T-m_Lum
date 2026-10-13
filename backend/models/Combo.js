@@ -4,6 +4,8 @@ const ComboSchema = new mongoose.Schema(
   {
     slug: { type: String, required: true, unique: true },
     name: { type: String, required: true },
+    tier: { type: String, enum: ['basic', 'premium'], default: 'basic' }, // gói Basic / Premium
+    products: [String], // món nền có trong combo: 'ao', 'tui'
     tagline: String,
     price: Number, // VND
     summary: [String], // thành phần chung cho cả áo và túi, hiện trên thẻ combo
