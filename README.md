@@ -123,7 +123,7 @@ npm workspaces, vào Settings → Build and Deployment của project đó, đặ
 
 ## Còn thiếu
 
-- Giá gói Premium (đang tạm tính), giá bộ sticker, phí vận chuyển và mã giảm giá thật. Bảng giá nằm ở `frontend/src/data/pricing.js` và `backend/lib/pricing.js` (phải sửa cả hai).
+- Giá bộ sticker, phí vận chuyển và mã giảm giá thật. Bảng giá nằm ở `frontend/src/data/pricing.js` và `backend/lib/pricing.js` (phải sửa cả hai).
 - Địa chỉ, giờ mở cửa, kênh liên hệ.
 - Kho sticker thật, trang quản lý đơn hàng, cổng thanh toán thật.
 - Quên mật khẩu / xác minh email.

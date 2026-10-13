@@ -43,9 +43,7 @@ export default function Combos() {
           {tiers.length} gói để bắt đầu <em>tùm lum</em>.
         </h2>
         {hasSample && (
-          <p className="placeholder-note">
-            Giá gói Premium đang tạm tính, sẽ cập nhật khi có giá chính thức.
-          </p>
+          <p className="placeholder-note">Một số giá đang tạm tính, sẽ cập nhật khi có giá chính thức.</p>
         )}
       </div>
       <div className="combos combos-2">

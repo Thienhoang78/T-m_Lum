@@ -537,7 +537,7 @@ export default function OrderPage({ combos, combo, productKey, user }) {
                 <p className="placeholder-note">
                   {sample
                     ? `Giá gói ${tier.name} đang là giá tạm tính, sẽ cập nhật khi có giá chính thức.`
-                    : 'Giá dự kiến của studio. Giá bộ sticker, phí vận chuyển và mã giảm giá đang là số mẫu.'}
+                    : `Giá dự kiến của studio. ${method.stickers ? 'Giá bộ sticker, phí' : 'Phí'} vận chuyển và mã giảm giá đang là số mẫu.`}
                 </p>
               </section>
 

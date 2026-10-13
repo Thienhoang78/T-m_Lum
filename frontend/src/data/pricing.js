@@ -1,12 +1,12 @@
 // Bảng giá. Backend tính lại giá từ backend/lib/pricing.js, hai file phải giữ cùng số liệu.
-// Basic: giá dự kiến theo bảng của studio (áo 299.000₫, túi 219.000₫, như nhau cho Combo 1 và 2).
-// Premium, bộ sticker, phí vận chuyển và mã giảm giá: vẫn là SỐ MẪU, thay khi có giá thật.
+// Giá dự kiến theo bảng của studio: Basic áo 299.000₫, túi 219.000₫ (như nhau cho Combo 1 và 2), Premium áo 699.000₫.
+// Bộ sticker, phí vận chuyển và mã giảm giá: vẫn là SỐ MẪU, thay khi có giá thật.
 export const PRICING = {
   items: {
-    ao: { 'combo-1': 299000, 'combo-2': 299000, premium: 299000 },
+    ao: { 'combo-1': 299000, 'combo-2': 299000, premium: 699000 },
     tui: { 'combo-1': 219000, 'combo-2': 219000 },
   },
-  sample: { premium: true }, // combo đang dùng giá mẫu
+  sample: {}, // combo đang dùng giá mẫu, vd. { premium: true }
   stickerSet: 35000, // mỗi bộ sticker
   shipping: 30000,
   freeShipFrom: 500000, // tiền hàng từ mức này được miễn phí vận chuyển

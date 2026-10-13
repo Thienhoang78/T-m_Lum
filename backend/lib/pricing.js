@@ -1,8 +1,8 @@
 // Bảng giá: giữ cùng số liệu với frontend/src/data/pricing.js. Đơn hàng luôn được tính lại giá ở đây.
-// Basic: giá dự kiến của studio. Premium, bộ sticker, phí vận chuyển, mã giảm giá: SỐ MẪU (tạm tính).
+// Giá dự kiến của studio: Basic áo 299.000₫ / túi 219.000₫, Premium áo 699.000₫. Bộ sticker, phí vận chuyển, mã giảm giá: SỐ MẪU.
 export const PRICING = {
   items: {
-    ao: { 'combo-1': 299000, 'combo-2': 299000, premium: 299000 },
+    ao: { 'combo-1': 299000, 'combo-2': 299000, premium: 699000 },
     tui: { 'combo-1': 219000, 'combo-2': 219000 },
   },
   stickerSet: 35000,
