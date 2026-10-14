@@ -9,8 +9,8 @@ export const PRODUCTS = {
     blurb:
       'Áo thun cotton trắng trơn, form oversize vai rơi, cổ bo gân; mặt trước và mặt sau đủ rộng để trang trí theo ý bạn.',
     photo: '/images/ao-trang.png', // áo trắng trơn oversize, cổ bo gân
-    // Vùng in mặt trước, tính theo % khung ảnh vuông (dùng cho khung nét đứt và giới hạn kéo thả khi phối)
-    printArea: { x0: 30, x1: 70, y0: 24, y1: 76 },
+    // Tâm thân áo theo % khung ảnh vuông: đường căn giữa và chỗ đặt sticker mới khi phối
+    center: { x: 50, y: 50 },
     colors: [{ key: 'trang', name: 'Trắng', fill: '#f7f4ee', seam: '#cfc7b8' }],
     sizes: ['S', 'M', 'L', 'XL', 'XXL'],
     extras: ['Tay trái', 'Tay phải', 'Nhãn áo tùy chỉnh'],
@@ -31,7 +31,7 @@ export const PRODUCTS = {
     name: 'Túi tote',
     unit: 'túi',
     title: 'Túi tote canvas',
-    printArea: { x0: 25, x1: 75, y0: 42, y1: 92 },
+    center: { x: 50, y: 64 }, // tâm thân túi (dưới quai)
     blurb: 'Túi tote vải canvas dày, quai đeo vai, mặt túi phẳng để trang trí thoải mái.',
     colors: [
       { key: 'moc', name: 'Mộc', fill: '#d8c7a6', seam: '#a8956f' },

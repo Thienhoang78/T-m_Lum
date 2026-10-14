@@ -7,7 +7,7 @@ import ProductVisual from './ProductVisual.jsx'
 import Sticker from './Sticker.jsx'
 
 // Trình phối kiểu Canva (toàn màn hình): thanh công cụ trái (Sản phẩm, Thư viện, Tải lên, Lớp),
-// áo / túi ở giữa với khung vùng in. Kéo để di chuyển, nắm góc để đổi cỡ, nắm chấm trên để xoay,
+// áo / túi ở giữa. Kéo để di chuyển, nắm góc để đổi cỡ, nắm chấm trên để xoay,
 // hai ngón để phóng to / xoay trên điện thoại. Có hoàn tác / làm lại, đường căn giữa, khoá / ẩn lớp.
 // Dùng DOM + Pointer Events, không thêm thư viện vẽ.
 //
@@ -39,16 +39,10 @@ const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v))
 const withIds = (list) => list.map((it) => ({ ...it, id: it.id ?? nextId++ }))
 const strip = (list) => list.map(({ id: _id, ...it }) => it)
 
-// Giữ phần tử trong vùng in: cỡ không vượt vùng in, tâm lùi vào trong đủ nửa bề ngang
-const fitIn = (s, area) => clamp(s, 4, Math.min(area.x1 - area.x0, area.y1 - area.y0))
-function keepIn(it, area) {
-  const half = it.s / 2
-  return {
-    ...it,
-    x: area.x1 - area.x0 > it.s ? clamp(it.x, area.x0 + half, area.x1 - half) : (area.x0 + area.x1) / 2,
-    y: area.y1 - area.y0 > it.s ? clamp(it.y, area.y0 + half, area.y1 - half) : (area.y0 + area.y1) / 2,
-  }
-}
+// Đặt sticker ở đâu trên áo / túi cũng được; chỉ giữ tâm trong khung ảnh để không kéo mất ra ngoài
+const MAX_SIZE = 60 // % bề ngang khung
+const fitIn = (s) => clamp(s, 4, MAX_SIZE)
+const keepIn = (it) => ({ ...it, x: clamp(it.x, 2, 98), y: clamp(it.y, 2, 98) })
 // Tâm phần tử theo toạ độ màn hình
 function centerOf(stage, it) {
   const r = stage.getBoundingClientRect()
@@ -95,7 +89,7 @@ export default function DesignStudio({
   const gesture = useRef(null)
   const pointers = useRef(new Map())
   const product = productFor(PRODUCTS[productKey], combo)
-  const area = product.printArea
+  const center = product.center
   const [tool, setTool] = useState('library')
   const [panelOpen, setPanelOpen] = useState(true)
   const [hist, setHist] = useState(() => ({ past: [], present: withIds(initial), future: [] }))
@@ -147,15 +141,15 @@ export default function DesignStudio({
     )
   const update = (id, patch) => commit((list) => list.map((it) => (it.id === id ? { ...it, ...patch } : it)))
 
-  const fitSize = (v) => fitIn(v, area)
-  const keepInside = (it) => keepIn(it, area)
+  const fitSize = fitIn
+  const keepInside = keepIn
 
   function add(base) {
     const it = keepInside({
       id: nextId++,
       ...base,
-      x: (area.x0 + area.x1) / 2,
-      y: (area.y0 + area.y1) / 2,
+      x: center.x,
+      y: center.y,
       r: 0,
       s: fitSize(START_SIZE),
     })
@@ -205,11 +199,6 @@ export default function DesignStudio({
       return next
     })
   }
-
-  // Đổi áo ↔ túi: vùng in khác, đưa mọi phần tử vào trong vùng in mới (không tính vào lịch sử)
-  useEffect(() => {
-    setHist((h) => ({ ...h, present: h.present.map((it) => keepIn({ ...it, s: fitIn(it.s, area) }, area)) }))
-  }, [area])
 
   // ---------- Kéo / đổi cỡ / xoay / hai ngón ----------
   const stageBox = () => stageRef.current.getBoundingClientRect()
@@ -265,14 +254,14 @@ export default function DesignStudio({
             const r = stageRef.current.getBoundingClientRect()
             let x = ((e.clientX - r.left) / r.width) * 100 - g.dx
             let y = ((e.clientY - r.top) / r.height) * 100 - g.dy
-            const cx = (area.x0 + area.x1) / 2
-            const cy = (area.y0 + area.y1) / 2
+            const cx = center.x
+            const cy = center.y
             const v = Math.abs(x - cx) < SNAP
             const h = Math.abs(y - cy) < SNAP
             if (v) x = cx
             if (h) y = cy
             setGuides({ v, h })
-            return keepIn({ ...it, x, y }, area)
+            return keepIn({ ...it, x, y })
           }
           if (g.mode === 'pinch') {
             const pts = [...pointers.current.values()]
@@ -280,12 +269,12 @@ export default function DesignStudio({
             const [a, b] = pts
             const k = Math.hypot(a.x - b.x, a.y - b.y) / g.dist
             const ang = ((Math.atan2(b.y - a.y, b.x - a.x) - g.angle) * 180) / Math.PI
-            return keepIn({ ...it, s: fitIn(g.s * k, area), r: Math.round(g.r + ang) }, area)
+            return keepIn({ ...it, s: fitIn(g.s * k), r: Math.round(g.r + ang) })
           }
           const c = centerOf(stageRef.current, it)
           if (g.mode === 'resize') {
             const k = Math.hypot(e.clientX - c.x, e.clientY - c.y) / g.dist
-            return keepIn({ ...it, s: fitIn(g.s * k, area) }, area)
+            return keepIn({ ...it, s: fitIn(g.s * k) })
           }
           // xoay: hút về các góc 0 / 45 / 90...
           let r = g.r + ((Math.atan2(e.clientY - c.y, e.clientX - c.x) - g.angle) * 180) / Math.PI
@@ -310,8 +299,8 @@ export default function DesignStudio({
       window.removeEventListener('pointerup', onUp)
       window.removeEventListener('pointercancel', onUp)
     }
-    // vùng in đổi khi đổi áo / túi
-  }, [area])
+    // tâm áo / túi đổi khi đổi món
+  }, [center])
 
   // ---------- Phím tắt ----------
   function onKeyDown(e) {
@@ -789,30 +778,8 @@ export default function DesignStudio({
               }}
             >
               <ProductVisual productKey={productKey} color={color} pattern={combo.patterned} alt="">
-                <div
-                  className="studio-area"
-                  style={{
-                    left: `${area.x0}%`,
-                    top: `${area.y0}%`,
-                    width: `${area.x1 - area.x0}%`,
-                    height: `${area.y1 - area.y0}%`,
-                  }}
-                  aria-hidden="true"
-                >
-                  <span>Vùng in</span>
-                </div>
-                {guides.v && (
-                  <div
-                    className="studio-guide studio-guide-v"
-                    style={{ left: `${(area.x0 + area.x1) / 2}%` }}
-                  />
-                )}
-                {guides.h && (
-                  <div
-                    className="studio-guide studio-guide-h"
-                    style={{ top: `${(area.y0 + area.y1) / 2}%` }}
-                  />
-                )}
+                {guides.v && <div className="studio-guide studio-guide-v" style={{ left: `${center.x}%` }} />}
+                {guides.h && <div className="studio-guide studio-guide-h" style={{ top: `${center.y}%` }} />}
                 {live.map((it) =>
                   it.hidden ? null : (
                     <div
@@ -898,7 +865,7 @@ export default function DesignStudio({
         </main>
       </div>
 
-      {/* Bản ẩn để xuất mockup PNG (không có khung vùng in, không có tay nắm) */}
+      {/* Bản ẩn để xuất mockup PNG (không có tay nắm, đường căn) */}
       <div className="studio-export" aria-hidden="true" ref={exportRef}>
         <ProductVisual
           productKey={productKey}

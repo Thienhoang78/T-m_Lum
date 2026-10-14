@@ -46,7 +46,7 @@ Khách có thể chọn lại "Ảnh gốc" nếu tách chưa ưng. File chạy 
 **Phối thử** (gói Basic) mở trình phối toàn màn hình kiểu Canva (`frontend/src/components/DesignStudio.jsx`): thanh
 công cụ trái gồm Sản phẩm (đổi áo / túi, Combo 1 / 2, màu túi), Thư viện (các bộ sticker; dùng sticker của bộ nào thì bộ
 đó được thêm vào đơn), Tải lên (ảnh của khách, chọn Tách nền / Giữ ảnh gốc) và Lớp (sắp xếp kéo thả, ẩn, khoá, nhân bản,
-xoá). Trên áo có khung vùng in, đường căn giữa, kéo / đổi cỡ / xoay bằng tay nắm, hai ngón trên điện thoại, hoàn tác /
+xoá). Trên áo đặt sticker ở đâu cũng được, có đường căn giữa, kéo / đổi cỡ / xoay bằng tay nắm, hai ngón trên điện thoại, hoàn tác /
 làm lại (Ctrl+Z / Ctrl+Y), tải mockup PNG. Bản phối lưu trong sessionStorage; khi đặt hàng, đơn lưu bản phối (thứ tự lớp,
 vị trí, cỡ, góc xoay, nguồn sticker) và ảnh mockup PNG để studio biết vị trí ép.
 
