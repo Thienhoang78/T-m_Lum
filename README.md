@@ -43,6 +43,13 @@ nguyên; nền trơn tách bằng cách loang màu từ mép (có thanh độ nh
 U²-Netp (`frontend/public/models/u2netp.onnx`, giấy phép Apache-2.0) chạy bằng onnxruntime-web (MIT) trong Web Worker.
 Khách có thể chọn lại "Ảnh gốc" nếu tách chưa ưng. File chạy onnxruntime được chép vào `frontend/public/ort` khi build.
 
+**Phối thử** (gói Basic) mở trình phối toàn màn hình kiểu Canva (`frontend/src/components/DesignStudio.jsx`): thanh
+công cụ trái gồm Sản phẩm (đổi áo / túi, Combo 1 / 2, màu túi), Thư viện (các bộ sticker; dùng sticker của bộ nào thì bộ
+đó được thêm vào đơn), Tải lên (ảnh của khách, chọn Tách nền / Giữ ảnh gốc) và Lớp (sắp xếp kéo thả, ẩn, khoá, nhân bản,
+xoá). Trên áo có khung vùng in, đường căn giữa, kéo / đổi cỡ / xoay bằng tay nắm, hai ngón trên điện thoại, hoàn tác /
+làm lại (Ctrl+Z / Ctrl+Y), tải mockup PNG. Bản phối lưu trong sessionStorage; khi đặt hàng, đơn lưu bản phối (thứ tự lớp,
+vị trí, cỡ, góc xoay, nguồn sticker) và ảnh mockup PNG để studio biết vị trí ép.
+
 ## Lệnh hay dùng
 
 | Lệnh                                  | Việc                             |

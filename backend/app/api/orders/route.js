@@ -66,17 +66,29 @@ export async function POST(req) {
   const color = b.color ?? colors[0]
   if (!colors.includes(color)) return bad('Màu không hợp lệ.')
 
-  let stickerSet = null
-  if (b.stickerSet) {
-    if (combo.method === 'screen-print') return bad('Combo này không kèm bộ sticker.')
-    if (!(b.stickerSet in STICKER_SETS)) return bad('Bộ sticker không hợp lệ.')
-    const sq = int(b.stickerQty)
+  // Bộ sticker: chọn được nhiều bộ, mỗi bộ một số lượng (vẫn nhận kiểu cũ stickerSet + stickerQty)
+  const wanted = Array.isArray(b.stickerSets)
+    ? b.stickerSets
+    : b.stickerSet
+      ? [{ key: b.stickerSet, qty: b.stickerQty }]
+      : []
+  if (wanted.length && combo.method === 'screen-print') return bad('Combo này không kèm bộ sticker.')
+  if (wanted.length > Object.keys(STICKER_SETS).length) return bad('Bộ sticker không hợp lệ.')
+  const stickerSets = []
+  for (const w of wanted) {
+    if (!(w?.key in STICKER_SETS) || stickerSets.some((x) => x.key === w.key))
+      return bad('Bộ sticker không hợp lệ.')
+    const sq = int(w.qty)
     if (!(sq >= 1 && sq <= 999)) return bad('Số bộ sticker từ 1 đến 999.')
-    stickerSet = { key: b.stickerSet, name: STICKER_SETS[b.stickerSet], qty: sq }
+    stickerSets.push({ key: w.key, name: STICKER_SETS[w.key], qty: sq })
   }
 
   // Sticker khách tự tải lên: chỉ gói ép nhiệt, tối đa 5 hình, bắt buộc ký cam kết bản quyền
-  const ids = Array.isArray(b.customStickers) ? b.customStickers : []
+  // mỗi hình: id upload, hoặc { id, cut } với cut = khách chọn bản đã tách nền
+  const picked = (Array.isArray(b.customStickers) ? b.customStickers : []).map((c) =>
+    typeof c === 'string' ? { id: c, cut: false } : { id: c?.id, cut: c?.cut === true }
+  )
+  const ids = picked.map((c) => c.id)
   let customStickers = []
   let waiver
   if (ids.length) {
@@ -91,7 +103,12 @@ export async function POST(req) {
       return bad('Cần đồng ý và ký tên vào cam kết bản quyền trước khi dùng sticker tự tải lên.')
     if (b.waiver?.version !== WAIVER_VERSION) return bad('Cam kết đã được cập nhật, vui lòng tải lại trang.')
     const byId = new Map(files.map((f) => [String(f._id), f]))
-    customStickers = ids.map((id) => ({ upload: id, name: byId.get(id).name, size: byId.get(id).size }))
+    customStickers = picked.map(({ id, cut }) => ({
+      upload: id,
+      name: byId.get(id).name,
+      size: byId.get(id).size,
+      cut,
+    }))
     waiver = {
       accepted: true,
       signedName,
@@ -113,18 +130,33 @@ export async function POST(req) {
     .map((it) => ({
       ...(Number.isInteger(it.upload) && !SHAPES.includes(it.shape)
         ? { upload: it.upload }
-        : { shape: it.shape, color: str(it.color, 40), label: str(it.label, 20) }),
+        : {
+            shape: it.shape,
+            color: str(it.color, 40),
+            label: str(it.label, 20),
+            set: it.set in STICKER_SETS ? it.set : undefined,
+          }),
       x: num(it.x, 0, 100),
       y: num(it.y, 0, 100),
       r: num(it.r, -180, 180),
-      s: num(it.s, 4, 40),
+      s: num(it.s, 4, 60),
     }))
+
+  // Ảnh mockup áo / túi kèm sticker (đã tải lên qua /api/uploads) để studio biết vị trí ép
+  let preview
+  if (b.preview) {
+    if (!mongoose.isValidObjectId(b.preview) || ids.includes(b.preview))
+      return bad('Ảnh xem trước không hợp lệ.')
+    if (!(await Upload.exists({ _id: b.preview, order: null })))
+      return bad('Ảnh xem trước đã hết hạn, vui lòng đặt lại.')
+    preview = b.preview
+  }
 
   const totals = quote({
     product: b.product,
     combo: b.combo,
     qty,
-    stickerQty: stickerSet?.qty ?? 0,
+    stickerQty: stickerSets.reduce((n, x) => n + x.qty, 0),
     customQty: customStickers.length,
     delivery: b.delivery,
     voucher,
@@ -137,10 +169,11 @@ export async function POST(req) {
     color,
     size: b.size,
     qty,
-    stickerSet,
+    stickerSets,
     customStickers,
     waiver,
     design,
+    preview,
     customer: {
       name,
       phone,
@@ -158,9 +191,10 @@ export async function POST(req) {
     try {
       const order = await Order.create({ ...doc, code: orderCode() })
       // Gắn file vào đơn và bỏ hạn tự xoá
-      if (customStickers.length)
+      const attach = preview ? [...ids, preview] : ids
+      if (attach.length)
         await Upload.updateMany(
-          { _id: { $in: ids } },
+          { _id: { $in: attach } },
           { $set: { order: order.code }, $unset: { expiresAt: '' } }
         )
       return Response.json({ code: order.code, totals: order.totals, status: order.status }, { status: 201 })

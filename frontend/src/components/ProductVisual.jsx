@@ -36,28 +36,30 @@ export default function ProductVisual({
   return (
     <div className={`tee-visual ${className}`}>
       {art}
-      {design.map((it, i) =>
-        it.src ? (
-          <img
-            key={i}
-            src={it.src}
-            alt=""
-            draggable={false}
-            className="tee-placed-sticker tee-placed-img"
-            style={{ left: `${it.x}%`, top: `${it.y}%`, width: `${it.s}%`, rotate: `${it.r}deg` }}
-          />
-        ) : (
-          <Sticker
-            key={i}
-            shape={it.shape}
-            color={flat ? ink : it.color}
-            flat={flat}
-            label={it.label}
-            className="tee-placed-sticker"
-            style={{ left: `${it.x}%`, top: `${it.y}%`, width: `${it.s}%`, rotate: `${it.r}deg` }}
-          />
-        )
-      )}
+      {design
+        .filter((it) => !it.hidden)
+        .map((it, i) =>
+          it.src ? (
+            <img
+              key={i}
+              src={it.src}
+              alt=""
+              draggable={false}
+              className="tee-placed-sticker tee-placed-img"
+              style={{ left: `${it.x}%`, top: `${it.y}%`, width: `${it.s}%`, rotate: `${it.r}deg` }}
+            />
+          ) : (
+            <Sticker
+              key={i}
+              shape={it.shape}
+              color={flat ? ink : it.color}
+              flat={flat}
+              label={it.label}
+              className="tee-placed-sticker"
+              style={{ left: `${it.x}%`, top: `${it.y}%`, width: `${it.s}%`, rotate: `${it.r}deg` }}
+            />
+          )
+        )}
       {children}
     </div>
   )

@@ -1,6 +1,6 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { createOrder } from '../api.js'
+import { createOrder, uploadSticker } from '../api.js'
 import { tierOf } from '../data/combos.js'
 import { PRODUCTS, contentsOf, methodOf, productFor } from '../data/products.js'
 import { DELIVERY, PAYMENTS, PRICING, findVoucher, priceOf, quote, vnd } from '../data/pricing.js'
@@ -10,7 +10,8 @@ import { useCustomStickers } from '../data/useCustomStickers.js'
 import { OptionGroup, Pills, SizeChart, Stepper } from '../components/ProductParts.jsx'
 import Sticker from '../components/Sticker.jsx'
 import ProductVisual from '../components/ProductVisual.jsx'
-import TryOnModal from '../components/TryOnModal.jsx'
+import DesignStudio from '../components/DesignStudio.jsx'
+import { renderMockup } from '../data/mockup.js'
 import CustomStickers from '../components/CustomStickers.jsx'
 
 // Trang đặt hàng cho áo hoặc túi trong gói Basic (Combo 1 / Combo 2) và gói Premium (áo + bộ in lụa).
@@ -21,6 +22,17 @@ const PHONE_RE = /^0\d{9}$/
 const EMPTY_CUSTOMER = { name: '', phone: '', address: '', note: '' }
 const clampInt = (n, lo, hi) => Math.min(hi, Math.max(lo, Math.floor(Number(n)) || lo))
 
+// Bản phối của từng món (áo / túi) lưu trong sessionStorage theo gói, để tải lại trang không mất.
+// Hình khách tự tải lên không lưu được (ảnh chỉ nằm trong trình duyệt), nên chỉ lưu sticker thư viện.
+const designKey = (tier) => `tl-design:${tier}`
+function loadDesigns(tier) {
+  try {
+    return JSON.parse(sessionStorage.getItem(designKey(tier))) ?? {}
+  } catch {
+    return {}
+  }
+}
+
 function validate({ size, customer, delivery }) {
   const e = {}
   if (!size) e.size = 'Chọn size.'
@@ -30,7 +42,7 @@ function validate({ size, customer, delivery }) {
   return e
 }
 
-export default function OrderPage({ combos, combo, productKey, user }) {
+export default function OrderPage({ combos, combo, productKey, products, onProduct, user }) {
   const [, setSearchParams] = useSearchParams()
   const method = methodOf(combo)
   const tier = tierOf(combo)
@@ -42,11 +54,12 @@ export default function OrderPage({ combos, combo, productKey, user }) {
   const uid = useId()
 
   const [sizeOpen, setSizeOpen] = useState(false)
-  const [size, setSize] = useState(hasSizes ? null : product.sizes[0])
+  const [sizeChoice, setSize] = useState(null)
+  // Đổi áo ↔ túi ngay trên trang: size cũ không hợp lệ thì phải chọn lại, túi chỉ có một size
+  const size = hasSizes ? (product.sizes.includes(sizeChoice) ? sizeChoice : null) : product.sizes[0]
   const [colorKey, setColorKey] = useState(product.colors[0].key)
   const [qty, setQty] = useState(1)
-  const [setKey, setSetKey] = useState(null) // null = không chọn bộ sticker
-  const [stickerQty, setStickerQty] = useState(1)
+  const [sets, setSets] = useState({}) // bộ sticker đã chọn: { [key]: số bộ }
   const [customer, setCustomer] = useState(() => ({
     ...EMPTY_CUSTOMER,
     name: user?.name ?? '',
@@ -58,8 +71,9 @@ export default function OrderPage({ combos, combo, productKey, user }) {
   const [voucher, setVoucher] = useState(null)
   const [voucherMsg, setVoucherMsg] = useState(null) // { type: 'ok' | 'error', text }
   const [errors, setErrors] = useState({})
-  const [design, setDesign] = useState([])
-  const [tryOn, setTryOn] = useState(false)
+  const [designs, setDesigns] = useState(() => loadDesigns(tier.key))
+  const [studio, setStudio] = useState(false)
+  const visualRef = useRef(null)
   const [busy, setBusy] = useState(false)
   const [submitError, setSubmitError] = useState(null)
   const [placed, setPlaced] = useState(null)
@@ -78,14 +92,41 @@ export default function OrderPage({ combos, combo, productKey, user }) {
     if (placed) placedRef.current?.focus()
   }, [placed])
 
+  // Bản phối của món đang xem; lưu sticker thư viện vào sessionStorage
+  const design = designs[productKey] ?? []
+  const setDesign = useCallback(
+    (d) => setDesigns((m) => ({ ...m, [productKey]: typeof d === 'function' ? d(m[productKey] ?? []) : d })),
+    [productKey]
+  )
+  useEffect(() => {
+    try {
+      const keep = Object.fromEntries(
+        Object.entries(designs).map(([k, list]) => [k, list.filter((it) => !it.custom)])
+      )
+      sessionStorage.setItem(designKey(tier.key), JSON.stringify(keep))
+    } catch {
+      // trình duyệt chặn lưu trữ: bỏ qua
+    }
+  }, [designs, tier.key])
+
   // Đổi sang combo hoạ tiết thì chỉ còn một màu nền: rơi về màu đầu tiên còn hợp lệ
   const color = product.colors.find((c) => c.key === colorKey) ?? product.colors[0]
-  const stickerSet = method.stickers ? (STICKER_SETS.find((s) => s.key === setKey) ?? null) : null
+  const chosenSets = method.stickers ? STICKER_SETS.filter((s) => sets[s.key]) : []
+  const setsQty = chosenSets.reduce((n, s) => n + sets[s.key], 0)
+  const toggleSet = (key) =>
+    setSets((m) => {
+      const next = { ...m }
+      if (next[key]) delete next[key]
+      else next[key] = 1
+      return next
+    })
+  // Dùng sticker của một bộ trong trình phối: thêm bộ đó vào đơn (1 bộ) nếu chưa có
+  const useSet = useCallback((key) => setSets((m) => (m[key] ? m : { ...m, [key]: 1 })), [])
   const q = quote({
     product: productKey,
     combo: combo.slug,
     qty,
-    stickerQty: stickerSet ? stickerQty : 0,
+    stickerQty: setsQty,
     customQty: method.stickers ? custom.active.length : 0,
     delivery,
     voucher,
@@ -100,8 +141,12 @@ export default function OrderPage({ combos, combo, productKey, user }) {
       : needsWaiver && !waiverOk
         ? 'Cần tick đồng ý và ký tên vào cam kết bản quyền ở phần “Sticker của riêng bạn” để đặt hàng.'
         : null
-  // Sticker tự tải lên đã bị bỏ thì không hiện trên bản phối nữa
-  const shownDesign = design.filter((it) => !it.custom || custom.done.some((c) => c.key === it.custom))
+  // Sticker tự tải lên đã bị bỏ thì không hiện trên bản phối nữa; ảnh lấy theo bản đang chọn (gốc / tách nền)
+  const customOf = (key) => custom.items.find((c) => c.key === key && c.status !== 'error')
+  const shownDesign = design
+    .filter((it) => !it.custom || customOf(it.custom))
+    .map((it) => (it.custom ? { ...it, src: customOf(it.custom).url } : it))
+  const visibleDesign = shownDesign.filter((it) => !it.hidden)
   const v = findVoucher(voucher)
   const visual = { productKey, color, pattern: combo.patterned }
 
@@ -147,26 +192,44 @@ export default function OrderPage({ combos, combo, productKey, user }) {
     }
     setBusy(true)
     try {
+      // Ảnh mockup áo / túi kèm sticker gửi kèm đơn để studio biết vị trí ép (lỗi thì vẫn đặt hàng được)
+      let preview
+      if (visibleDesign.length) {
+        try {
+          const blob = await renderMockup(visualRef.current.querySelector('.tee-visual'), visibleDesign, 1000)
+          if (blob)
+            preview = (
+              await uploadSticker(new File([blob], `mockup-${productKey}.png`, { type: 'image/png' }))
+            ).id
+        } catch {
+          preview = undefined
+        }
+      }
+      // Bản phối gửi lên: sticker thư viện theo hình + bộ, sticker tự tải lên theo vị trí trong customStickers
+      const design = visibleDesign
+        .filter((it) => !it.custom || custom.done.some((c) => c.key === it.custom))
+        .map(({ id: _id, custom: key, src: _src, hidden: _h, locked: _l, ...it }) =>
+          key
+            ? { x: it.x, y: it.y, r: it.r, s: it.s, upload: custom.done.findIndex((c) => c.key === key) }
+            : it
+        )
       const res = await createOrder({
         combo: combo.slug,
         product: productKey,
         color: color.key,
         size,
         qty,
-        stickerSet: stickerSet?.key ?? null,
-        stickerQty: stickerSet ? stickerQty : 0,
+        stickerSets: chosenSets.map((s) => ({ key: s.key, qty: sets[s.key] })),
         delivery,
         payment,
         voucher,
         customer: { ...customer, phone: customer.phone.replace(/\s/g, '') },
-        customStickers: needsWaiver ? custom.done.map((c) => c.id) : [],
+        customStickers: needsWaiver ? custom.done.map((c) => ({ id: c.id, cut: !!(c.useCut && c.cut) })) : [],
         waiver: needsWaiver
           ? { accepted: true, signedName: waiver.signedName.trim(), version: WAIVER_VERSION }
           : undefined,
-        // sticker tự tải lên gửi theo vị trí trong customStickers
-        design: shownDesign.map(({ custom: key, src: _src, ...it }) =>
-          key ? { ...it, upload: custom.done.findIndex((c) => c.key === key) } : it
-        ),
+        design,
+        preview,
       })
       setPlaced({
         code: res.code,
@@ -177,7 +240,7 @@ export default function OrderPage({ combos, combo, productKey, user }) {
         hasSizes,
         size,
         qty,
-        stickerSet: stickerSet && { name: stickerSet.name, qty: stickerQty },
+        stickerSets: chosenSets.map((s) => ({ name: s.name, qty: sets[s.key] })),
         customCount: needsWaiver ? custom.done.length : 0,
         delivery: DELIVERY.find((d) => d.key === delivery).label,
         payment: PAYMENTS.find((p) => p.key === payment).label,
@@ -222,7 +285,7 @@ export default function OrderPage({ combos, combo, productKey, user }) {
       <div className="pp-grid">
         {/* ---------- Cột trái: ảnh áo trắng ---------- */}
         <div className="pp-gallery">
-          <div className="pp-main tee-main">
+          <div className="pp-main tee-main" ref={visualRef}>
             <ProductVisual
               {...visual}
               design={shownDesign}
@@ -236,7 +299,7 @@ export default function OrderPage({ combos, combo, productKey, user }) {
                 In sẵn hoạ tiết đen trắng
               </span>
             )}
-            {design.length > 0 && <span className="pp-view-tag">Bản phối của bạn</span>}
+            {visibleDesign.length > 0 && <span className="pp-view-tag">Bản phối của bạn</span>}
           </div>
         </div>
 
@@ -368,48 +431,41 @@ export default function OrderPage({ combos, combo, productKey, user }) {
 
               {/* 5. Bộ sticker: chỉ Combo 1 và 2 */}
               {method.stickers && (
-                <OptionGroup label="Bộ sticker" note="không bắt buộc">
+                <OptionGroup label="Bộ sticker" note="không bắt buộc, chọn được nhiều bộ">
                   <div className="tee-sets">
-                    <label className="tee-set tee-set-none">
-                      <input
-                        type="radio"
-                        name={`${uid}-set`}
-                        checked={!setKey}
-                        onChange={() => setSetKey(null)}
-                      />
-                      <span className="tee-set-name">Không chọn</span>
-                    </label>
-                    {STICKER_SETS.map((s) => (
-                      <label key={s.key} className="tee-set">
-                        <input
-                          type="radio"
-                          name={`${uid}-set`}
-                          checked={setKey === s.key}
-                          onChange={() => setSetKey(s.key)}
-                        />
+                    {STICKER_SETS.map((st) => (
+                      <button
+                        key={st.key}
+                        type="button"
+                        className="tee-set"
+                        aria-pressed={!!sets[st.key]}
+                        onClick={() => toggleSet(st.key)}
+                      >
                         <span className="tee-set-art" aria-hidden="true">
-                          {s.stickers.map(([shape, color], i) => (
+                          {st.stickers.map(([shape, color], i) => (
                             <Sticker key={i} shape={shape} color={color} style={{ width: 26 }} />
                           ))}
                         </span>
                         <span className="tee-set-name">
-                          {s.name} <small>(mẫu)</small>
+                          {st.name} <small>(mẫu)</small>
                         </span>
-                        <span className="tee-set-price">+{vnd(PRICING.stickerSet)} / bộ</span>
-                      </label>
+                        <span className="tee-set-price">
+                          {sets[st.key] ? '✓ Đã chọn' : `+${vnd(PRICING.stickerSet)} / bộ`}
+                        </span>
+                      </button>
                     ))}
                   </div>
-                  {stickerSet && (
-                    <div className="tee-qty">
+                  {chosenSets.map((st) => (
+                    <div key={st.key} className="tee-qty">
                       <Stepper
-                        value={stickerQty}
+                        value={sets[st.key]}
                         min={1}
-                        label="Số bộ sticker"
-                        onChange={(n) => setStickerQty(clampInt(n, 1, 999))}
+                        label={`Số bộ ${st.name}`}
+                        onChange={(n) => setSets((m) => ({ ...m, [st.key]: clampInt(n, 1, 999) }))}
                       />
-                      <span>bộ sticker</span>
+                      <span>{st.name}</span>
                     </div>
-                  )}
+                  ))}
                 </OptionGroup>
               )}
 
@@ -544,16 +600,16 @@ export default function OrderPage({ combos, combo, productKey, user }) {
                         <td>{qty}</td>
                         <td>{vnd(q.itemTotal)}</td>
                       </tr>
-                      {stickerSet && (
-                        <tr>
+                      {chosenSets.map((st) => (
+                        <tr key={st.key}>
                           <th scope="row">
-                            {stickerSet.name}
+                            {st.name}
                             <small>{vnd(PRICING.stickerSet)} / bộ</small>
                           </th>
-                          <td>{stickerQty}</td>
-                          <td>{vnd(q.stickerTotal)}</td>
+                          <td>{sets[st.key]}</td>
+                          <td>{vnd(PRICING.stickerSet * sets[st.key])}</td>
                         </tr>
-                      )}
+                      ))}
                       {q.customTotal > 0 && (
                         <tr>
                           <th scope="row">
@@ -600,7 +656,7 @@ export default function OrderPage({ combos, combo, productKey, user }) {
               {/* Gói in lụa không có sticker để phối nên ẩn Phối thử */}
               <div className={`tee-actions${method.stickers ? '' : ' tee-actions-single'}`}>
                 {method.stickers && (
-                  <button type="button" className="btn btn-glass" onClick={() => setTryOn(true)}>
+                  <button type="button" className="btn btn-glass" onClick={() => setStudio(true)}>
                     Phối thử
                   </button>
                 )}
@@ -674,16 +730,31 @@ export default function OrderPage({ combos, combo, productKey, user }) {
         </div>
       </section>
 
-      {tryOn && (
-        <TryOnModal
-          stickerSet={stickerSet ?? STICKER_SETS[0]}
-          visual={visual}
-          flat={!method.stickers}
-          ink={INK}
-          customs={custom.done}
-          initial={shownDesign}
-          onSave={setDesign}
-          onClose={() => setTryOn(false)}
+      {studio && (
+        <DesignStudio
+          productKey={productKey}
+          products={products}
+          onProduct={onProduct}
+          combos={combos}
+          combo={combo}
+          onCombo={pickCombo}
+          color={color}
+          onColor={setColorKey}
+          stickerSets={STICKER_SETS}
+          chosenSets={sets}
+          onUseSet={useSet}
+          custom={custom}
+          initial={design}
+          onChange={setDesign}
+          total={q.total}
+          onOrder={() => {
+            setStudio(false)
+            setTimeout(
+              () => document.getElementById(`${uid}-pay`)?.scrollIntoView({ behavior: 'smooth' }),
+              60
+            )
+          }}
+          onClose={() => setStudio(false)}
         />
       )}
     </div>
@@ -717,12 +788,12 @@ function OrderPlaced({ placed, panelRef, onAgain }) {
             <dd>× {placed.customCount}</dd>
           </div>
         )}
-        {placed.stickerSet && (
-          <div>
-            <dt>{placed.stickerSet.name}</dt>
-            <dd>× {placed.stickerSet.qty}</dd>
+        {placed.stickerSets.map((st) => (
+          <div key={st.name}>
+            <dt>{st.name}</dt>
+            <dd>× {st.qty}</dd>
           </div>
-        )}
+        ))}
         <div>
           <dt>Nhận hàng</dt>
           <dd>{placed.delivery}</dd>

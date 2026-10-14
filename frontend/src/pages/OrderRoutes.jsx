@@ -1,4 +1,4 @@
-import { Navigate, useParams, useSearchParams } from 'react-router-dom'
+import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useCombos } from '../data/useCombos.js'
 import { PRODUCTS } from '../data/products.js'
 import ComboMissing from './ComboMissing.jsx'
@@ -12,16 +12,29 @@ const inTier = (combos, tier, product) =>
 
 function TierOrder({ tier, productKey, user }) {
   const [params] = useSearchParams()
-  const combos = inTier(useCombos(), tier, productKey)
+  const navigate = useNavigate()
+  const all = useCombos()
+  const combos = inTier(all, tier, productKey)
   if (!combos.length) return <ComboMissing />
   const combo = combos.find((c) => c.slug === params.get('combo')) ?? combos[0]
-  // key theo gói + món: đổi combo trong gói vẫn giữ lựa chọn, đổi món thì làm lại từ đầu
+  // Các món trong gói (Basic: áo, túi); đổi món ngay trên trang / trong trình phối, giữ combo đang chọn
+  const products = [
+    ...new Set(all.filter((c) => (c.tier ?? 'basic') === tier).flatMap((c) => c.products ?? ['ao'])),
+  ]
+  const onProduct = (k) =>
+    navigate(`/${tier}/${k}${params.get('combo') ? `?combo=${params.get('combo')}` : ''}`, {
+      replace: true,
+      state: { keepScroll: true },
+    })
+  // key theo gói: đổi combo hay đổi áo ↔ túi vẫn giữ lựa chọn, hình tải lên và trình phối đang mở
   return (
     <OrderPage
-      key={`${tier}/${productKey}`}
+      key={tier}
       combos={combos}
       combo={combo}
       productKey={productKey}
+      products={products}
+      onProduct={onProduct}
       user={user}
     />
   )

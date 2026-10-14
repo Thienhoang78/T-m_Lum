@@ -2,7 +2,18 @@ import mongoose from 'mongoose'
 
 const DesignItemSchema = new mongoose.Schema(
   // upload: vị trí trong customStickers khi là sticker khách tự tải lên
-  { shape: String, color: String, label: String, upload: Number, x: Number, y: Number, r: Number, s: Number },
+  // set: bộ sticker của sticker thư viện
+  {
+    shape: String,
+    color: String,
+    label: String,
+    set: String,
+    upload: Number,
+    x: Number,
+    y: Number,
+    r: Number,
+    s: Number,
+  },
   { _id: false }
 )
 
@@ -15,7 +26,8 @@ const OrderSchema = new mongoose.Schema(
     color: String,
     size: String,
     qty: { type: Number, min: 1 },
-    stickerSet: { key: String, name: String, qty: Number },
+    stickerSet: { key: String, name: String, qty: Number }, // đơn cũ (một bộ)
+    stickerSets: [{ _id: false, key: String, name: String, qty: Number }],
     // sticker khách tự tải lên (file nằm trong collection uploads)
     customStickers: [
       {
@@ -23,6 +35,7 @@ const OrderSchema = new mongoose.Schema(
         upload: { type: mongoose.Schema.Types.ObjectId, ref: 'Upload' },
         name: String,
         size: Number,
+        cut: Boolean, // khách chọn bản đã tách nền
       },
     ],
     // cam kết miễn trừ trách nhiệm bản quyền khách đã ký khi tải sticker lên
@@ -35,7 +48,8 @@ const OrderSchema = new mongoose.Schema(
       ip: String,
       userAgent: String,
     },
-    design: [DesignItemSchema], // bản phối thử: toạ độ % trên ảnh áo
+    design: [DesignItemSchema], // bản phối: toạ độ % trên ảnh, thứ tự = thứ tự lớp (cuối cùng nằm trên)
+    preview: { type: mongoose.Schema.Types.ObjectId, ref: 'Upload' }, // ảnh mockup PNG của bản phối
     customer: { name: String, phone: String, address: String, note: String },
     delivery: { type: String, enum: ['giao-hang', 'studio'] },
     payment: { type: String, enum: ['cod', 'chuyen-khoan', 'vi-dien-tu'] },
