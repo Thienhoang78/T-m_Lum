@@ -15,7 +15,7 @@ const reactRules = {
 }
 
 export default [
-  { ignores: ['**/node_modules', '**/dist', '**/.next', '**/next-env.d.ts'] },
+  { ignores: ['**/node_modules', '**/dist', '**/.next', '**/next-env.d.ts', 'frontend/public/ort'] },
   js.configs.recommended,
 
   // Frontend React (Vite)
@@ -55,7 +55,7 @@ export default [
   },
 
   // File cấu hình ở thư mục gốc
-  { files: ['*.{js,mjs}'], languageOptions: { globals: globals.node } },
+  { files: ['*.{js,mjs}', 'frontend/scripts/**/*.mjs'], languageOptions: { globals: globals.node } },
 
   prettier,
 ]

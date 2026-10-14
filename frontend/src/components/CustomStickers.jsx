@@ -5,7 +5,16 @@ import { OptionGroup } from './ProductParts.jsx'
 
 const kb = (n) =>
   n >= 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`
-const STATUS = { uploading: 'Đang tải lên…', done: 'Đã tải lên' }
+const STATUS = { processing: 'Đang tách nền…', uploading: 'Đang tải lên…' }
+
+// Dòng trạng thái của một hình: đang xử lý / lỗi / đã tách nền bằng cách nào / dùng ảnh gốc vì sao
+function statusText(it) {
+  if (it.status === 'error') return it.error
+  if (STATUS[it.status]) return STATUS[it.status]
+  if (it.useCut && it.cut)
+    return `Đã tách nền${it.cut.method === 'ai' ? ' (AI)' : ''}${it.cut.reduced ? ', đã thu nhỏ cho vừa 4 MB' : ''}`
+  return it.cutReason ? `Dùng ảnh gốc: ${it.cutReason.toLowerCase()}` : 'Dùng ảnh gốc'
+}
 
 // Khối "Sticker của riêng bạn": chọn / kéo thả hình, xem trước, bỏ hình.
 // Có ít nhất 1 hình thì phải đồng ý và ký tên vào cam kết miễn trừ trách nhiệm bản quyền.
@@ -71,8 +80,8 @@ export default function CustomStickers({ uid, custom, waiver, onWaiver, waiverEr
                 <img src={it.url} alt="" />
                 <span className="upl-name">
                   {it.name}
-                  <small>
-                    {kb(it.size)} · {it.status === 'error' ? it.error : STATUS[it.status]}
+                  <small aria-live="polite">
+                    {kb(it.size)} · {statusText(it)}
                   </small>
                 </span>
                 <button
@@ -83,9 +92,50 @@ export default function CustomStickers({ uid, custom, waiver, onWaiver, waiverEr
                 >
                   ×
                 </button>
+                {it.cut && (
+                  <div className="upl-tools">
+                    <div className="upl-switch" role="group" aria-label={`Bản dùng để in cho ${it.name}`}>
+                      <button
+                        type="button"
+                        aria-pressed={it.useCut}
+                        disabled={it.status === 'processing'}
+                        onClick={() => custom.setUseCut(it.key, true)}
+                      >
+                        Đã tách nền
+                      </button>
+                      <button
+                        type="button"
+                        aria-pressed={!it.useCut}
+                        disabled={it.status === 'processing'}
+                        onClick={() => custom.setUseCut(it.key, false)}
+                      >
+                        Ảnh gốc
+                      </button>
+                    </div>
+                    {it.useCut && it.cut.method === 'flood' && (
+                      <label className="upl-tol">
+                        <span>Độ nhạy tách nền</span>
+                        <input
+                          type="range"
+                          min="10"
+                          max="110"
+                          step="4"
+                          value={it.tolerance}
+                          onChange={(e) => custom.setTolerance(it.key, Number(e.target.value))}
+                        />
+                      </label>
+                    )}
+                  </div>
+                )}
               </li>
             ))}
           </ul>
+        )}
+        {custom.items.length > 0 && (
+          <p className="upl-hint upl-note">
+            Ảnh được tự tách nền để chỉ giữ lại sticker. Tách nền tự động có thể chưa hoàn hảo với ảnh chụp
+            phức tạp, chưa ưng thì chọn “Ảnh gốc”.
+          </p>
         )}
 
         {custom.active.length > 0 && (

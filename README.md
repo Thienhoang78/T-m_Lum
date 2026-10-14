@@ -38,6 +38,11 @@ thời điểm, IP và trình duyệt. Nội dung cam kết nằm ở `frontend/
 (phải sửa cả hai và đổi phiên bản). Đây là bản nháp, nên nhờ người có chuyên môn pháp lý xem lại. Hình chưa gắn vào đơn
 tự xoá sau 24 giờ.
 
+Hình tải lên được tự tách nền ngay trên trình duyệt (`frontend/src/data/removeBackground.js`): ảnh đã trong suốt giữ
+nguyên; nền trơn tách bằng cách loang màu từ mép (có thanh độ nhạy); ảnh chụp / nền nhiều màu dùng mô hình AI
+U²-Netp (`frontend/public/models/u2netp.onnx`, giấy phép Apache-2.0) chạy bằng onnxruntime-web (MIT) trong Web Worker.
+Khách có thể chọn lại "Ảnh gốc" nếu tách chưa ưng. File chạy onnxruntime được chép vào `frontend/public/ort` khi build.
+
 ## Lệnh hay dùng
 
 | Lệnh                                  | Việc                             |
