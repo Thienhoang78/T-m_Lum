@@ -1407,6 +1407,185 @@
   }
 }
 
+/* ---------- Sticker khách tự tải lên + cam kết bản quyền ---------- */
+.upl {
+  display: grid;
+  gap: 12px;
+}
+.upl-drop {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 20px 16px;
+  border-radius: 16px;
+  border: 2px dashed rgba(30, 136, 229, 0.45);
+  background: var(--brand-soft);
+  color: var(--brand-deep);
+  text-align: center;
+  cursor: pointer;
+  transition:
+    border-color 0.2s,
+    background 0.2s;
+}
+.upl-drop:hover,
+.upl-drop.is-over {
+  border-color: var(--brand-strong);
+  background: #d4eafc;
+}
+.upl-drop:focus-within {
+  outline: 3px solid var(--brand-strong);
+  outline-offset: 2px;
+}
+.upl-drop.is-full {
+  cursor: default;
+  opacity: 0.7;
+}
+.upl-drop input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: inherit;
+}
+.upl-title {
+  font-weight: 600;
+  color: var(--navy);
+}
+.upl-hint {
+  font-size: 0.82rem;
+  color: var(--muted);
+  max-width: 46ch;
+}
+.upl-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.upl-item {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+.upl-item img {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: repeating-conic-gradient(#eef3f8 0 25%, #fff 0 50%) 0 0 / 12px 12px;
+}
+.upl-name {
+  display: grid;
+  min-width: 0;
+  font-size: 0.9rem;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.upl-name small {
+  font-weight: 400;
+  color: var(--muted);
+}
+.upl-item.is-error {
+  border-color: rgba(198, 40, 40, 0.4);
+}
+.upl-item.is-error small {
+  color: var(--danger);
+}
+.upl-item.is-uploading img {
+  opacity: 0.5;
+}
+.upl-remove {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--navy);
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.upl-remove:hover {
+  background: var(--brand-soft);
+}
+.waiver {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1.5px solid var(--sun-ink);
+  background: #fff8e6;
+}
+.waiver-title {
+  margin: 0;
+  font-weight: 700;
+  color: var(--navy);
+}
+.waiver-text {
+  margin: 0;
+  padding: 10px 12px 10px 32px;
+  max-height: 180px;
+  overflow-y: auto;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  display: grid;
+  gap: 8px;
+  font-size: 0.86rem;
+  line-height: 1.55;
+}
+.waiver-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.waiver-check input {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin: 3px 0 0;
+  accent-color: var(--brand-strong);
+}
+.tee-block {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #fff8e6;
+  border: 1px solid rgba(138, 93, 0, 0.35);
+  color: var(--sun-ink);
+  font-size: 0.88rem;
+  font-weight: 500;
+}
+/* sticker ảnh trên áo / trong bảng phối thử */
+.tee-placed-img,
+.tryon-img {
+  height: auto;
+  object-fit: contain;
+}
+.tee-placed-img {
+  position: absolute;
+  translate: -50% -50%;
+  pointer-events: none;
+}
+.tryon-img {
+  width: 100%;
+  pointer-events: none;
+}
+.tryon-tray-custom img {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  pointer-events: none;
+}
+
 /* ---------- Responsive ---------- */
 @media (max-width: 880px) {
   .pp-grid {

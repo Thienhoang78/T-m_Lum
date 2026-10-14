@@ -1,7 +1,8 @@
 import mongoose from 'mongoose'
 
 const DesignItemSchema = new mongoose.Schema(
-  { shape: String, color: String, label: String, x: Number, y: Number, r: Number, s: Number },
+  // upload: vị trí trong customStickers khi là sticker khách tự tải lên
+  { shape: String, color: String, label: String, upload: Number, x: Number, y: Number, r: Number, s: Number },
   { _id: false }
 )
 
@@ -15,6 +16,25 @@ const OrderSchema = new mongoose.Schema(
     size: String,
     qty: { type: Number, min: 1 },
     stickerSet: { key: String, name: String, qty: Number },
+    // sticker khách tự tải lên (file nằm trong collection uploads)
+    customStickers: [
+      {
+        _id: false,
+        upload: { type: mongoose.Schema.Types.ObjectId, ref: 'Upload' },
+        name: String,
+        size: Number,
+      },
+    ],
+    // cam kết miễn trừ trách nhiệm bản quyền khách đã ký khi tải sticker lên
+    waiver: {
+      accepted: Boolean,
+      signedName: String,
+      version: String,
+      text: String,
+      signedAt: Date,
+      ip: String,
+      userAgent: String,
+    },
     design: [DesignItemSchema], // bản phối thử: toạ độ % trên ảnh áo
     customer: { name: String, phone: String, address: String, note: String },
     delivery: { type: String, enum: ['giao-hang', 'studio'] },
@@ -24,6 +44,7 @@ const OrderSchema = new mongoose.Schema(
       unit: Number,
       itemTotal: Number,
       stickerTotal: Number,
+      customTotal: Number,
       goods: Number,
       shipping: Number,
       discount: Number,

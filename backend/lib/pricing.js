@@ -6,6 +6,7 @@ export const PRICING = {
     tui: { 'combo-1': 219000, 'combo-2': 219000 },
   },
   stickerSet: 35000,
+  customSticker: 35000, // mỗi hình sticker khách tự tải lên
   shipping: 30000,
   freeShipFrom: 500000,
 }
@@ -38,14 +39,24 @@ export const PATTERN_COLOR = 'hoa-tiet'
 export const findVoucher = (code) => VOUCHERS[code?.trim().toUpperCase()] ?? null
 export const priceOf = (product, combo) => PRICING.items[product]?.[combo] ?? null
 
-export function quote({ product, combo, qty, stickerQty = 0, delivery, voucher }) {
+export function quote({ product, combo, qty, stickerQty = 0, customQty = 0, delivery, voucher }) {
   const unit = priceOf(product, combo) ?? 0
   const itemTotal = unit * qty
   const stickerTotal = PRICING.stickerSet * stickerQty
-  const goods = itemTotal + stickerTotal
+  const customTotal = PRICING.customSticker * customQty // sticker khách tự tải lên
+  const goods = itemTotal + stickerTotal + customTotal
   const v = findVoucher(voucher)
   const shipping =
     delivery === 'studio' || goods >= PRICING.freeShipFrom || v?.freeShip ? 0 : PRICING.shipping
   const discount = v?.percent ? Math.round((goods * v.percent) / 100) : 0
-  return { unit, itemTotal, stickerTotal, goods, shipping, discount, total: goods + shipping - discount }
+  return {
+    unit,
+    itemTotal,
+    stickerTotal,
+    customTotal,
+    goods,
+    shipping,
+    discount,
+    total: goods + shipping - discount,
+  }
 }

@@ -32,6 +32,12 @@ Nếu backend chưa chạy, trang vẫn hiện combo mẫu trong `frontend/src/d
 
 Basic ép nhiệt sticker (sticker chọn và tính tiền riêng), Premium in lụa. Link cũ `/combo/...` tự chuyển sang trang mới.
 
+Ở gói Basic, khách có thể tự tải tối đa 5 sticker của mình (tính tiền theo hình). Có hình tự tải lên thì phải tick
+đồng ý và ký tên vào cam kết miễn trừ trách nhiệm bản quyền; đơn hàng lưu phiên bản, toàn văn cam kết, tên người ký,
+thời điểm, IP và trình duyệt. Nội dung cam kết nằm ở `frontend/src/data/consent.js` và `backend/lib/consent.js`
+(phải sửa cả hai và đổi phiên bản). Đây là bản nháp, nên nhờ người có chuyên môn pháp lý xem lại. Hình chưa gắn vào đơn
+tự xoá sau 24 giờ.
+
 ## Lệnh hay dùng
 
 | Lệnh                                  | Việc                             |
@@ -55,6 +61,8 @@ VS Code: mở thư mục gốc, cài các extension được gợi ý (ESLint, P
 | POST        | /api/combos        | Tạo combo (cần header `x-admin-token`)            |
 | GET / PATCH | /api/combos/:slug  | Xem / sửa 1 combo (sửa cần `x-admin-token`)       |
 | POST        | /api/orders        | Đặt áo / túi: kiểm tra, tính lại giá, lưu đơn     |
+| POST        | /api/uploads       | Tải 1 sticker khách tự làm (PNG/JPG/WebP ≤ 4 MB)  |
+| GET         | /api/uploads/:id   | Xem sticker khách gửi (cần `x-admin-token`)       |
 | POST        | /api/auth/register | Đăng ký (họ tên, email, SĐT, mật khẩu ≥ 8 ký tự)  |
 | POST        | /api/auth/login    | Đăng nhập, đặt cookie phiên `tl_session` (7 ngày) |
 | POST        | /api/auth/logout   | Đăng xuất                                         |

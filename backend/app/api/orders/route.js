@@ -11,11 +11,15 @@ import {
   priceOf,
   quote,
 } from '@/lib/pricing'
+import { WAIVER_VERSION, waiverText } from '@/lib/consent'
 import Combo from '@/models/Combo'
 import Order from '@/models/Order'
+import Upload from '@/models/Upload'
+import mongoose from 'mongoose'
 
 const PHONE_RE = /^0\d{9}$/
 const SHAPES = ['star', 'heart', 'bolt', 'flower', 'smile', 'blob']
+const MAX_CUSTOM = 5
 const bad = (error) => Response.json({ error }, { status: 400 })
 const int = (v) => (Number.isInteger(v) ? v : NaN)
 const str = (v, max = 200) => (typeof v === 'string' ? v.trim().slice(0, max) : '')
@@ -71,13 +75,45 @@ export async function POST(req) {
     stickerSet = { key: b.stickerSet, name: STICKER_SETS[b.stickerSet], qty: sq }
   }
 
+  // Sticker khách tự tải lên: chỉ gói ép nhiệt, tối đa 5 hình, bắt buộc ký cam kết bản quyền
+  const ids = Array.isArray(b.customStickers) ? b.customStickers : []
+  let customStickers = []
+  let waiver
+  if (ids.length) {
+    if (combo.method === 'screen-print') return bad('Gói này không nhận sticker tự tải lên.')
+    if (ids.length > MAX_CUSTOM) return bad(`Tối đa ${MAX_CUSTOM} sticker tự tải lên mỗi đơn.`)
+    if (!ids.every((id) => mongoose.isValidObjectId(id)) || new Set(ids).size !== ids.length)
+      return bad('Sticker tải lên không hợp lệ.')
+    const files = await Upload.find({ _id: { $in: ids }, order: null }).lean()
+    if (files.length !== ids.length) return bad('Có sticker tải lên đã hết hạn, vui lòng tải lại.')
+    const signedName = str(b.waiver?.signedName, 80)
+    if (b.waiver?.accepted !== true || !signedName)
+      return bad('Cần đồng ý và ký tên vào cam kết bản quyền trước khi dùng sticker tự tải lên.')
+    if (b.waiver?.version !== WAIVER_VERSION) return bad('Cam kết đã được cập nhật, vui lòng tải lại trang.')
+    const byId = new Map(files.map((f) => [String(f._id), f]))
+    customStickers = ids.map((id) => ({ upload: id, name: byId.get(id).name, size: byId.get(id).size }))
+    waiver = {
+      accepted: true,
+      signedName,
+      version: WAIVER_VERSION,
+      text: waiverText(),
+      signedAt: new Date(),
+      ip: (req.headers.get('x-forwarded-for') ?? '').split(',')[0].trim() || undefined,
+      userAgent: str(req.headers.get('user-agent') ?? '', 300) || undefined,
+    }
+  }
+
   const design = (Array.isArray(b.design) ? b.design : [])
     .slice(0, 30)
-    .filter((it) => SHAPES.includes(it?.shape))
+    .filter(
+      (it) =>
+        SHAPES.includes(it?.shape) ||
+        (Number.isInteger(it?.upload) && it.upload >= 0 && it.upload < customStickers.length)
+    )
     .map((it) => ({
-      shape: it.shape,
-      color: str(it.color, 40),
-      label: str(it.label, 20),
+      ...(Number.isInteger(it.upload) && !SHAPES.includes(it.shape)
+        ? { upload: it.upload }
+        : { shape: it.shape, color: str(it.color, 40), label: str(it.label, 20) }),
       x: num(it.x, 0, 100),
       y: num(it.y, 0, 100),
       r: num(it.r, -180, 180),
@@ -89,6 +125,7 @@ export async function POST(req) {
     combo: b.combo,
     qty,
     stickerQty: stickerSet?.qty ?? 0,
+    customQty: customStickers.length,
     delivery: b.delivery,
     voucher,
   })
@@ -101,6 +138,8 @@ export async function POST(req) {
     size: b.size,
     qty,
     stickerSet,
+    customStickers,
+    waiver,
     design,
     customer: {
       name,
@@ -118,6 +157,12 @@ export async function POST(req) {
   for (let i = 0; i < 5; i++) {
     try {
       const order = await Order.create({ ...doc, code: orderCode() })
+      // Gắn file vào đơn và bỏ hạn tự xoá
+      if (customStickers.length)
+        await Upload.updateMany(
+          { _id: { $in: ids } },
+          { $set: { order: order.code }, $unset: { expiresAt: '' } }
+        )
       return Response.json({ code: order.code, totals: order.totals, status: order.status }, { status: 201 })
     } catch (err) {
       if (err?.code !== 11000) throw err

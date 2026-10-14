@@ -61,3 +61,18 @@ export async function createOrder(order) {
   if (!res.ok) throw new Error(data.error || 'Chưa đặt được hàng, thử lại sau.')
   return data
 }
+
+// Tải 1 sticker khách tự làm lên server, trả về { id, name, size, type }
+export async function uploadSticker(file) {
+  const body = new FormData()
+  body.append('file', file)
+  let res
+  try {
+    res = await fetch(`${API}/api/uploads`, { method: 'POST', credentials: 'include', body })
+  } catch {
+    throw new OfflineError('Chưa kết nối được máy chủ.')
+  }
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(data.error || 'Tải hình lên chưa được, thử lại sau.')
+  return data
+}

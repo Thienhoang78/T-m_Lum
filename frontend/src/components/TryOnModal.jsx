@@ -16,7 +16,16 @@ function toPct(stage, e) {
   }
 }
 
-export default function TryOnModal({ stickerSet, visual, flat, ink, initial, onSave, onClose }) {
+export default function TryOnModal({
+  stickerSet,
+  customs = [],
+  visual,
+  flat,
+  ink,
+  initial,
+  onSave,
+  onClose,
+}) {
   const dialogRef = useRef(null)
   const stageRef = useRef(null)
   const [items, setItems] = useState(() => initial.map((it) => ({ ...it, id: nextId++ })))
@@ -52,8 +61,12 @@ export default function TryOnModal({ stickerSet, visual, flat, ink, initial, onS
     onClose()
   }
 
-  function add([shape, color, label], drag) {
-    const it = { id: nextId++, shape, color, label, x: 50, y: 45, r: 0, s: START_SIZE }
+  // k: [hình, màu, chữ] của bộ sticker, hoặc { custom, src } với sticker khách tự tải lên
+  function add(k, drag) {
+    const base = Array.isArray(k)
+      ? { shape: k[0], color: k[1], label: k[2] }
+      : { custom: k.custom, src: k.src }
+    const it = { id: nextId++, ...base, x: 50, y: 45, r: 0, s: START_SIZE }
     setItems((list) => [...list, it])
     setSelected(it.id)
     if (drag) setDragId(it.id)
@@ -128,7 +141,11 @@ export default function TryOnModal({ stickerSet, visual, flat, ink, initial, onS
                   onFocus={() => setSelected(it.id)}
                   onKeyDown={(e) => nudge(e, it)}
                 >
-                  <Sticker shape={it.shape} color={flat ? ink : it.color} flat={flat} label={it.label} />
+                  {it.src ? (
+                    <img src={it.src} alt="" draggable={false} className="tryon-img" />
+                  ) : (
+                    <Sticker shape={it.shape} color={flat ? ink : it.color} flat={flat} label={it.label} />
+                  )}
                 </button>
               ))}
             </ProductVisual>
@@ -150,6 +167,21 @@ export default function TryOnModal({ stickerSet, visual, flat, ink, initial, onS
                   onClick={(e) => e.detail === 0 && add(k, false)}
                 >
                   <Sticker shape={k[0]} color={flat ? ink : k[1]} flat={flat} label={k[2]} />
+                </button>
+              ))}
+              {customs.map((c, i) => (
+                <button
+                  key={c.key}
+                  type="button"
+                  className="tryon-tray-item tryon-tray-custom"
+                  aria-label={`Thêm sticker của bạn ${i + 1} lên ${mon}`}
+                  onPointerDown={(e) => {
+                    e.preventDefault()
+                    add({ custom: c.key, src: c.url }, true)
+                  }}
+                  onClick={(e) => e.detail === 0 && add({ custom: c.key, src: c.url }, false)}
+                >
+                  <img src={c.url} alt="" draggable={false} />
                 </button>
               ))}
             </div>
@@ -209,9 +241,7 @@ export default function TryOnModal({ stickerSet, visual, flat, ink, initial, onS
             type="button"
             className="btn btn-brand"
             onClick={() => {
-              onSave(
-                items.map(({ shape, color, label, x, y, r, s }) => ({ shape, color, label, x, y, r, s }))
-              )
+              onSave(items.map(({ id: _id, ...it }) => it))
               close()
             }}
           >

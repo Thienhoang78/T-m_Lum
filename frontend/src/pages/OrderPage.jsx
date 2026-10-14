@@ -5,10 +5,13 @@ import { tierOf } from '../data/combos.js'
 import { PRODUCTS, contentsOf, methodOf, productFor } from '../data/products.js'
 import { DELIVERY, PAYMENTS, PRICING, findVoucher, priceOf, quote, vnd } from '../data/pricing.js'
 import { STICKER_SETS } from '../data/stickerSets.js'
+import { WAIVER_VERSION } from '../data/consent.js'
+import { useCustomStickers } from '../data/useCustomStickers.js'
 import { OptionGroup, Pills, SizeChart, Stepper } from '../components/ProductParts.jsx'
 import Sticker from '../components/Sticker.jsx'
 import ProductVisual from '../components/ProductVisual.jsx'
 import TryOnModal from '../components/TryOnModal.jsx'
+import CustomStickers from '../components/CustomStickers.jsx'
 
 // Trang đặt hàng cho áo hoặc túi trong gói Basic (Combo 1 / Combo 2) và gói Premium (áo + bộ in lụa).
 // Ảnh món bên trái; bên phải: hướng dẫn size → chọn combo → (màu túi) → size → số lượng
@@ -62,6 +65,8 @@ export default function OrderPage({ combos, combo, productKey, user }) {
   const [placed, setPlaced] = useState(null)
   const [tab, setTab] = useState(0)
   const placedRef = useRef(null)
+  const custom = useCustomStickers() // sticker khách tự tải lên
+  const [waiver, setWaiver] = useState({ accepted: false, signedName: '' })
 
   // Đăng nhập sau khi đã mở trang: điền tên và số điện thoại vào ô còn trống
   useEffect(() => {
@@ -81,9 +86,22 @@ export default function OrderPage({ combos, combo, productKey, user }) {
     combo: combo.slug,
     qty,
     stickerQty: stickerSet ? stickerQty : 0,
+    customQty: method.stickers ? custom.active.length : 0,
     delivery,
     voucher,
   })
+  // Có sticker tự tải lên thì phải ký cam kết bản quyền; đang tải hình thì chưa cho đặt
+  const needsWaiver = method.stickers && custom.active.length > 0
+  const waiverOk = waiver.accepted && waiver.signedName.trim() !== ''
+  const blockReason = !method.stickers
+    ? null
+    : custom.uploading
+      ? 'Đang tải hình sticker của bạn lên, chờ một chút…'
+      : needsWaiver && !waiverOk
+        ? 'Cần tick đồng ý và ký tên vào cam kết bản quyền ở phần “Sticker của riêng bạn” để đặt hàng.'
+        : null
+  // Sticker tự tải lên đã bị bỏ thì không hiện trên bản phối nữa
+  const shownDesign = design.filter((it) => !it.custom || custom.done.some((c) => c.key === it.custom))
   const v = findVoucher(voucher)
   const visual = { productKey, color, pattern: combo.patterned }
 
@@ -119,11 +137,12 @@ export default function OrderPage({ combos, combo, productKey, user }) {
     const e = validate({ size, customer, delivery })
     setErrors(e)
     setSubmitError(null)
-    const first = ['size', 'name', 'phone', 'address'].find((k) => e[k])
+    if (needsWaiver && !waiverOk) e.waiver = 'Hãy tick đồng ý và ghi họ tên để ký cam kết.'
+    const first = ['size', 'waiver', 'name', 'phone', 'address'].find((k) => e[k])
     if (first) {
       const el = document.getElementById(`${uid}-${first}`)
       el?.scrollIntoView({ block: 'center', behavior: 'smooth' })
-      if (first !== 'size') el?.focus({ preventScroll: true })
+      if (first !== 'size' && first !== 'waiver') el?.focus({ preventScroll: true })
       return
     }
     setBusy(true)
@@ -140,7 +159,14 @@ export default function OrderPage({ combos, combo, productKey, user }) {
         payment,
         voucher,
         customer: { ...customer, phone: customer.phone.replace(/\s/g, '') },
-        design,
+        customStickers: needsWaiver ? custom.done.map((c) => c.id) : [],
+        waiver: needsWaiver
+          ? { accepted: true, signedName: waiver.signedName.trim(), version: WAIVER_VERSION }
+          : undefined,
+        // sticker tự tải lên gửi theo vị trí trong customStickers
+        design: shownDesign.map(({ custom: key, src: _src, ...it }) =>
+          key ? { ...it, upload: custom.done.findIndex((c) => c.key === key) } : it
+        ),
       })
       setPlaced({
         code: res.code,
@@ -152,10 +178,15 @@ export default function OrderPage({ combos, combo, productKey, user }) {
         size,
         qty,
         stickerSet: stickerSet && { name: stickerSet.name, qty: stickerQty },
+        customCount: needsWaiver ? custom.done.length : 0,
         delivery: DELIVERY.find((d) => d.key === delivery).label,
         payment: PAYMENTS.find((p) => p.key === payment).label,
         phone: customer.phone,
       })
+      // Hình đã gắn vào đơn này, đơn sau phải tải và ký lại
+      custom.reset()
+      setWaiver({ accepted: false, signedName: '' })
+      setDesign((d) => d.filter((it) => !it.custom))
     } catch (err) {
       setSubmitError(err.message)
     } finally {
@@ -194,7 +225,7 @@ export default function OrderPage({ combos, combo, productKey, user }) {
           <div className="pp-main tee-main">
             <ProductVisual
               {...visual}
-              design={design}
+              design={shownDesign}
               flat={!method.stickers}
               ink={INK}
               alt={productKey === 'ao' ? 'Áo thun trắng trơn form oversize, cổ bo gân' : product.title}
@@ -382,6 +413,20 @@ export default function OrderPage({ combos, combo, productKey, user }) {
                 </OptionGroup>
               )}
 
+              {/* 5b. Sticker khách tự tải lên + cam kết bản quyền (chỉ gói ép nhiệt) */}
+              {method.stickers && (
+                <CustomStickers
+                  uid={uid}
+                  custom={custom}
+                  waiver={waiver}
+                  onWaiver={(w) => {
+                    setWaiver(w)
+                    if (errors.waiver) setErrors((e) => ({ ...e, waiver: undefined }))
+                  }}
+                  waiverError={errors.waiver}
+                />
+              )}
+
               {/* 6. Thanh toán */}
               <section className="tee-checkout" aria-labelledby={`${uid}-pay`}>
                 <h2 className="tee-h2" id={`${uid}-pay`}>
@@ -509,6 +554,16 @@ export default function OrderPage({ combos, combo, productKey, user }) {
                           <td>{vnd(q.stickerTotal)}</td>
                         </tr>
                       )}
+                      {q.customTotal > 0 && (
+                        <tr>
+                          <th scope="row">
+                            Sticker của bạn
+                            <small>{vnd(PRICING.customSticker)} / hình</small>
+                          </th>
+                          <td>{custom.active.length}</td>
+                          <td>{vnd(q.customTotal)}</td>
+                        </tr>
+                      )}
                     </tbody>
                     <tfoot>
                       <tr>
@@ -549,10 +604,21 @@ export default function OrderPage({ combos, combo, productKey, user }) {
                     Phối thử
                   </button>
                 )}
-                <button type="button" className="btn btn-brand" onClick={placeOrder} disabled={busy}>
+                <button
+                  type="button"
+                  className="btn btn-brand"
+                  onClick={placeOrder}
+                  disabled={busy || !!blockReason}
+                  aria-describedby={blockReason ? `${uid}-block` : undefined}
+                >
                   {busy ? 'Đang gửi đơn…' : `Đặt hàng · ${vnd(q.total)}`}
                 </button>
               </div>
+              {blockReason && (
+                <p className="tee-block" id={`${uid}-block`}>
+                  {blockReason}
+                </p>
+              )}
               {submitError && (
                 <p className="auth-status error" role="alert">
                   {submitError}
@@ -614,7 +680,8 @@ export default function OrderPage({ combos, combo, productKey, user }) {
           visual={visual}
           flat={!method.stickers}
           ink={INK}
-          initial={design}
+          customs={custom.done}
+          initial={shownDesign}
           onSave={setDesign}
           onClose={() => setTryOn(false)}
         />
@@ -644,6 +711,12 @@ function OrderPlaced({ placed, panelRef, onAgain }) {
             {placed.hasSizes ? `Size ${placed.size}` : placed.colorName} × {placed.qty}
           </dd>
         </div>
+        {placed.customCount > 0 && (
+          <div>
+            <dt>Sticker của bạn (đã ký cam kết)</dt>
+            <dd>× {placed.customCount}</dd>
+          </div>
+        )}
         {placed.stickerSet && (
           <div>
             <dt>{placed.stickerSet.name}</dt>
