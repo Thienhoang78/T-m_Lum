@@ -4,6 +4,7 @@ import { PRICING, priceOf, vnd } from '../data/pricing.js'
 import { MAX_CUSTOM_STICKERS } from '../data/consent.js'
 import { renderMockup } from '../data/mockup.js'
 import ProductVisual from './ProductVisual.jsx'
+import LiveTryOn from './LiveTryOn.jsx'
 import Sticker from './Sticker.jsx'
 
 // Trình phối kiểu Canva (toàn màn hình): thanh công cụ trái (Sản phẩm, Thư viện, Tải lên, Lớp),
@@ -98,6 +99,7 @@ export default function DesignStudio({
   const [zoom, setZoom] = useState(100)
   const [dragLayer, setDragLayer] = useState(null)
   const [busy, setBusy] = useState(false)
+  const [liveOpen, setLiveOpen] = useState(false) // live mặc thử áo bằng camera
   const items = hist.present
   const sel = items.find((it) => it.id === selected)
 
@@ -420,6 +422,12 @@ export default function DesignStudio({
             <span>{busy ? 'Đang xuất…' : 'Tải xuống'}</span>
           </button>
         </div>
+        {productKey === 'ao' && (
+          <button type="button" className="studio-live" onClick={() => setLiveOpen(true)}>
+            <Icon d="M4 8h3l2-3h6l2 3h3v11H4zM12 17a4 4 0 100-8 4 4 0 000 8z" size={18} />
+            <span>Live mặc thử áo</span>
+          </button>
+        )}
         <p className="studio-total">
           <small>Tổng tạm tính</small>
           <strong>{vnd(total)}</strong>
@@ -864,6 +872,18 @@ export default function DesignStudio({
           </p>
         </main>
       </div>
+
+      {liveOpen && (
+        <LiveTryOn
+          makeTexture={() =>
+            renderMockup(exportRef.current.querySelector('.tee-visual'), visibleForExport, 800, {
+              transparent: true,
+              baseSrc: PRODUCTS.ao.cutout,
+            })
+          }
+          onClose={() => setLiveOpen(false)}
+        />
+      )}
 
       {/* Bản ẩn để xuất mockup PNG (không có tay nắm, đường căn) */}
       <div className="studio-export" aria-hidden="true" ref={exportRef}>

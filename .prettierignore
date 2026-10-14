@@ -3,3 +3,4 @@ dist
 .next
 package-lock.json
 frontend/public/ort
+frontend/public/mediapipe

@@ -9,6 +9,7 @@ export const PRODUCTS = {
     blurb:
       'Áo thun cotton trắng trơn, form oversize vai rơi, cổ bo gân; mặt trước và mặt sau đủ rộng để trang trí theo ý bạn.',
     photo: '/images/ao-trang.png', // áo trắng trơn oversize, cổ bo gân
+    cutout: '/images/ao-trang-cat.png', // cùng ảnh, nền trong suốt, hở cổ: dùng cho live mặc thử
     // Tâm thân áo theo % khung ảnh vuông: đường căn giữa và chỗ đặt sticker mới khi phối
     center: { x: 50, y: 50 },
     colors: [{ key: 'trang', name: 'Trắng', fill: '#f7f4ee', seam: '#cfc7b8' }],

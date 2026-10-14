@@ -11,6 +11,7 @@ import { OptionGroup, Pills, SizeChart, Stepper } from '../components/ProductPar
 import Sticker from '../components/Sticker.jsx'
 import ProductVisual from '../components/ProductVisual.jsx'
 import DesignStudio from '../components/DesignStudio.jsx'
+import LiveTryOn from '../components/LiveTryOn.jsx'
 import { renderMockup } from '../data/mockup.js'
 import CustomStickers from '../components/CustomStickers.jsx'
 
@@ -73,6 +74,7 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
   const [errors, setErrors] = useState({})
   const [designs, setDesigns] = useState(() => loadDesigns(tier.key))
   const [studio, setStudio] = useState(false)
+  const [live, setLive] = useState(false) // live mặc thử áo bằng camera
   const visualRef = useRef(null)
   const [busy, setBusy] = useState(false)
   const [submitError, setSubmitError] = useState(null)
@@ -652,6 +654,26 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
                 </p>
               </section>
 
+              {/* Live mặc thử áo bằng camera (chỉ áo) */}
+              {productKey === 'ao' && (
+                <button
+                  type="button"
+                  className="btn btn-glass btn-block tee-live"
+                  onClick={() => setLive(true)}
+                >
+                  <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                    <path
+                      d="M4 8h3l2-3h6l2 3h3v11H4zM12 17a4 4 0 100-8 4 4 0 000 8z"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  Live mặc thử áo
+                </button>
+              )}
+
               {/* 7. Phối thử + Đặt hàng */}
               {/* Gói in lụa không có sticker để phối nên ẩn Phối thử */}
               <div className={`tee-actions${method.stickers ? '' : ' tee-actions-single'}`}>
@@ -730,6 +752,17 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
         </div>
       </section>
 
+      {live && (
+        <LiveTryOn
+          makeTexture={() =>
+            renderMockup(visualRef.current.querySelector('.tee-visual'), visibleDesign, 800, {
+              transparent: true,
+              baseSrc: product.cutout,
+            })
+          }
+          onClose={() => setLive(false)}
+        />
+      )}
       {studio && (
         <DesignStudio
           productKey={productKey}

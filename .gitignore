@@ -13,3 +13,4 @@ Thumbs.db
 
 # File chạy onnxruntime-web, chép tự động từ node_modules khi dev/build
 frontend/public/ort/
+frontend/public/mediapipe/

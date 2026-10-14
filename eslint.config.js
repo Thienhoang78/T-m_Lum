@@ -15,7 +15,16 @@ const reactRules = {
 }
 
 export default [
-  { ignores: ['**/node_modules', '**/dist', '**/.next', '**/next-env.d.ts', 'frontend/public/ort'] },
+  {
+    ignores: [
+      '**/node_modules',
+      '**/dist',
+      '**/.next',
+      '**/next-env.d.ts',
+      'frontend/public/ort',
+      'frontend/public/mediapipe',
+    ],
+  },
   js.configs.recommended,
 
   // Frontend React (Vite)

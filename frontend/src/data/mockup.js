@@ -44,17 +44,20 @@ const elementImage = (el) => {
 }
 
 // visualEl: phần tử .tee-visual; design: danh sách sticker đang hiện (cùng thứ tự với DOM)
-export async function renderMockup(visualEl, design, size = 1000) {
+// transparent: bỏ nền trắng; baseSrc: dùng ảnh nền khác (vd. áo đã cắt nền cho live mặc thử)
+export async function renderMockup(visualEl, design, size = 1000, { transparent = false, baseSrc } = {}) {
   const canvas = document.createElement('canvas')
   canvas.width = size
   canvas.height = size
   const g = canvas.getContext('2d')
-  g.fillStyle = '#ffffff'
-  g.fillRect(0, 0, size, size)
+  if (!transparent) {
+    g.fillStyle = '#ffffff'
+    g.fillRect(0, 0, size, size)
+  }
 
   // Món nền: vừa khít khung vuông, giữ tỉ lệ
   const base = visualEl.querySelector(':scope > .tee-photo')
-  const baseImg = base && (await elementImage(base))
+  const baseImg = baseSrc ? await loadImage(baseSrc) : base && (await elementImage(base))
   if (baseImg) {
     const k = Math.min(size / baseImg.width, size / baseImg.height)
     const w = baseImg.width * k
