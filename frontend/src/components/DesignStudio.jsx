@@ -875,12 +875,14 @@ export default function DesignStudio({
 
       {liveOpen && (
         <LiveTryOn
-          makeTexture={() =>
+          makeTexture={(opts) =>
             renderMockup(exportRef.current.querySelector('.tee-visual'), visibleForExport, 800, {
               transparent: true,
               baseSrc: PRODUCTS.ao.cutout,
+              ...opts,
             })
           }
+          color={color?.fill}
           onClose={() => setLiveOpen(false)}
         />
       )}

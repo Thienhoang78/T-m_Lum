@@ -57,6 +57,15 @@ xa / lại gần / đứng giữa; đứng đủ đầu, vai, hông trong khung 
 bản phối) được bẻ lưới theo vai và hông (`frontend/src/data/garmentFit.js`) để ướm lên người, có chụp ảnh và đổi camera.
 Hiệu ứng "2.5D": áo uốn theo thân hình trụ và xoay theo độ sâu hai vai (bên xa co lại), có nếp vải và bóng hai bên sườn;
 tay đưa ra trước người được vẽ lại từ camera lên trên áo, giới hạn bằng mặt nạ tách người của MediaPipe.
+Áo 3D (mặc định khi trình duyệt có WebGL2): lưới áo thun dựng bằng code (`frontend/src/data/tryOn3d.js`, không dùng file
+mô hình), vẽ bằng Three.js (MIT, chỉ tải khi mở live, ~121 KB gzip). Áo gắn theo vai, thân, hông và bắp tay (tay áo theo
+tay, xoay người thì áo xoay theo độ sâu của worldLandmarks), có ánh sáng theo độ sáng khung hình, nếp vải (normal map vẽ
+bằng code), bóng mềm; bản phối in lên ngực theo đúng toạ độ ảnh áo phẳng. Cẳng tay, bàn tay và cổ thật được vẽ đè lên áo
+nhờ các khối chỉ ghi độ sâu. Không có mô phỏng vải. Nút 2D / 3D trong live; máy không có WebGL2 hoặc áo 3D chạy dưới
+20 khung hình/giây thì tự chuyển sang áo 2.5D ở trên. Khi chạy dev có thể thử bằng dáng người giả lập qua
+`window.__tryOnFakePose` (xem `LiveTryOn.jsx`).
+
+![Live mặc thử áo 3D (người mẫu vẽ giả lập)](docs/screenshots/live-ao-3d.png)
 File chạy MediaPipe được chép vào `frontend/public/mediapipe` khi dev / build (`frontend/scripts/copy-vendor.mjs`).
 
 ## Lệnh hay dùng

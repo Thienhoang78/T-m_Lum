@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { LM, bodyAnchors, bodyYaw, drawGarment, withFolds } from '../data/garmentFit.js'
+import { makeLandmarkFilter } from '../data/oneEuro.js'
 
 // Live mặc thử áo: mở camera, nhận dạng dáng người bằng MediaPipe Pose (Apache-2.0) ngay trên trình duyệt,
 // đứng đủ người trong khung thì áo (kèm bản phối) tự ướm lên người theo vai và hông.
 // "2.5D": áo uốn theo thân hình trụ, xoay theo người, có nếp và bóng; tay đưa ra trước thì nằm trên áo
 // (dùng mặt nạ tách người của MediaPipe để chỉ lấy đúng phần tay).
-// Hình camera không gửi đi đâu và không được lưu lại.
+// Áo 3D (Three.js, chỉ tải khi mở live): có tay áo, xoay theo người, ánh sáng, nếp vải; máy không có WebGL2
+// hoặc chạy áo 3D chậm thì tự dùng áo 2.5D ở trên. Hình camera không gửi đi đâu và không được lưu lại.
 const MODEL = '/models/pose_landmarker_lite.task'
 const WASM = '/mediapipe'
 const NEED = [LM.nose, LM.shoulderL, LM.shoulderR, LM.hipL, LM.hipR]
@@ -17,6 +19,34 @@ const ARMS = [
 const SMOOTH = 0.45 // hệ số làm mượt điểm mốc (0..1, nhỏ hơn = mượt hơn nhưng trễ hơn)
 const HOLD_MS = 500 // đứng đúng khung bao lâu thì hiện áo
 const LOST_MS = 800 // mất dấu bao lâu thì ẩn áo
+const MIN_FPS = 20 // áo 3D chạy chậm hơn mức này thì chuyển sang 2D
+const FPS_WINDOW = 2500 // đo tốc độ áo 3D trong bao lâu (ms)
+
+// Camera trước (lật gương) thì đổi chỉ số trái ↔ phải, để hình lật trông như ảnh chụp thường của một người:
+// áo 3D giữ đúng chiều, chữ trên bản phối không bị ngược.
+const SWAP = [
+  0, 4, 5, 6, 1, 2, 3, 8, 7, 10, 9, 12, 11, 14, 13, 16, 15, 18, 17, 20, 19, 22, 21, 24, 23, 26, 25, 28, 27,
+  30, 29, 32, 31,
+]
+
+function supportsWebGL2() {
+  try {
+    const gl = document.createElement('canvas').getContext('webgl2')
+    if (!gl) return false
+    gl.getExtension('WEBGL_lose_context')?.loseContext()
+    return true
+  } catch {
+    return false
+  }
+}
+
+// Tỉ lệ pixel / mét: so độ dài vai + thân trên ảnh với worldLandmarks (mét), để đổi độ sâu z ra pixel
+function depthScale(p, w) {
+  const span = (q) =>
+    Math.hypot(q[11].x - q[12].x, q[11].y - q[12].y) +
+    Math.hypot((q[11].x + q[12].x - q[23].x - q[24].x) / 2, (q[11].y + q[12].y - q[23].y - q[24].y) / 2)
+  return span(p) / Math.max(1e-3, span(w))
+}
 
 let landmarkerPromise
 function loadLandmarker() {
@@ -128,7 +158,7 @@ function drawArms(g, sw, pts, W, H) {
   return drew
 }
 
-export default function LiveTryOn({ makeTexture, onClose }) {
+export default function LiveTryOn({ makeTexture, color = '#f7f4ee', onClose }) {
   const dialogRef = useRef(null)
   const videoRef = useRef(null)
   const canvasRef = useRef(null)
@@ -136,8 +166,20 @@ export default function LiveTryOn({ makeTexture, onClose }) {
   const streamRef = useRef(null)
   const rafRef = useRef(0)
   const textureRef = useRef(null)
+  const designRef = useRef(null) // chỉ lớp bản phối, in lên ngực áo 3D
+  const shirtRef = useRef(null) // áo 3D, dựng khi cần
+  const shirtLoadRef = useRef(null)
+  const aliveRef = useRef(true)
   const state = useRef({
     smooth: {},
+    // áo 3D: làm mượt One Euro cho điểm mốc trên ảnh (pixel) và trong không gian (mét)
+    imgFilter: makeLandmarkFilter(['x', 'y'], 1.2, 0.01),
+    worldFilter: makeLandmarkFilter(['x', 'y', 'z'], 0.9, 0.6),
+    raw: null, // { lm, wl } kết quả nhận dạng mới nhất
+    pose3: null,
+    world: null,
+    mon: null,
+    autoFell: false,
     okSince: null,
     lostSince: null,
     fittedAt: null,
@@ -154,15 +196,20 @@ export default function LiveTryOn({ makeTexture, onClose }) {
   const [facing, setFacing] = useState('user')
   const [canSwitch, setCanSwitch] = useState(false)
   const [showGuide, setShowGuide] = useState(true)
+  const [has3D, setHas3D] = useState(supportsWebGL2)
+  const [mode, setMode] = useState(() => (supportsWebGL2() ? '3d' : '2d'))
+  const [notice, setNotice] = useState(null)
+  const modeRef = useRef(mode)
   const fittedRef = useRef(false)
   const guideRef = useRef(true)
   const hintRef = useRef(hint)
   const makeTextureRef = useRef(makeTexture)
 
   useEffect(() => {
+    aliveRef.current = true
     const d = dialogRef.current
     if (d && !d.open) d.showModal()
-    // Ảnh áo kèm bản phối, nền trong suốt
+    // Ảnh áo kèm bản phối, nền trong suốt (áo 2.5D)
     makeTextureRef
       .current()
       .then((blob) => createImageBitmap(blob))
@@ -172,9 +219,61 @@ export default function LiveTryOn({ makeTexture, onClose }) {
       .catch(() => {
         textureRef.current = null
       })
-    return () => stop()
+    // Chỉ lớp bản phối, cùng khung ảnh áo phẳng: in lên ngực áo 3D
+    makeTextureRef
+      .current({ base: false })
+      .then((blob) => createImageBitmap(blob))
+      .then((bmp) => {
+        designRef.current = bmp
+        shirtRef.current?.setDesign(bmp)
+      })
+      .catch(() => {
+        designRef.current = null
+      })
+    return () => {
+      aliveRef.current = false
+      stop()
+      shirtRef.current?.dispose()
+      shirtRef.current = null
+    }
     // chỉ chạy khi mở
   }, [])
+
+  useEffect(() => {
+    shirtRef.current?.setColor(color)
+  }, [color])
+
+  useEffect(() => {
+    if (!notice) return
+    const t = setTimeout(() => setNotice(null), 6000)
+    return () => clearTimeout(t)
+  }, [notice])
+
+  // Tải Three.js và dựng áo 3D (một lần); lỗi thì dùng áo 2.5D
+  function load3D() {
+    shirtLoadRef.current ??= import('../data/tryOn3d.js')
+      .then(({ createShirt3D }) => {
+        const shirt = createShirt3D()
+        if (!aliveRef.current) return shirt.dispose()
+        shirt.setColor(color)
+        if (designRef.current) shirt.setDesign(designRef.current)
+        shirtRef.current = shirt
+      })
+      .catch(() => {
+        setHas3D(false)
+        pickMode('2d')
+      })
+    return shirtLoadRef.current
+  }
+
+  function pickMode(next, byUser = false) {
+    modeRef.current = next
+    setMode(next)
+    state.current.mon = null
+    // khách tự chọn lại thì không tự chuyển nữa
+    if (byUser) state.current.autoFell = true
+    if (next === '3d') load3D()
+  }
 
   useEffect(() => {
     guideRef.current = showGuide
@@ -206,13 +305,20 @@ export default function LiveTryOn({ makeTexture, onClose }) {
       const v = videoRef.current
       v.srcObject = stream
       await v.play()
+      if (modeRef.current === '3d') load3D()
       const landmarker = await loadLandmarker()
       const cams = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === 'videoinput')
       setCanSwitch(cams.length > 1)
+      state.current.imgFilter.reset()
+      state.current.worldFilter.reset()
       state.current = {
         ...state.current,
         smooth: {},
         mask: null,
+        raw: null,
+        pose3: null,
+        world: null,
+        mon: null,
         okSince: null,
         lostSince: null,
         fittedAt: null,
@@ -271,13 +377,37 @@ export default function LiveTryOn({ makeTexture, onClose }) {
       if (v.currentTime !== st.lastTime) {
         st.lastTime = v.currentTime
         landmarker.detectForVideo(v, now, (res) => {
+          // chỉ khi chạy dev: thử bằng dáng người giả lập, không cần người thật trước camera
+          if (import.meta.env.DEV && window.__tryOnFakePose) res = window.__tryOnFakePose(now, W, H) ?? res
           st.pose = res.landmarks?.[0] ?? null
-          // chỉ cần mặt nạ người khi áo đang hiện; mặt nạ chỉ dùng được trong callback nên chép ra
-          const m = fittedRef.current && res.segmentationMasks?.[0]
+          st.raw = st.pose ? { lm: st.pose, wl: res.worldLandmarks?.[0] ?? null } : null
+          // chỉ cần mặt nạ người khi áo 2.5D đang hiện; mặt nạ chỉ dùng được trong callback nên chép ra
+          const m = fittedRef.current && modeRef.current === '2d' && res.segmentationMasks?.[0]
           st.mask = m
             ? { data: m.getAsFloat32Array().slice(), width: m.width, height: m.height, fresh: true }
             : null
         })
+        // điểm mốc cho áo 3D: lật gương + đổi trái/phải, làm mượt One Euro
+        if (st.raw?.wl) {
+          const pick = (arr) => (mirror ? SWAP.map((i) => arr[i]) : arr)
+          st.pose3 = st.imgFilter.filter(
+            pick(st.raw.lm).map((p) => ({
+              x: (mirror ? 1 - p.x : p.x) * W,
+              y: p.y * H,
+              vis: p.visibility ?? 1,
+            })),
+            now
+          )
+          st.world = st.worldFilter.filter(
+            pick(st.raw.wl).map((p) => ({ x: mirror ? -p.x : p.x, y: p.y, z: p.z })),
+            now
+          )
+          st.fresh3 = true
+        } else if (!st.raw) {
+          st.pose3 = st.world = null
+          st.imgFilter.reset()
+          st.worldFilter.reset()
+        }
       }
 
       ctx.save()
@@ -377,7 +507,10 @@ export default function LiveTryOn({ makeTexture, onClose }) {
 
       // áo
       const tex = textureRef.current
-      if (fittedRef.current && body && tex) {
+      const shirt = shirtRef.current
+      const use3D = modeRef.current === '3d' && shirt && st.pose3 && st.world
+      if (!fittedRef.current || !body) st.mon = null
+      if (fittedRef.current && body && (tex || use3D)) {
         // độ sáng áo theo ánh sáng quanh ngực (đo vài khung hình một lần)
         if (st.frame++ % 10 === 0) {
           const mx = (body.shoulderA.x + body.shoulderB.x) / 2
@@ -390,15 +523,42 @@ export default function LiveTryOn({ makeTexture, onClose }) {
           const lum = sum / (d.length / 4)
           st.light = Math.min(1.08, Math.max(0.72, 0.62 + lum / 420))
         }
+        const fade = Math.min(1, (now - st.fittedAt) / 300)
+        const shadow = `drop-shadow(0 ${Math.round(H * 0.008)}px ${Math.round(H * 0.014)}px rgba(0,0,0,0.35))`
+        if (use3D) {
+          // áo 3D: chỉ dựng lại khi có điểm mốc mới, vẽ lên hình camera kèm bóng mềm
+          const t0 = performance.now()
+          const fresh = st.fresh3
+          if (fresh) {
+            st.fresh3 = false
+            if (import.meta.env.DEV && window.__tryOnSlow3D)
+              while (performance.now() - t0 < window.__tryOnSlow3D);
+            shirt.setSize(W, H)
+            shirt.setLight(st.light)
+            const k = depthScale(st.pose3, st.world)
+            st.ok3 = shirt.update(st.pose3.map((p, i) => ({ ...p, z: -st.world[i].z * k })))
+            if (st.ok3) shirt.render()
+          }
+          if (st.ok3) {
+            ctx.save()
+            ctx.globalAlpha = fade
+            ctx.filter = shadow
+            ctx.drawImage(shirt.canvas, 0, 0)
+            ctx.restore()
+          }
+          if (fresh) watch3D(st, now, performance.now() - t0)
+          return
+        }
+        st.mon = null
+        if (!tex) return
         const yaw = bodyYaw(body.shoulderA, body.shoulderB, W)
         const dst = bodyAnchors(body)
         lctx.clearRect(0, 0, W, H)
         drawGarment(lctx, withFolds(tex), dst, { yaw })
         shadeSides(lctx, dst, yaw)
-        const fade = Math.min(1, (now - st.fittedAt) / 300)
         ctx.save()
         ctx.globalAlpha = fade
-        ctx.filter = `brightness(${st.light.toFixed(2)}) drop-shadow(0 ${Math.round(H * 0.008)}px ${Math.round(H * 0.014)}px rgba(0,0,0,0.35))`
+        ctx.filter = `brightness(${st.light.toFixed(2)}) ${shadow}`
         ctx.drawImage(layer, 0, 0)
         ctx.restore()
 
@@ -440,6 +600,25 @@ export default function LiveTryOn({ makeTexture, onClose }) {
     tick()
   }
 
+  // Đo tốc độ áo 3D (khung hình vẽ mỗi giây, thời gian dựng áo). Chậm hơn MIN_FPS mà phần 3D tốn đáng kể
+  // (không phải do camera ít khung hình) thì tự chuyển sang áo 2.5D, một lần.
+  function watch3D(st, now, cost) {
+    const m = (st.mon ??= { start: now, frames: 0, cost: 0 })
+    m.frames++
+    m.cost += cost
+    const span = now - m.start
+    if (span < FPS_WINDOW) return
+    const fps = ((m.frames - 1) * 1000) / span
+    const avg = m.cost / m.frames
+    if (import.meta.env.DEV) window.__tryOnStats = { fps: +fps.toFixed(1), ms3D: +avg.toFixed(2) }
+    st.mon = null
+    if (fps < MIN_FPS && avg > 12 && !st.autoFell) {
+      st.autoFell = true
+      pickMode('2d')
+      setNotice('Máy hơi chậm với áo 3D nên đã chuyển sang áo 2D cho mượt. Bấm 3D để thử lại.')
+    }
+  }
+
   function snapshot() {
     canvasRef.current?.toBlob((blob) => {
       if (!blob) return
@@ -473,6 +652,20 @@ export default function LiveTryOn({ makeTexture, onClose }) {
         <h2 className="live-title">Live mặc thử áo</h2>
         {phase === 'live' && (
           <div className="live-actions">
+            <div className="live-mode" role="group" aria-label="Kiểu áo">
+              <button type="button" aria-pressed={mode === '2d'} onClick={() => pickMode('2d', true)}>
+                2D
+              </button>
+              <button
+                type="button"
+                aria-pressed={mode === '3d'}
+                disabled={!has3D}
+                title={has3D ? undefined : 'Trình duyệt này chưa hỗ trợ áo 3D (WebGL2)'}
+                onClick={() => pickMode('3d', true)}
+              >
+                3D
+              </button>
+            </div>
             <button type="button" aria-pressed={showGuide} onClick={() => setShowGuide(!showGuide)}>
               Khung hướng dẫn
             </button>
@@ -500,6 +693,11 @@ export default function LiveTryOn({ makeTexture, onClose }) {
           aria-label="Hình camera có áo đang mặc thử"
         />
 
+        {phase === 'live' && notice && (
+          <p className="live-note" role="status">
+            {notice}
+          </p>
+        )}
         {phase === 'live' && (
           <p className={`live-hint${fitted ? ' is-fitted' : ''}`} role="status" aria-live="polite">
             {hint}

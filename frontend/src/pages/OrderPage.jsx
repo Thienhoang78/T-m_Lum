@@ -754,12 +754,14 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
 
       {live && (
         <LiveTryOn
-          makeTexture={() =>
+          makeTexture={(opts) =>
             renderMockup(visualRef.current.querySelector('.tee-visual'), visibleDesign, 800, {
               transparent: true,
               baseSrc: product.cutout,
+              ...opts,
             })
           }
+          color={color?.fill}
           onClose={() => setLive(false)}
         />
       )}

@@ -2355,6 +2355,41 @@
   opacity: 0.45;
   cursor: default;
 }
+/* chọn áo 2D / 3D */
+.live-mode {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.live-actions .live-mode button {
+  border: 0;
+  border-radius: 0;
+  min-width: 3em;
+}
+.live-actions .live-mode button + button {
+  border-left: 1px solid var(--line);
+}
+.live-actions .live-mode button[aria-pressed='true'] {
+  background: var(--brand);
+  color: var(--navy);
+}
+.live-note {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  translate: -50% 0;
+  margin: 0;
+  padding: 8px 14px;
+  max-width: calc(100% - 32px);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--navy);
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-align: center;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25);
+}
 .live-stage {
   position: relative;
   flex: 1;
@@ -2445,6 +2480,13 @@
   .live-actions button {
     flex: 1;
     padding: 0.5em 0.4em;
+  }
+  .live-actions .live-mode {
+    flex: 0 0 auto;
+  }
+  .live-actions .live-mode button {
+    flex: none;
+    min-width: 2.6em;
   }
   .live-canvas {
     object-fit: cover;
