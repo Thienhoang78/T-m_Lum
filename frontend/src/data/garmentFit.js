@@ -12,7 +12,17 @@ export const TEE_ANCHORS = {
 }
 
 // Chỉ số điểm mốc của MediaPipe Pose
-export const LM = { nose: 0, shoulderL: 11, shoulderR: 12, hipL: 23, hipR: 24 }
+export const LM = {
+  nose: 0,
+  shoulderL: 11,
+  shoulderR: 12,
+  elbowL: 13,
+  elbowR: 14,
+  wristL: 15,
+  wristR: 16,
+  hipL: 23,
+  hipR: 24,
+}
 
 const lerp = (a, b, t) => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t })
 
@@ -39,14 +49,39 @@ export function bodyAnchors({ shoulderA, shoulderB, hipA, hipB }, fit = 1) {
   return { shoulderL, shoulderR, hemL, hemR }
 }
 
+// Góc xoay người (yaw, radian) từ độ sâu hai vai: dương = vai bên phải màn hình xa camera hơn
+export function bodyYaw(shoulderA, shoulderB, W) {
+  const [sl, sr] = shoulderA.x <= shoulderB.x ? [shoulderA, shoulderB] : [shoulderB, shoulderA]
+  const dx = (sr.x - sl.x) / W
+  const yaw = Math.atan2((sr.z ?? 0) - (sl.z ?? 0), Math.max(dx, 0.01))
+  return Math.max(-0.45, Math.min(0.45, yaw * 0.8))
+}
+
+// Uốn ngang theo thân hình trụ: giữa áo phồng ra, hai mép co lại; xoay người thì bên xa co nhiều hơn.
+// s: vị trí ngang (0 = vai trái, 1 = vai phải, ngoài khoảng đó là tay áo)
+const WRAP = 0.6 // nửa góc ôm của thân (radian)
+const LIMIT = 1.45 // quá góc này thì nối thẳng, tránh áo gập ngược ra sau
+const arc = (a) =>
+  a > LIMIT
+    ? Math.sin(LIMIT) + (a - LIMIT) * Math.cos(LIMIT)
+    : a < -LIMIT
+      ? -Math.sin(LIMIT) + (a + LIMIT) * Math.cos(LIMIT)
+      : Math.sin(a)
+function wrapX(yaw) {
+  const lo = arc(-WRAP + yaw)
+  const hi = arc(WRAP + yaw)
+  return (s) => (arc((s - 0.5) * 2 * WRAP + yaw) - lo) / (hi - lo)
+}
+
 // Ánh xạ điểm (u, v) trên ảnh áo (0..1) ra màn hình: song tuyến theo 4 điểm neo, ngoại suy ra ngoài
-function mapper(src, dst) {
+function mapper(src, dst, yaw = 0) {
   const u0 = (src.shoulderL.x + src.hemL.x) / 2
   const u1 = (src.shoulderR.x + src.hemR.x) / 2
   const v0 = (src.shoulderL.y + src.shoulderR.y) / 2
   const v1 = (src.hemL.y + src.hemR.y) / 2
+  const wrap = wrapX(yaw)
   return (u, v) => {
-    const s = (u - u0) / (u1 - u0)
+    const s = wrap((u - u0) / (u1 - u0))
     const t = (v - v0) / (v1 - v0)
     const top = lerp(dst.shoulderL, dst.shoulderR, s)
     const bottom = lerp(dst.hemL, dst.hemR, s)
@@ -135,11 +170,52 @@ function findEmpty(img, cols, rows) {
   return empty
 }
 
-// Vẽ cả ảnh áo đã bẻ theo dáng người. cols × rows: độ mịn lưới.
-export function drawGarment(ctx, img, dst, { anchors = TEE_ANCHORS, cols = 10, rows = 12 } = {}) {
+// Nếp vải giả (nách, eo, gấu) và bóng dưới cổ áo, vẽ một lần lên ảnh áo theo toạ độ ảnh.
+const shaded = new WeakMap()
+export function withFolds(img) {
+  const hit = shaded.get(img)
+  if (hit) return hit
   const w = img.width
   const h = img.height
-  const map = mapper(anchors, dst)
+  const c = document.createElement('canvas')
+  c.width = w
+  c.height = h
+  const g = c.getContext('2d')
+  g.drawImage(img, 0, 0)
+  g.globalCompositeOperation = 'multiply'
+  const blob = (x, y, rx, ry, rot, dark, blur) => {
+    g.save()
+    g.filter = `blur(${Math.round(blur * w)}px)`
+    g.fillStyle = `rgba(70, 80, 100, ${dark})`
+    g.beginPath()
+    g.ellipse(x * w, y * h, rx * w, ry * h, rot, 0, Math.PI * 2)
+    g.fill()
+    g.restore()
+  }
+  const { shoulderL: sl, shoulderR: sr, hemL: hl, hemR: hr } = TEE_ANCHORS
+  // nếp chéo từ nách xuống eo
+  blob(sl.x + 0.06, sl.y + 0.2, 0.014, 0.13, -0.35, 0.14, 0.018)
+  blob(sr.x - 0.06, sr.y + 0.2, 0.014, 0.13, 0.35, 0.14, 0.018)
+  blob(sl.x + 0.1, sl.y + 0.36, 0.01, 0.1, -0.2, 0.08, 0.018)
+  blob(sr.x - 0.1, sr.y + 0.36, 0.01, 0.1, 0.2, 0.08, 0.018)
+  // gợn sóng ở gấu áo
+  for (let i = 1; i < 6; i++) {
+    const x = hl.x + ((hr.x - hl.x) * i) / 6
+    blob(x, hl.y - 0.04, 0.01, 0.05, (i - 3) * 0.06, 0.06, 0.016)
+  }
+  // bóng dưới cổ áo
+  blob(0.5, sl.y - 0.02, 0.09, 0.018, 0, 0.18, 0.012)
+  g.globalCompositeOperation = 'destination-in'
+  g.drawImage(img, 0, 0)
+  shaded.set(img, c)
+  return c
+}
+
+// Vẽ cả ảnh áo đã bẻ theo dáng người. cols × rows: độ mịn lưới; yaw: góc xoay người.
+export function drawGarment(ctx, img, dst, { anchors = TEE_ANCHORS, cols = 10, rows = 12, yaw = 0 } = {}) {
+  const w = img.width
+  const h = img.height
+  const map = mapper(anchors, dst, yaw)
   const empty = findEmpty(img, cols, rows)
   const P = []
   for (let j = 0; j <= rows; j++) {

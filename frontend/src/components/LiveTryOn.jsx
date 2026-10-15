@@ -1,12 +1,19 @@
 import { useEffect, useRef, useState } from 'react'
-import { LM, bodyAnchors, drawGarment } from '../data/garmentFit.js'
+import { LM, bodyAnchors, bodyYaw, drawGarment, withFolds } from '../data/garmentFit.js'
 
 // Live mặc thử áo: mở camera, nhận dạng dáng người bằng MediaPipe Pose (Apache-2.0) ngay trên trình duyệt,
 // đứng đủ người trong khung thì áo (kèm bản phối) tự ướm lên người theo vai và hông.
+// "2.5D": áo uốn theo thân hình trụ, xoay theo người, có nếp và bóng; tay đưa ra trước thì nằm trên áo
+// (dùng mặt nạ tách người của MediaPipe để chỉ lấy đúng phần tay).
 // Hình camera không gửi đi đâu và không được lưu lại.
 const MODEL = '/models/pose_landmarker_lite.task'
 const WASM = '/mediapipe'
 const NEED = [LM.nose, LM.shoulderL, LM.shoulderR, LM.hipL, LM.hipR]
+// tay: [vai, khuỷu, cổ tay] mỗi bên
+const ARMS = [
+  [LM.shoulderL, LM.elbowL, LM.wristL],
+  [LM.shoulderR, LM.elbowR, LM.wristR],
+]
 const SMOOTH = 0.45 // hệ số làm mượt điểm mốc (0..1, nhỏ hơn = mượt hơn nhưng trễ hơn)
 const HOLD_MS = 500 // đứng đúng khung bao lâu thì hiện áo
 const LOST_MS = 800 // mất dấu bao lâu thì ẩn áo
@@ -21,6 +28,7 @@ function loadLandmarker() {
         baseOptions: { modelAssetPath: MODEL, delegate },
         runningMode: 'VIDEO',
         numPoses: 1,
+        outputSegmentationMasks: true,
       })
     try {
       return await make('GPU')
@@ -61,6 +69,65 @@ function silhouette(ctx, W, H) {
   return p
 }
 
+// Bóng hai bên sườn theo thân hình trụ; xoay người thì bên xa tối hơn, chỗ sáng lệch về bên gần
+function shadeSides(g, dst, yaw) {
+  const a = { x: (dst.shoulderL.x + dst.hemL.x) / 2, y: (dst.shoulderL.y + dst.hemL.y) / 2 }
+  const b = { x: (dst.shoulderR.x + dst.hemR.x) / 2, y: (dst.shoulderR.y + dst.hemR.y) / 2 }
+  const ext = 0.35
+  const grad = g.createLinearGradient(
+    a.x - (b.x - a.x) * ext,
+    a.y - (b.y - a.y) * ext,
+    b.x + (b.x - a.x) * ext,
+    b.y + (b.y - a.y) * ext
+  )
+  const left = 0.32 + Math.max(0, -yaw) * 0.4
+  const right = 0.32 + Math.max(0, yaw) * 0.4
+  grad.addColorStop(0, `rgba(20, 28, 45, ${left.toFixed(2)})`)
+  grad.addColorStop(0.3, 'rgba(20, 28, 45, 0.06)')
+  grad.addColorStop(0.5 - yaw * 0.35, 'rgba(255, 255, 255, 0.06)')
+  grad.addColorStop(0.7, 'rgba(20, 28, 45, 0.06)')
+  grad.addColorStop(1, `rgba(20, 28, 45, ${right.toFixed(2)})`)
+  g.save()
+  g.globalCompositeOperation = 'source-atop'
+  g.fillStyle = grad
+  g.fillRect(0, 0, g.canvas.width, g.canvas.height)
+  g.restore()
+}
+
+// Vẽ hình con nhộng (mờ mép) quanh nửa dưới bắp tay, cẳng tay và bàn tay, bỏ qua tay nằm sau lưng.
+// Trả về true nếu có vẽ.
+function drawArms(g, sw, pts, W, H) {
+  g.globalCompositeOperation = 'source-over'
+  g.clearRect(0, 0, W, H)
+  const torsoZ = (pts[LM.shoulderL].z + pts[LM.shoulderR].z) / 2
+  let drew = false
+  g.save()
+  g.filter = `blur(${Math.max(1, Math.round(sw * 0.025))}px)`
+  g.strokeStyle = '#000'
+  g.lineCap = 'round'
+  g.lineJoin = 'round'
+  g.lineWidth = sw * 0.2
+  for (const [si, ei, wi] of ARMS) {
+    const s = pts[si]
+    const e = pts[ei]
+    const w = pts[wi]
+    if (!s || !e || e.vis < 0.5 || e.z > torsoZ + 0.15) continue
+    // nửa trên bắp tay nằm trong tay áo
+    const m = { x: s.x + (e.x - s.x) * 0.55, y: s.y + (e.y - s.y) * 0.55 }
+    g.beginPath()
+    g.moveTo(m.x, m.y)
+    g.lineTo(e.x, e.y)
+    if (w && w.vis > 0.5 && w.z < torsoZ + 0.2) {
+      g.lineTo(w.x, w.y)
+      g.lineTo(w.x + (w.x - e.x) * 0.25, w.y + (w.y - e.y) * 0.25) // bàn tay
+    }
+    g.stroke()
+    drew = true
+  }
+  g.restore()
+  return drew
+}
+
 export default function LiveTryOn({ makeTexture, onClose }) {
   const dialogRef = useRef(null)
   const videoRef = useRef(null)
@@ -78,6 +145,7 @@ export default function LiveTryOn({ makeTexture, onClose }) {
     pose: null,
     light: 1,
     frame: 0,
+    mask: null, // mặt nạ người { data, width, height, fresh }
   })
   const [phase, setPhase] = useState('intro') // intro | starting | live | error
   const [error, setError] = useState(null)
@@ -144,6 +212,7 @@ export default function LiveTryOn({ makeTexture, onClose }) {
       state.current = {
         ...state.current,
         smooth: {},
+        mask: null,
         okSince: null,
         lostSince: null,
         fittedAt: null,
@@ -181,6 +250,11 @@ export default function LiveTryOn({ makeTexture, onClose }) {
     const probe = document.createElement('canvas')
     probe.width = probe.height = 12
     const pctx = probe.getContext('2d', { willReadFrequently: true })
+    const arms = document.createElement('canvas') // phần tay nằm trước áo
+    const actx = arms.getContext('2d')
+    const maskCanvas = document.createElement('canvas')
+    const mctx = maskCanvas.getContext('2d')
+    let maskImage = null
 
     const tick = () => {
       rafRef.current = requestAnimationFrame(tick)
@@ -188,15 +262,22 @@ export default function LiveTryOn({ makeTexture, onClose }) {
       const W = v.videoWidth
       const H = v.videoHeight
       if (c.width !== W || c.height !== H) {
-        c.width = layer.width = W
-        c.height = layer.height = H
+        c.width = layer.width = arms.width = W
+        c.height = layer.height = arms.height = H
       }
       const st = state.current
       const now = performance.now()
       // nhận dạng mỗi khi camera có khung hình mới
       if (v.currentTime !== st.lastTime) {
         st.lastTime = v.currentTime
-        st.pose = landmarker.detectForVideo(v, now).landmarks?.[0] ?? null
+        landmarker.detectForVideo(v, now, (res) => {
+          st.pose = res.landmarks?.[0] ?? null
+          // chỉ cần mặt nạ người khi áo đang hiện; mặt nạ chỉ dùng được trong callback nên chép ra
+          const m = fittedRef.current && res.segmentationMasks?.[0]
+          st.mask = m
+            ? { data: m.getAsFloat32Array().slice(), width: m.width, height: m.height, fresh: true }
+            : null
+        })
       }
 
       ctx.save()
@@ -210,14 +291,19 @@ export default function LiveTryOn({ makeTexture, onClose }) {
       const pose = st.pose
       const raw = (i) => {
         const p = pose[i]
-        return { x: (mirror ? 1 - p.x : p.x) * W, y: p.y * H, vis: p.visibility ?? 1 }
+        return { x: (mirror ? 1 - p.x : p.x) * W, y: p.y * H, z: p.z ?? 0, vis: p.visibility ?? 1 }
       }
       // làm mượt điểm mốc để áo không rung
       const pt = (i) => {
         const r = raw(i)
         const prev = st.smooth[i]
         const s = prev
-          ? { x: prev.x + (r.x - prev.x) * SMOOTH, y: prev.y + (r.y - prev.y) * SMOOTH, vis: r.vis }
+          ? {
+              x: prev.x + (r.x - prev.x) * SMOOTH,
+              y: prev.y + (r.y - prev.y) * SMOOTH,
+              z: prev.z + (r.z - prev.z) * SMOOTH,
+              vis: r.vis,
+            }
           : r
         st.smooth[i] = s
         return s
@@ -227,6 +313,7 @@ export default function LiveTryOn({ makeTexture, onClose }) {
       let body = null
       if (pose) {
         const pts = Object.fromEntries(NEED.map((i) => [i, pt(i)]))
+        ARMS.forEach(([, e, w]) => (pt(e), pt(w)))
         const inside = (p) =>
           p.vis > 0.5 && p.x > W * 0.02 && p.x < W * 0.98 && p.y > H * 0.02 && p.y < H * 0.98
         const s1 = pts[LM.shoulderL]
@@ -303,14 +390,51 @@ export default function LiveTryOn({ makeTexture, onClose }) {
           const lum = sum / (d.length / 4)
           st.light = Math.min(1.08, Math.max(0.72, 0.62 + lum / 420))
         }
+        const yaw = bodyYaw(body.shoulderA, body.shoulderB, W)
+        const dst = bodyAnchors(body)
         lctx.clearRect(0, 0, W, H)
-        drawGarment(lctx, tex, bodyAnchors(body))
+        drawGarment(lctx, withFolds(tex), dst, { yaw })
+        shadeSides(lctx, dst, yaw)
         const fade = Math.min(1, (now - st.fittedAt) / 300)
         ctx.save()
         ctx.globalAlpha = fade
         ctx.filter = `brightness(${st.light.toFixed(2)}) drop-shadow(0 ${Math.round(H * 0.008)}px ${Math.round(H * 0.014)}px rgba(0,0,0,0.35))`
         ctx.drawImage(layer, 0, 0)
         ctx.restore()
+
+        // tay đưa ra trước người: vẽ lại đúng phần tay từ camera lên trên áo
+        if (st.mask) {
+          const { data, width: mw, height: mh } = st.mask
+          if (!maskImage || maskImage.width !== mw || maskImage.height !== mh) {
+            maskCanvas.width = mw
+            maskCanvas.height = mh
+            maskImage = mctx.createImageData(mw, mh)
+            st.mask.fresh = true
+          }
+          if (st.mask.fresh) {
+            const px = maskImage.data
+            for (let i = 0, j = 3; i < data.length; i++, j += 4) px[j] = data[i] * 255
+            mctx.putImageData(maskImage, 0, 0)
+            st.mask.fresh = false
+          }
+          const sw = Math.hypot(body.shoulderA.x - body.shoulderB.x, body.shoulderA.y - body.shoulderB.y)
+          if (drawArms(actx, sw, st.smooth, W, H)) {
+            actx.save()
+            if (mirror) {
+              actx.translate(W, 0)
+              actx.scale(-1, 1)
+            }
+            actx.globalCompositeOperation = 'source-in'
+            actx.drawImage(v, 0, 0, W, H)
+            actx.globalCompositeOperation = 'destination-in'
+            actx.drawImage(maskCanvas, 0, 0, W, H)
+            actx.restore()
+            ctx.save()
+            ctx.globalAlpha = fade
+            ctx.drawImage(arms, 0, 0)
+            ctx.restore()
+          }
+        }
       }
     }
     tick()
