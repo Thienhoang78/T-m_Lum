@@ -1,10 +1,16 @@
 // Bảng giá: giữ cùng số liệu với frontend/src/data/pricing.js. Đơn hàng luôn được tính lại giá ở đây.
-// Giá dự kiến của studio: Basic áo 299.000₫ / túi 219.000₫, Premium áo 699.000₫. Bộ sticker, phí vận chuyển, mã giảm giá: SỐ MẪU.
+// Giá dự kiến của studio: Basic áo 299.000₫ / túi 219.000₫, Premium áo 699.000₫. Bộ sticker mua thêm, phí vận chuyển, mã giảm giá: SỐ MẪU.
 export const PRICING = {
   items: {
     ao: { 'combo-1': 299000, 'combo-2': 299000, premium: 699000 },
     tui: { 'combo-1': 219000, 'combo-2': 219000 },
   },
+  // Mỗi áo / túi trong combo đã gồm 1 bộ sticker in chuyển nhiệt. Combo 1: khách tự chọn bộ đi kèm, nên
+  // trong các bộ khách chọn, số bộ bằng số áo / túi được tính 0₫. Combo 2, Premium: bộ đi kèm có sẵn trong kit,
+  // bộ khách chọn thêm đều tính tiền.
+  chooseIncluded: ['combo-1'],
+  // Chỉ Combo 1 (áo, túi trơn) cho khách tải hình của mình lên in thành sticker
+  uploads: ['combo-1'],
   stickerSet: 35000,
   customSticker: 35000, // mỗi hình sticker khách tự tải lên
   shipping: 30000,
@@ -38,11 +44,14 @@ export const PATTERN_COLOR = 'hoa-tiet'
 
 export const findVoucher = (code) => VOUCHERS[code?.trim().toUpperCase()] ?? null
 export const priceOf = (product, combo) => PRICING.items[product]?.[combo] ?? null
+export const choosesIncludedSet = (combo) => PRICING.chooseIncluded.includes(combo)
+export const allowsUploads = (combo) => PRICING.uploads.includes(combo)
 
 export function quote({ product, combo, qty, stickerQty = 0, customQty = 0, delivery, voucher }) {
   const unit = priceOf(product, combo) ?? 0
   const itemTotal = unit * qty
-  const stickerTotal = PRICING.stickerSet * stickerQty
+  const includedSets = PRICING.chooseIncluded.includes(combo) ? Math.min(stickerQty, qty) : 0
+  const stickerTotal = PRICING.stickerSet * (stickerQty - includedSets)
   const customTotal = PRICING.customSticker * customQty // sticker khách tự tải lên
   const goods = itemTotal + stickerTotal + customTotal
   const v = findVoucher(voucher)
@@ -52,6 +61,7 @@ export function quote({ product, combo, qty, stickerQty = 0, customQty = 0, deli
   return {
     unit,
     itemTotal,
+    includedSets,
     stickerTotal,
     customTotal,
     goods,

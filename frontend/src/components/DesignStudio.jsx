@@ -78,6 +78,7 @@ export default function DesignStudio({
   chosenSets, // { [key]: số bộ }
   onUseSet,
   custom, // useCustomStickers()
+  allowUpload = true, // combo có cho tải hình của bạn lên không (chỉ Combo 1)
   initial,
   onChange,
   total,
@@ -104,7 +105,11 @@ export default function DesignStudio({
   const sel = items.find((it) => it.id === selected)
 
   // Ảnh hiện tại của hình tự tải lên (bản gốc hoặc đã tách nền); hình đã bị bỏ thì không hiện
-  const customOf = (key) => custom.items.find((c) => c.key === key && c.status !== 'error')
+  // Combo không nhận hình tự tải lên thì các hình đó không hiện trên bản phối
+  const customOf = (key) =>
+    allowUpload ? custom.items.find((c) => c.key === key && c.status !== 'error') : undefined
+  const tools = allowUpload ? TOOLS : TOOLS.filter(([key]) => key !== 'upload')
+  const activeTool = tool === 'upload' && !allowUpload ? 'library' : tool
   const srcOf = (it) => (it.custom ? customOf(it.custom)?.url : null)
   const live = items.filter((it) => !it.custom || customOf(it.custom))
 
@@ -369,7 +374,7 @@ export default function DesignStudio({
       <Sticker shape={it.shape} color={it.color} label={it.label} style={{ width: w }} />
     )
   const pick = (t) => {
-    if (t === tool) setPanelOpen(!panelOpen)
+    if (t === activeTool) setPanelOpen(!panelOpen)
     else {
       setTool(t)
       setPanelOpen(true)
@@ -443,12 +448,12 @@ export default function DesignStudio({
       <div className={`studio-body${panelOpen ? '' : ' is-collapsed'}`}>
         {/* ---------- Thanh công cụ trái ---------- */}
         <nav className="studio-rail" role="tablist" aria-label="Công cụ">
-          {TOOLS.map(([key, label, d]) => (
+          {tools.map(([key, label, d]) => (
             <button
               key={key}
               type="button"
               role="tab"
-              aria-selected={tool === key && panelOpen}
+              aria-selected={activeTool === key && panelOpen}
               aria-controls="studio-panel"
               onClick={() => pick(key)}
             >
@@ -465,9 +470,9 @@ export default function DesignStudio({
             className="studio-panel"
             id="studio-panel"
             role="tabpanel"
-            aria-label={TOOLS.find((t) => t[0] === tool)[1]}
+            aria-label={TOOLS.find((t) => t[0] === activeTool)[1]}
           >
-            {tool === 'product' && (
+            {activeTool === 'product' && (
               <>
                 <h2 className="studio-h">Sản phẩm</h2>
                 <div className="studio-choice" role="group" aria-label="Món nền">
@@ -526,7 +531,7 @@ export default function DesignStudio({
               </>
             )}
 
-            {tool === 'library' && (
+            {activeTool === 'library' && (
               <>
                 <h2 className="studio-h">Thư viện sticker</h2>
                 <p className="studio-note">
@@ -569,7 +574,7 @@ export default function DesignStudio({
               </>
             )}
 
-            {tool === 'upload' && (
+            {activeTool === 'upload' && (
               <>
                 <h2 className="studio-h">Tải lên</h2>
                 <label className={`upl-drop${custom.active.length >= MAX_CUSTOM_STICKERS ? ' is-full' : ''}`}>
@@ -661,7 +666,7 @@ export default function DesignStudio({
               </>
             )}
 
-            {tool === 'layers' && (
+            {activeTool === 'layers' && (
               <>
                 <h2 className="studio-h">Lớp</h2>
                 {live.length === 0 ? (

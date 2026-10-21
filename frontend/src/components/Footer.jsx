@@ -8,7 +8,7 @@ const COLUMNS = [
     title: 'Khám phá',
     links: [
       { label: 'Cách làm', href: '/#cach-lam' },
-      { label: 'Gói Basic & Premium', href: '/#combo' },
+      { label: 'Bảng giá bộ kit', href: '/#combo' },
       { label: 'Kho sticker', soon: true },
       { label: 'Áo & túi trơn', soon: true },
     ],
@@ -53,7 +53,7 @@ export default function Footer({ onRegister }) {
             <span className="brand-dot" aria-hidden="true" />
             Tùm Lum <em>Studio</em>
           </p>
-          <p className="footer-blurb">Áo thun, túi tote và sticker in ép nhiệt theo ý bạn.</p>
+          <p className="footer-blurb">Áo thun, túi tote và sticker in chuyển nhiệt theo ý bạn.</p>
           <dl className="contact">
             <div>
               <dt>Địa chỉ</dt>

@@ -1,0 +1,489 @@
+/* Trang chủ và nhãn bộ kit theo bảng giá của studio: nền trắng, pastel xanh / hồng / vàng / bạc hà,
+   chữ Baloo 2 tròn đậm, viên giá lớn hồng / cam / tím. */
+:root {
+  --font-kit: 'Baloo 2', 'Be Vietnam Pro', system-ui, sans-serif;
+  --kit-ink: #0f1f5c; /* chữ navy đậm của bảng giá */
+  --kit-blue: #0a64dc;
+  --kit-pink: #f0609f;
+  --kit-yellow: #f2bd36;
+  --kit-panel-blue: #dcebfb;
+  --kit-panel-mint: #d6f5e7;
+  --kit-card-pink: #fde4ea;
+  --kit-card-yellow: #fbefcf;
+  --kit-card-mint: #ecfbf4;
+  --kit-head-pink: #fec9d6;
+  --kit-head-yellow: #fee5a0;
+  --kit-head-mint: #c9f0dd;
+  --kit-price-pink: linear-gradient(90deg, #f0457f, #d23b70);
+  --kit-price-orange: linear-gradient(90deg, #ff9a2e, #ff7a14);
+  --kit-price-purple: linear-gradient(90deg, #8a68d8, #6f4fc2);
+  --kit-tag-1: #f8689d;
+  --kit-tag-2: #169bf8;
+  --kit-badge: #ffd968;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---------- Đầu trang ---------- */
+.kit-hero {
+  position: relative;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: clamp(40px, 7vw, 84px) 0 clamp(28px, 4vw, 44px);
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  text-align: center;
+}
+.kit-title {
+  margin: 0;
+  font-family: var(--font-kit);
+  font-weight: 800;
+  font-size: clamp(2.3rem, 1.2rem + 5.4vw, 5.2rem);
+  line-height: 1;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  column-gap: 0.28em;
+  row-gap: 0.06em;
+  text-wrap: balance;
+}
+.kit-title .t-blue {
+  color: var(--kit-blue);
+}
+.kit-title .t-pink {
+  color: var(--kit-pink);
+}
+.kit-title .t-yellow {
+  color: var(--kit-yellow);
+}
+.kit-tagline {
+  margin: 4px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: min(100%, 640px);
+}
+.kit-tagline::before,
+.kit-tagline::after {
+  content: '';
+  flex: 1;
+  height: 2px;
+  background: var(--brand-light);
+  border-radius: 2px;
+}
+.kit-tagline span {
+  padding: 6px 22px;
+  border-radius: 999px;
+  background: var(--kit-panel-blue);
+  color: var(--kit-ink);
+  font-weight: 700;
+  font-size: clamp(0.78rem, 0.7rem + 0.4vw, 1rem);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.kit-lede {
+  margin: 6px 0 0;
+  max-width: 560px;
+  color: var(--muted);
+}
+.kit-hero-ctas {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 6px;
+}
+.kit-hero-deco {
+  position: absolute;
+  opacity: 0.9;
+  pointer-events: none;
+}
+.kit-hero-deco.d1 {
+  left: 2%;
+  top: 52%;
+  rotate: -12deg;
+}
+.kit-hero-deco.d2 {
+  right: 3%;
+  top: 50%;
+  rotate: 14deg;
+}
+.kit-hero-deco.d3 {
+  left: 8%;
+  bottom: 8%;
+  rotate: 8deg;
+}
+.kit-hero-deco.d4 {
+  right: 9%;
+  bottom: 12%;
+  rotate: -8deg;
+}
+
+/* ---------- Bảng giá ---------- */
+.kit-board-wrap {
+  max-width: 1240px;
+  margin: 0 auto;
+  scroll-margin-top: calc(var(--nav-h) + 8px);
+}
+.kit-board {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 16px;
+}
+.kit-panel {
+  border-radius: 28px;
+  padding: 18px;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 14px;
+}
+.panel-blue {
+  background: var(--kit-panel-blue);
+}
+.panel-mint {
+  background: var(--kit-panel-mint);
+}
+.kit-panel-head {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-kit);
+  font-weight: 800;
+  font-size: clamp(1.35rem, 0.9rem + 1.8vw, 2.4rem);
+  line-height: 1.05;
+  color: var(--kit-ink);
+  text-transform: uppercase;
+}
+.kit-method {
+  white-space: nowrap;
+}
+.kit-no {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 1.9em;
+  height: 1.9em;
+  border-radius: 50%;
+  background: var(--kit-badge);
+  color: var(--kit-ink);
+}
+.kit-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.kit-card {
+  border-radius: 22px;
+  padding: 16px;
+  display: grid;
+  grid-template-rows: auto 1fr auto auto;
+  gap: 12px;
+  color: var(--kit-ink);
+}
+.tone-pink {
+  background: var(--kit-card-pink);
+  --head: var(--kit-head-pink);
+  --price: var(--kit-price-pink);
+}
+.tone-yellow {
+  background: var(--kit-card-yellow);
+  --head: var(--kit-head-yellow);
+  --price: var(--kit-price-orange);
+}
+.tone-mint {
+  background: var(--kit-card-mint);
+  --head: var(--kit-head-mint);
+  --price: var(--kit-price-purple);
+}
+.kit-card-name {
+  margin: 0;
+  justify-self: center;
+  min-width: 70%;
+  padding: 4px 24px;
+  border-radius: 999px;
+  background: var(--head);
+  font-family: var(--font-kit);
+  font-weight: 800;
+  font-size: clamp(1.3rem, 1rem + 1vw, 1.9rem);
+  line-height: 1.2;
+  text-align: center;
+  text-transform: uppercase;
+}
+.kit-card-body {
+  display: grid;
+  grid-template-columns: 1fr 0.9fr;
+  align-items: center;
+  gap: 8px;
+}
+.kit-combos {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+}
+.kit-combo p {
+  margin: 6px 0 0;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.kit-tag {
+  display: inline-block;
+  padding: 2px 14px;
+  border-radius: 999px;
+  color: #fff;
+  font-family: var(--font-kit);
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+.kit-tag.tag-1 {
+  background: var(--kit-tag-1);
+}
+.kit-tag.tag-2 {
+  background: var(--kit-tag-2);
+}
+.kit-upload-chip {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 1px 10px;
+  border-radius: 999px;
+  border: 1.5px dashed var(--kit-tag-1);
+  color: #a3245a;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.kit-art {
+  width: 100%;
+  height: auto;
+  border-radius: 16px;
+  /* mờ dần mép hình vào nền thẻ */
+  mask-image: radial-gradient(ellipse 72% 70% at 50% 50%, #000 70%, transparent 100%);
+}
+.kit-price {
+  margin: 0;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--price);
+  color: #fff;
+  font-family: var(--font-kit);
+  font-weight: 800;
+  font-size: clamp(1.6rem, 1.1rem + 1.6vw, 2.5rem);
+  line-height: 1.15;
+  text-align: center;
+  letter-spacing: 0.01em;
+  box-shadow: 0 10px 22px rgba(15, 31, 92, 0.16);
+}
+.kit-card-ctas {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+.kit-card-ctas .btn {
+  flex: 1 1 140px;
+}
+.kit-card.is-premium {
+  grid-template-rows: auto auto 1fr auto auto;
+  align-items: center;
+}
+.kit-premium-text {
+  margin: 0;
+  font-weight: 600;
+  line-height: 1.45;
+  text-align: center;
+}
+
+/* ---------- Tự tạo hình ---------- */
+.kit-upload .display-sm em,
+.kit-upload-only strong {
+  color: var(--kit-pink);
+}
+.kit-upload-only {
+  margin: 0;
+  color: var(--muted);
+}
+.kit-upload-points {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.kit-upload-points li {
+  padding: 22px;
+  border-radius: 22px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+.kit-upload-points h3 {
+  margin: 0;
+  font-family: var(--font-kit);
+  font-weight: 700;
+  font-size: 1.3rem;
+  line-height: 1.2;
+}
+.kit-upload-points p {
+  margin: 0;
+  color: var(--muted);
+}
+.kit-upload .kit-hero-ctas {
+  justify-content: flex-start;
+}
+
+/* ---------- Nhãn bộ kit trên trang đặt hàng ---------- */
+.kit-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 8px;
+  padding: 4px 16px 4px 4px;
+  border-radius: 999px;
+  background: var(--kit-panel-blue);
+  color: var(--kit-ink);
+  font-family: var(--font-kit);
+  font-weight: 800;
+  font-size: 1.05rem;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+.kit-label.is-premium {
+  background: var(--kit-panel-mint);
+}
+.kit-label .kit-no {
+  width: 1.9em;
+  height: 1.9em;
+}
+.pp-price.kit-price-pill {
+  display: inline-block;
+  padding: 4px 20px;
+  border-radius: 999px;
+  background: var(--price);
+  color: #fff;
+  font-family: var(--font-kit);
+  font-weight: 800;
+}
+.pp-price.kit-price-pill small {
+  color: rgba(255, 255, 255, 0.88);
+}
+.kit-tone-ao {
+  --price: var(--kit-price-pink);
+}
+.kit-tone-tui {
+  --price: var(--kit-price-orange);
+}
+.kit-tone-premium {
+  --price: var(--kit-price-purple);
+}
+.tee-combo .kit-tag {
+  font-size: 0.95rem;
+  padding: 0 12px;
+}
+.kit-inbox {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 14px;
+  align-items: center;
+  margin-top: 14px;
+  padding: 12px;
+  border-radius: 18px;
+  background: var(--kit-card-pink);
+  color: var(--kit-ink);
+}
+.kit-inbox.tone-tui {
+  background: var(--kit-card-yellow);
+}
+.kit-inbox.tone-premium {
+  background: var(--kit-card-mint);
+  grid-template-columns: 1fr;
+}
+.kit-inbox img {
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+}
+.kit-inbox p {
+  margin: 0 0 4px;
+  font-family: var(--font-kit);
+  font-weight: 800;
+  font-size: 1.1rem;
+  text-transform: uppercase;
+}
+.kit-inbox ul {
+  margin: 0;
+  padding-left: 1.1em;
+  font-weight: 600;
+  line-height: 1.45;
+}
+.kit-upload-off {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1.5px dashed var(--kit-tag-1);
+  background: #fff7fa;
+  color: var(--kit-ink);
+  font-size: 0.92rem;
+}
+.kit-upload-off .link {
+  margin-left: 4px;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 1020px) {
+  .kit-board {
+    grid-template-columns: 1fr;
+  }
+  .kit-card.is-premium .kit-art {
+    max-width: 520px;
+    justify-self: center;
+  }
+}
+@media (max-width: 720px) {
+  .kit-cards,
+  .kit-upload-points {
+    grid-template-columns: 1fr;
+  }
+  .kit-panel {
+    padding: 12px;
+    border-radius: 22px;
+  }
+  .kit-hero-deco {
+    display: none;
+  }
+}
+@media (max-width: 440px) {
+  .kit-card-body {
+    grid-template-columns: 1fr;
+  }
+  .kit-card-body .kit-art {
+    max-width: 220px;
+    justify-self: center;
+  }
+  .kit-tagline span {
+    letter-spacing: 0.12em;
+    padding: 6px 14px;
+  }
+  .kit-method {
+    white-space: normal;
+  }
+  .kit-inbox {
+    grid-template-columns: 90px 1fr;
+  }
+}

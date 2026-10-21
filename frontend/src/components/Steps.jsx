@@ -1,15 +1,15 @@
 const STEPS = [
   {
-    title: 'Chọn món nền',
-    body: 'Áo thun hoặc túi tote, trơn hoặc in sẵn hoạ tiết đen trắng. Chọn màu và size ngay tại quầy.',
+    title: 'Chọn bộ kit',
+    body: 'Bộ kit cơ bản in chuyển nhiệt (áo thun hoặc túi tote, Combo 1 hoặc Combo 2) hoặc bộ kit cao cấp in lụa.',
   },
   {
-    title: 'Chọn sticker hoặc bộ in lụa',
-    body: 'Lục kho sticker, xếp thử vị trí trên áo cho tới khi ưng ý; hoặc lấy bộ in lụa để tự tay in.',
+    title: 'Chọn sticker hoặc tự tạo hình',
+    body: 'Chọn bộ sticker đi kèm, xếp thử lên áo trong trình phối; Combo 1 còn cho tải hình của bạn lên.',
   },
   {
-    title: 'In ép nhiệt hoặc tự in lụa',
-    body: 'Studio ép sticker lên vải bằng máy ép nhiệt, hoặc bạn tự in với khuôn, dao gạt và mực trong bộ.',
+    title: 'In chuyển nhiệt hoặc in lụa',
+    body: 'Sticker in chuyển nhiệt bám chắc lên vải; bộ kit cao cấp có khuôn in, dao gạt và lọ mực để bạn tự in lụa.',
   },
 ]
 

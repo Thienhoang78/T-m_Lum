@@ -1,9 +1,9 @@
 # Tùm Lum Studio
 
-Web bán áo / túi tote in sticker theo mô hình "mua áo trơn → chọn sticker → in ép nhiệt".
+Web bán bộ kit DIY "Tùm Lum Studio DIY Kits": áo thun / túi tote kèm sticker in chuyển nhiệt, hoặc bộ kit in lụa.
 
 ```
-frontend/   React + Vite: landing page (hero động, 3 bước, 3 combo, đăng ký/đăng nhập, footer)
+frontend/   React + Vite: trang chủ (bảng giá bộ kit, tự tạo hình, 3 bước, đăng ký/đăng nhập, footer), trang đặt hàng
 backend/    Next.js (App Router) API + MongoDB (mongoose)
 ```
 
@@ -22,17 +22,25 @@ npm run dev                                  # chạy cả 2: web :5173, API :30
 Mở http://localhost:5173. Frontend tự chuyển `/api/*` sang backend nên cookie đăng nhập hoạt động khi dev.
 Nếu backend chưa chạy, trang vẫn hiện combo mẫu trong `frontend/src/data/combos.js`.
 
-## Gói và trang đặt hàng
+## Bộ kit và trang đặt hàng
 
-| Gói     | Món         | Combo                                                 | Trang                          |
-| ------- | ----------- | ----------------------------------------------------- | ------------------------------ |
-| Basic   | Áo thun     | Combo 1 (trơn), Combo 2 (in sẵn hoạ tiết đen trắng)   | `/basic/ao` (`?combo=combo-2`) |
-| Basic   | Túi tote    | Combo 1, Combo 2                                      | `/basic/tui`                   |
-| Premium | Chỉ áo thun | Áo trơn + bộ tự in lụa (khuôn, dao gạt mực, chai mực) | `/premium`                     |
+Theo bảng giá của studio (`docs/screenshots/trang-chu-bang-gia.png`):
 
-Basic ép nhiệt sticker (sticker chọn và tính tiền riêng), Premium in lụa. Link cũ `/combo/...` tự chuyển sang trang mới.
+| Bộ kit                      | Món      | Combo                                                                                        | Giá     | Trang                          |
+| --------------------------- | -------- | -------------------------------------------------------------------------------------------- | ------- | ------------------------------ |
+| 1. Cơ bản – in chuyển nhiệt | Áo thun  | Combo 1: áo trơn + 1 bộ sticker (tự chọn); Combo 2: áo nền/hoạ tiết đen trắng + 1 bộ sticker | 299.000 | `/basic/ao` (`?combo=combo-2`) |
+| 1. Cơ bản – in chuyển nhiệt | Túi tote | như áo                                                                                       | 219.000 | `/basic/tui`                   |
+| 2. Cao cấp – in lụa         | Áo thun  | áo trơn + bộ dụng cụ in lụa (1 khuôn in, 1 dao gạt, 1 lọ mực) + 1 bộ sticker                 | 699.000 | `/premium`                     |
 
-Ở gói Basic, khách có thể tự tải tối đa 5 sticker của mình (tính tiền theo hình). Có hình tự tải lên thì phải tick
+Mỗi áo / túi đã gồm 1 bộ sticker in chuyển nhiệt. Combo 1: khách tự chọn bộ đi kèm (bắt buộc chọn; số bộ bằng số áo /
+túi được tính 0₫), chọn thêm thì tính tiền từng bộ. Combo 2: bộ đi kèm có sẵn, bộ chọn thêm tính tiền. Nội dung combo nằm
+ở `COMBO_COPY` (`frontend/src/data/combos.js`), quy tắc ở `PRICING.chooseIncluded` / `PRICING.uploads` (hai file
+pricing). Hình minh hoạ bộ kit cắt từ bảng giá: `frontend/public/images/kits/`. Link cũ `/combo/...` tự chuyển sang trang mới.
+
+Tính năng **tự tạo hình** (tải hình của bạn lên in thành sticker) **chỉ có ở Combo 1** của áo và túi; Combo 2 và bộ kit
+cao cấp ẩn phần tải hình (cả trong trình phối), server cũng từ chối đơn có hình tự tải lên ở các combo đó.
+
+Ở Combo 1, khách có thể tự tải tối đa 5 sticker của mình (tính tiền theo hình). Có hình tự tải lên thì phải tick
 đồng ý và ký tên vào cam kết miễn trừ trách nhiệm bản quyền; đơn hàng lưu phiên bản, toàn văn cam kết, tên người ký,
 thời điểm, IP và trình duyệt. Nội dung cam kết nằm ở `frontend/src/data/consent.js` và `backend/lib/consent.js`
 (phải sửa cả hai và đổi phiên bản). Đây là bản nháp, nên nhờ người có chuyên môn pháp lý xem lại. Hình chưa gắn vào đơn

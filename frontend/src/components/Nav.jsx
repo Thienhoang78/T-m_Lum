@@ -14,7 +14,7 @@ export default function Nav({ user, onLogin, onRegister, onLogout }) {
             <Link to="/#cach-lam">Cách làm</Link>
           </li>
           <li>
-            <Link to="/#combo">Gói</Link>
+            <Link to="/#combo">Bảng giá</Link>
           </li>
           <li>
             <a href="#lien-he">Liên hệ</a>

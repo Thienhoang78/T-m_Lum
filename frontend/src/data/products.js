@@ -51,12 +51,11 @@ export const PRODUCTS = {
 
 export const PRINT_SIDES = ['Chỉ in mặt trước', 'Chỉ in mặt sau', 'In cả 2 mặt']
 
-// Cách in theo combo: sticker ép nhiệt tại studio, hoặc bộ dụng cụ để khách tự in lụa.
+// Cách in theo combo: sticker in chuyển nhiệt (đã gồm 1 bộ, mua thêm được), hoặc bộ dụng cụ để khách tự in lụa.
 export const METHODS = {
   'heat-transfer': {
-    label: 'In ép nhiệt',
+    label: 'In chuyển nhiệt',
     stickers: true,
-    note: 'Sticker chọn và tính tiền riêng', // combo chỉ gồm món nền + dịch vụ ép, không kèm sticker
     orderModes: ['Chọn sticker tại studio', 'Bạn tự thiết kế', 'Tùm Lum thiết kế hộ'],
   },
   'screen-print': {

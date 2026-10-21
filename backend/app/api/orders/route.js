@@ -7,6 +7,8 @@ import {
   PRICING,
   PRODUCT_RULES,
   STICKER_SETS,
+  allowsUploads,
+  choosesIncludedSet,
   findVoucher,
   priceOf,
   quote,
@@ -82,8 +84,11 @@ export async function POST(req) {
     if (!(sq >= 1 && sq <= 999)) return bad('Số bộ sticker từ 1 đến 999.')
     stickerSets.push({ key: w.key, name: STICKER_SETS[w.key], qty: sq })
   }
+  // Combo 1 kèm 1 bộ sticker khách tự chọn: phải chọn ít nhất một bộ
+  if (choosesIncludedSet(combo.slug) && !stickerSets.length)
+    return bad(`${combo.name} kèm 1 bộ sticker tự chọn, vui lòng chọn bộ sticker.`)
 
-  // Sticker khách tự tải lên: chỉ gói ép nhiệt, tối đa 5 hình, bắt buộc ký cam kết bản quyền
+  // Sticker khách tự tải lên: chỉ Combo 1 (áo, túi trơn), tối đa 5 hình, bắt buộc ký cam kết bản quyền
   // mỗi hình: id upload, hoặc { id, cut } với cut = khách chọn bản đã tách nền
   const picked = (Array.isArray(b.customStickers) ? b.customStickers : []).map((c) =>
     typeof c === 'string' ? { id: c, cut: false } : { id: c?.id, cut: c?.cut === true }
@@ -92,7 +97,7 @@ export async function POST(req) {
   let customStickers = []
   let waiver
   if (ids.length) {
-    if (combo.method === 'screen-print') return bad('Gói này không nhận sticker tự tải lên.')
+    if (!allowsUploads(combo.slug)) return bad('Chỉ Combo 1 nhận hình bạn tự tải lên.')
     if (ids.length > MAX_CUSTOM) return bad(`Tối đa ${MAX_CUSTOM} sticker tự tải lên mỗi đơn.`)
     if (!ids.every((id) => mongoose.isValidObjectId(id)) || new Set(ids).size !== ids.length)
       return bad('Sticker tải lên không hợp lệ.')
