@@ -6,6 +6,7 @@ import { CartProvider } from './cart.jsx'
 import './styles.css'
 import './products.css'
 import './kits.css'
+import './landing.css'
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
