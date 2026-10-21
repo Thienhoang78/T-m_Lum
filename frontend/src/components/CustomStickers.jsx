@@ -11,6 +11,7 @@ const STATUS = { processing: 'Đang tách nền…', uploading: 'Đang tải lê
 function statusText(it) {
   if (it.status === 'error') return it.error
   if (STATUS[it.status]) return STATUS[it.status]
+  if (it.drawn) return 'Hình bạn tự vẽ'
   if (it.useCut && it.cut)
     return `Đã tách nền${it.cut.method === 'ai' ? ' (AI)' : ''}${it.cut.reduced ? ', đã thu nhỏ cho vừa 4 MB' : ''}`
   return it.cutReason ? `Dùng ảnh gốc: ${it.cutReason.toLowerCase()}` : 'Dùng ảnh gốc'

@@ -1,19 +1,23 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { PRODUCTS, productFor } from '../data/products.js'
-import { PRICING, priceOf, vnd } from '../data/pricing.js'
+import { PRICING, allowsUploads, priceOf, vnd } from '../data/pricing.js'
 import { MAX_CUSTOM_STICKERS } from '../data/consent.js'
 import { renderMockup } from '../data/mockup.js'
 import ProductVisual from './ProductVisual.jsx'
 import LiveTryOn from './LiveTryOn.jsx'
 import Sticker from './Sticker.jsx'
+import { DrawTray, DrawingPad } from './DrawingTools.jsx'
+import { exportDrawing, initialBrush, loadMask, placeStrokes } from '../data/drawing.js'
 
-// Trình phối kiểu Canva (toàn màn hình): thanh công cụ trái (Sản phẩm, Thư viện, Tải lên, Lớp),
+// Trình phối kiểu Canva (toàn màn hình): thanh công cụ trái (Sản phẩm, Thư viện, Vẽ, Tải lên, Lớp),
 // áo / túi ở giữa. Kéo để di chuyển, nắm góc để đổi cỡ, nắm chấm trên để xoay,
 // hai ngón để phóng to / xoay trên điện thoại. Có hoàn tác / làm lại, đường căn giữa, khoá / ẩn lớp.
 // Dùng DOM + Pointer Events, không thêm thư viện vẽ.
 //
 // Phần tử (layer): { id, shape, color, label, set } (sticker trong thư viện)
 //                  hoặc { id, custom } (hình khách tự tải lên, ảnh lấy theo bản đang chọn: gốc / tách nền)
+//                  hoặc { id, custom, drawing: { strokes, box } } (hình khách tự vẽ: ảnh PNG đã tải lên như hình
+//                  tự tải lên, kèm các nét để mở ra sửa tiếp; box là vị trí lúc vẽ xong)
 //                  cùng x, y (tâm, % khung), s (bề ngang, % khung), r (độ xoay), hidden, locked.
 // Thứ tự trong mảng là thứ tự lớp: phần tử cuối nằm trên cùng.
 
@@ -28,6 +32,7 @@ const SHAPE_NAMES = {
 const TOOLS = [
   ['product', 'Sản phẩm', 'M8 4l4 2 4-2 4 3-2.5 4H16v9H8v-9H4.5L2 7z'],
   ['library', 'Thư viện', 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z'],
+  ['draw', 'Vẽ', 'M4 20l1-4L16 5l3 3L8 19zM14 7l3 3'],
   ['upload', 'Tải lên', 'M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M4 15v3a2 2 0 002 2h12a2 2 0 002-2v-3'],
   ['layers', 'Lớp', 'M12 3l9 5-9 5-9-5zM3 13l9 5 9-5M3 17l9 5 9-5'],
 ]
@@ -42,7 +47,8 @@ const strip = (list) => list.map(({ id: _id, ...it }) => it)
 
 // Đặt sticker ở đâu trên áo / túi cũng được; chỉ giữ tâm trong khung ảnh để không kéo mất ra ngoài
 const MAX_SIZE = 60 // % bề ngang khung
-const fitIn = (s) => clamp(s, 4, MAX_SIZE)
+const MAX_DRAWING = 90 // hình vẽ có thể trải cả thân áo lẫn tay áo
+const fitIn = (s, it) => clamp(s, 4, it?.drawing ? MAX_DRAWING : MAX_SIZE)
 const keepIn = (it) => ({ ...it, x: clamp(it.x, 2, 98), y: clamp(it.y, 2, 98) })
 // Tâm phần tử theo toạ độ màn hình
 function centerOf(stage, it) {
@@ -101,6 +107,10 @@ export default function DesignStudio({
   const [dragLayer, setDragLayer] = useState(null)
   const [busy, setBusy] = useState(false)
   const [liveOpen, setLiveOpen] = useState(false) // live mặc thử áo bằng camera
+  // Đang vẽ: { editId (lớp hình vẽ đang sửa, hoặc null), strokes, past, future }
+  const [draw, setDraw] = useState(null)
+  const [brush, setBrush] = useState(initialBrush)
+  const [saving, setSaving] = useState(false)
   const items = hist.present
   const sel = items.find((it) => it.id === selected)
 
@@ -109,9 +119,16 @@ export default function DesignStudio({
   const customOf = (key) =>
     allowUpload ? custom.items.find((c) => c.key === key && c.status !== 'error') : undefined
   const tools = allowUpload ? TOOLS : TOOLS.filter(([key]) => key !== 'upload')
+  const uploadCombo = combos.find((c) => allowsUploads(c.slug))
   const activeTool = tool === 'upload' && !allowUpload ? 'library' : tool
   const srcOf = (it) => (it.custom ? customOf(it.custom)?.url : null)
   const live = items.filter((it) => !it.custom || customOf(it.custom))
+  const drawingCount = custom.items.filter((c) => c.drawn).length
+
+  // Đổi sang combo không cho tự tạo hình thì thoát chế độ vẽ
+  useEffect(() => {
+    if (!allowUpload) setDraw(null)
+  }, [allowUpload])
 
   useEffect(() => {
     const d = dialogRef.current
@@ -171,8 +188,77 @@ export default function DesignStudio({
   const addCustom = (c) => add({ custom: c.key })
 
   function remove(id) {
+    const gone = items.find((it) => it.id === id)
     commit((list) => list.filter((it) => it.id !== id))
     setSelected(null)
+    // hình vẽ không còn lớp nào dùng thì bỏ luôn (không tính tiền)
+    if (gone?.drawing && !items.some((it) => it.id !== id && it.custom === gone.custom))
+      custom.remove(gone.custom)
+  }
+
+  // ---------- Vẽ tay ----------
+  function startDraw(target = sel) {
+    if (!allowUpload) return
+    const editing = target?.drawing && !target.locked ? target : null
+    setDraw({
+      editId: editing?.id ?? null,
+      strokes: editing ? placeStrokes(editing.drawing.strokes, editing.drawing.box, editing) : [],
+      past: [],
+      future: [],
+    })
+    setSelected(null)
+  }
+  const drawCommit = (strokes) =>
+    setDraw((d) => ({ ...d, strokes, past: [...d.past, d.strokes].slice(-HISTORY), future: [] }))
+  const drawUndo = () =>
+    setDraw((d) =>
+      d.past.length
+        ? { ...d, strokes: d.past.at(-1), past: d.past.slice(0, -1), future: [d.strokes, ...d.future] }
+        : d
+    )
+  const drawRedo = () =>
+    setDraw((d) =>
+      d.future.length
+        ? { ...d, strokes: d.future[0], past: [...d.past, d.strokes], future: d.future.slice(1) }
+        : d
+    )
+  // Xong: xuất PNG nền trong suốt (cắt sát nét), tải lên như hình tự tải lên, đặt thành một lớp trên áo
+  async function finishDraw() {
+    const d = draw
+    if (!d || saving) return
+    const old = d.editId != null ? items.find((it) => it.id === d.editId) : null
+    if (!d.strokes.length && !old) return setDraw(null)
+    setSaving(true)
+    try {
+      const out = await exportDrawing(d.strokes, await loadMask(productKey))
+      const shared = old && items.some((it) => it.id !== old.id && it.custom === old.custom)
+      if (old && !shared) custom.remove(old.custom)
+      if (!out) {
+        if (old) commit((list) => list.filter((it) => it.id !== old.id))
+        return setDraw(null)
+      }
+      const key = custom.addDrawing(out.blob, `Hình vẽ ${drawingCount + (old && !shared ? 0 : 1)}.png`)
+      if (key == null) return // đã đủ số hình: giữ nguyên chế độ vẽ, thông báo hiện ở bảng Vẽ
+      const placed = {
+        custom: key,
+        drawing: { strokes: d.strokes, box: { x: out.x, y: out.y, s: out.s, r: 0 } },
+        x: out.x,
+        y: out.y,
+        s: out.s,
+        r: 0,
+      }
+      if (old) {
+        commit((list) => list.map((it) => (it.id === old.id ? { ...it, ...placed } : it)))
+        setSelected(old.id)
+      } else {
+        const it = { id: nextId++, ...placed }
+        commit((list) => [...list, it])
+        setSelected(it.id)
+      }
+      setDraw(null)
+    } finally {
+      setSaving(false)
+    }
   }
   function duplicate(id) {
     const src = items.find((it) => it.id === id)
@@ -276,12 +362,12 @@ export default function DesignStudio({
             const [a, b] = pts
             const k = Math.hypot(a.x - b.x, a.y - b.y) / g.dist
             const ang = ((Math.atan2(b.y - a.y, b.x - a.x) - g.angle) * 180) / Math.PI
-            return keepIn({ ...it, s: fitIn(g.s * k), r: Math.round(g.r + ang) })
+            return keepIn({ ...it, s: fitIn(g.s * k, it), r: Math.round(g.r + ang) })
           }
           const c = centerOf(stageRef.current, it)
           if (g.mode === 'resize') {
             const k = Math.hypot(e.clientX - c.x, e.clientY - c.y) / g.dist
-            return keepIn({ ...it, s: fitIn(g.s * k) })
+            return keepIn({ ...it, s: fitIn(g.s * k, it) })
           }
           // xoay: hút về các góc 0 / 45 / 90...
           let r = g.r + ((Math.atan2(e.clientY - c.y, e.clientX - c.x) - g.angle) * 180) / Math.PI
@@ -314,6 +400,17 @@ export default function DesignStudio({
     const tag = e.target.tagName
     if (tag === 'INPUT' || tag === 'TEXTAREA') return
     const mod = e.ctrlKey || e.metaKey
+    if (draw) {
+      if (mod && e.key.toLowerCase() === 'z') {
+        e.preventDefault()
+        return e.shiftKey ? drawRedo() : drawUndo()
+      }
+      if (mod && e.key.toLowerCase() === 'y') {
+        e.preventDefault()
+        return drawRedo()
+      }
+      return
+    }
     if (mod && e.key.toLowerCase() === 'z') {
       e.preventDefault()
       return e.shiftKey ? redo() : undo()
@@ -364,9 +461,11 @@ export default function DesignStudio({
 
   const visibleForExport = live.filter((it) => !it.hidden).map((it) => ({ ...it, src: srcOf(it) }))
   const layerName = (it) =>
-    it.custom
-      ? `Ảnh: ${customOf(it.custom)?.name ?? 'đã bỏ'}`
-      : `${SHAPE_NAMES[it.shape] ?? 'Sticker'}${it.label ? ` “${it.label}”` : ''}`
+    it.drawing
+      ? (customOf(it.custom)?.name.replace(/\.png$/, '') ?? 'Hình vẽ')
+      : it.custom
+        ? `Ảnh: ${customOf(it.custom)?.name ?? 'đã bỏ'}`
+        : `${SHAPE_NAMES[it.shape] ?? 'Sticker'}${it.label ? ` “${it.label}”` : ''}`
   const thumb = (it, w = 34) =>
     it.custom ? (
       <img src={srcOf(it)} alt="" style={{ width: w, height: w }} />
@@ -374,10 +473,13 @@ export default function DesignStudio({
       <Sticker shape={it.shape} color={it.color} label={it.label} style={{ width: w }} />
     )
   const pick = (t) => {
+    // rời bảng Vẽ thì lưu hình đang vẽ
+    if (draw && t !== 'draw') finishDraw()
     if (t === activeTool) setPanelOpen(!panelOpen)
     else {
       setTool(t)
       setPanelOpen(true)
+      if (t === 'draw' && !draw) startDraw()
     }
   }
   const usedSets = new Set(items.filter((it) => it.set).map((it) => it.set))
@@ -390,7 +492,8 @@ export default function DesignStudio({
       onClose={onClose}
       onCancel={(e) => {
         e.preventDefault()
-        if (selected != null) setSelected(null)
+        if (draw) setDraw(null)
+        else if (selected != null) setSelected(null)
         else close()
       }}
       onKeyDown={onKeyDown}
@@ -445,7 +548,7 @@ export default function DesignStudio({
         </button>
       </header>
 
-      <div className={`studio-body${panelOpen ? '' : ' is-collapsed'}`}>
+      <div className={`studio-body${panelOpen ? '' : ' is-collapsed'}${draw ? ' is-drawing' : ''}`}>
         {/* ---------- Thanh công cụ trái ---------- */}
         <nav className="studio-rail" role="tablist" aria-label="Công cụ">
           {tools.map(([key, label, d]) => (
@@ -569,6 +672,40 @@ export default function DesignStudio({
                 {usedSets.size > 0 && (
                   <p className="studio-note">
                     Xoá sticker không tự bỏ bộ khỏi đơn; bỏ bộ ở trang đặt hàng nếu cần.
+                  </p>
+                )}
+              </>
+            )}
+
+            {activeTool === 'draw' && (
+              <>
+                <h2 className="studio-h">Vẽ</h2>
+                {allowUpload ? (
+                  <>
+                    <p className="studio-note">
+                      Vẽ trực tiếp lên {product.unit} bằng chuột, ngón tay hoặc bút cảm ứng. Chọn bút, màu và
+                      cỡ ở khay bên dưới; bấm Xong để đặt hình vẽ thành một lớp, kéo / đổi cỡ / xoay như
+                      sticker.
+                    </p>
+                    {!draw && (
+                      <button type="button" className="btn btn-dark btn-sm" onClick={() => startDraw()}>
+                        {sel?.drawing ? 'Sửa hình vẽ đang chọn' : 'Vẽ hình mới'}
+                      </button>
+                    )}
+                    {custom.notice && <p className="field-err">{custom.notice}</p>}
+                    <p className="studio-note">
+                      Mỗi hình vẽ được in như một hình bạn tự tải lên ({vnd(PRICING.customSticker)} / hình,
+                      tối đa {MAX_CUSTOM_STICKERS} hình mỗi đơn) và cần ký cam kết bản quyền ở trang đặt hàng.
+                    </p>
+                  </>
+                ) : (
+                  <p className="kit-upload-off">
+                    Vẽ lên {product.unit} là tính năng tự tạo hình, chỉ có ở {uploadCombo?.name ?? 'Combo 1'}.
+                    {uploadCombo && (
+                      <button type="button" className="link" onClick={() => onCombo(uploadCombo.slug)}>
+                        Chuyển sang {uploadCombo.name}
+                      </button>
+                    )}
                   </p>
                 )}
               </>
@@ -779,12 +916,12 @@ export default function DesignStudio({
 
         {/* ---------- Vùng vẽ ---------- */}
         <main
-          className="studio-canvas"
+          className={`studio-canvas${draw ? ' is-drawing' : ''}`}
           onPointerDown={(e) => e.target === e.currentTarget && setSelected(null)}
         >
           <div className="studio-sheet" style={{ '--zoom': zoom / 100 }}>
             <div
-              className="studio-stage"
+              className={`studio-stage${draw ? ' is-drawing' : ''}`}
               ref={stageRef}
               onPointerDown={(e) => {
                 if (!e.target.closest('.studio-item')) setSelected(null)
@@ -794,7 +931,7 @@ export default function DesignStudio({
                 {guides.v && <div className="studio-guide studio-guide-v" style={{ left: `${center.x}%` }} />}
                 {guides.h && <div className="studio-guide studio-guide-h" style={{ top: `${center.y}%` }} />}
                 {live.map((it) =>
-                  it.hidden ? null : (
+                  it.hidden || it.id === draw?.editId ? null : (
                     <div
                       key={it.id}
                       className={`studio-item${it.id === selected ? ' is-selected' : ''}${it.locked ? ' is-locked' : ''}`}
@@ -832,10 +969,34 @@ export default function DesignStudio({
                   )
                 )}
               </ProductVisual>
+              {draw && (
+                <DrawingPad
+                  productKey={productKey}
+                  strokes={draw.strokes}
+                  brush={brush}
+                  onStroke={(st) => drawCommit([...draw.strokes, st])}
+                />
+              )}
             </div>
           </div>
 
-          {sel && (
+          {draw && (
+            <DrawTray
+              brush={brush}
+              onBrush={setBrush}
+              empty={!draw.strokes.length}
+              canUndo={draw.past.length > 0}
+              canRedo={draw.future.length > 0}
+              onUndo={drawUndo}
+              onRedo={drawRedo}
+              onClear={() => drawCommit([])}
+              onCancel={() => setDraw(null)}
+              onDone={finishDraw}
+              busy={saving}
+            />
+          )}
+
+          {sel && !draw && (
             <div className="studio-float" role="toolbar" aria-label="Phần tử đang chọn">
               <button type="button" onClick={() => move(sel.id, 1)}>
                 Lên trên
@@ -846,6 +1007,18 @@ export default function DesignStudio({
               <button type="button" onClick={() => duplicate(sel.id)}>
                 Nhân bản
               </button>
+              {sel.drawing && allowUpload && !sel.locked && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTool('draw')
+                    setPanelOpen(true)
+                    startDraw(sel)
+                  }}
+                >
+                  Sửa hình vẽ
+                </button>
+              )}
               <button type="button" onClick={() => update(sel.id, { locked: !sel.locked })}>
                 {sel.locked ? 'Mở khoá' : 'Khoá'}
               </button>
@@ -860,21 +1033,25 @@ export default function DesignStudio({
             </div>
           )}
 
-          <label className="studio-zoom">
-            <span>{zoom}%</span>
-            <input
-              type="range"
-              min="60"
-              max="140"
-              step="10"
-              value={zoom}
-              onChange={(e) => setZoom(Number(e.target.value))}
-              aria-label="Thu phóng"
-            />
-          </label>
-          <p className="studio-help">
-            Kéo để di chuyển · nắm góc để đổi cỡ · nắm chấm trên để xoay · Ctrl+Z hoàn tác
-          </p>
+          {!draw && (
+            <>
+              <label className="studio-zoom">
+                <span>{zoom}%</span>
+                <input
+                  type="range"
+                  min="60"
+                  max="140"
+                  step="10"
+                  value={zoom}
+                  onChange={(e) => setZoom(Number(e.target.value))}
+                  aria-label="Thu phóng"
+                />
+              </label>
+              <p className="studio-help">
+                Kéo để di chuyển · nắm góc để đổi cỡ · nắm chấm trên để xoay · Ctrl+Z hoàn tác
+              </p>
+            </>
+          )}
         </main>
       </div>
 

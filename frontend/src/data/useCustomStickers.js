@@ -113,6 +113,40 @@ export function useCustomStickers() {
     sync()
   }
 
+  // Hình khách tự vẽ trong trình phối (PNG nền trong suốt): không cần tách nền, tải lên luôn.
+  // Tính như một hình tự tải lên (cùng giá, cùng cam kết bản quyền). Trả về key, hoặc null nếu đã đủ số hình.
+  function addDrawing(blob, name) {
+    if (items.filter((it) => it.status !== 'error').length >= MAX_CUSTOM_STICKERS) {
+      setNotice(`Mỗi đơn tối đa ${MAX_CUSTOM_STICKERS} hình (gồm cả hình vẽ).`)
+      return null
+    }
+    if (blob.size > MAX_UPLOAD_BYTES) {
+      setNotice('Hình vẽ lớn hơn 4 MB, hãy vẽ gọn hơn.')
+      return null
+    }
+    const key = seq++
+    const file = new File([blob], name, { type: 'image/png' })
+    const origUrl = URL.createObjectURL(file)
+    store.current.set(key, {
+      key,
+      name,
+      size: file.size,
+      file,
+      origUrl,
+      url: origUrl,
+      cut: null,
+      cutReason: null,
+      useCut: false,
+      drawn: true,
+      tolerance: DEFAULT_TOLERANCE,
+      status: 'uploading',
+    })
+    sync()
+    setNotice(null)
+    uploadChosen(get(key))
+    return key
+  }
+
   // Đổi giữa bản đã tách nền và ảnh gốc
   function setUseCut(key, useCut) {
     const it = patch(key, { useCut })
@@ -150,6 +184,7 @@ export function useCustomStickers() {
     items,
     notice,
     add,
+    addDrawing,
     remove,
     reset,
     setUseCut,

@@ -144,7 +144,7 @@ export async function POST(req) {
       x: num(it.x, 0, 100),
       y: num(it.y, 0, 100),
       r: num(it.r, -180, 180),
-      s: num(it.s, 4, 60),
+      s: num(it.s, 4, 90),
     }))
 
   // Ảnh mockup áo / túi kèm sticker (đã tải lên qua /api/uploads) để studio biết vị trí ép

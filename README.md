@@ -40,6 +40,16 @@ pricing). Hình minh hoạ bộ kit cắt từ bảng giá: `frontend/public/ima
 Tính năng **tự tạo hình** (tải hình của bạn lên in thành sticker) **chỉ có ở Combo 1** của áo và túi; Combo 2 và bộ kit
 cao cấp ẩn phần tải hình (cả trong trình phối), server cũng từ chối đơn có hình tự tải lên ở các combo đó.
 
+**Vẽ tay lên áo / túi** (tab **Vẽ** trong trình phối, chỉ Combo 1): bút mực, bút kim, bút dạ (trong mờ, chỉnh độ đậm),
+bút chì (có hạt), tẩy; mỗi bút một cỡ, bảng màu + chọn màu khác, hoàn tác / làm lại từng nét, xoá hết. Nét mượt và theo
+lực nhấn của bút cảm ứng nhờ `perfect-freehand` (MIT); chỉ vẽ được trong thân áo (theo ảnh áo đã cắt nền) hoặc thân túi;
+trên điện thoại không cuộn / phóng trang khi vẽ, chạm hai ngón không để lại nét. Bấm Xong thì hình vẽ thành một lớp (kéo,
+đổi cỡ, xoay, sắp lớp như sticker; "Sửa hình vẽ" để vẽ tiếp). Mỗi hình vẽ được xuất PNG nền trong suốt (khung 1600 px), tải
+lên và tính như một hình tự tải lên (cùng giá, cùng cam kết bản quyền). Mã: `frontend/src/data/drawing.js`,
+`frontend/src/components/DrawingTools.jsx`.
+
+![Vẽ tay lên áo trong trình phối](docs/screenshots/ve-tay-tren-ao.png)
+
 Ở Combo 1, khách có thể tự tải tối đa 5 sticker của mình (tính tiền theo hình). Có hình tự tải lên thì phải tick
 đồng ý và ký tên vào cam kết miễn trừ trách nhiệm bản quyền; đơn hàng lưu phiên bản, toàn văn cam kết, tên người ký,
 thời điểm, IP và trình duyệt. Nội dung cam kết nằm ở `frontend/src/data/consent.js` và `backend/lib/consent.js`
