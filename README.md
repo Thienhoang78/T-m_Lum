@@ -22,6 +22,14 @@ npm run dev                                  # chạy cả 2: web :5173, API :30
 Mở http://localhost:5173. Frontend tự chuyển `/api/*` sang backend nên cookie đăng nhập hoạt động khi dev.
 Nếu backend chưa chạy, trang vẫn hiện combo mẫu trong `frontend/src/data/combos.js`.
 
+## Trang chủ sinh động
+
+Trang chủ (`frontend/src/pages/Landing.jsx`, kiểu ở `frontend/src/landing.css`) chỉ dùng CSS, Pointer Events và
+IntersectionObserver, không thêm thư viện: cảnh áo + túi tote đung đưa trên thanh treo, mỗi vài giây một bộ sticker bay tới
+"ép nhiệt" lên (nảy, loé sáng, hơi nước) rồi bóc ra đổi bộ khác, rê chuột thì cảnh nghiêng theo, túi đổi 3 màu thật;
+sticker quanh đầu trang kéo thả được; ruy băng khẩu hiệu; thẻ giá nghiêng theo chuột, viên giá có vệt sáng, dao gạt lướt
+qua khung in lụa; mục tự tạo hình và ba bước có cảnh động. Bật "giảm chuyển động" trong hệ điều hành thì trang đứng yên.
+
 ## Bộ kit và trang đặt hàng
 
 Theo bảng giá của studio (`docs/screenshots/trang-chu-bang-gia.png`):

@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { COMBO_COPY, TIERS } from '../data/combos.js'
 import { PRODUCTS } from '../data/products.js'
 import { allowsUploads, priceOf } from '../data/pricing.js'
+import { tilt } from './landing/tilt.js'
 
 // Bảng giá bộ kit theo ảnh của studio:
 //   1. Bộ kit cơ bản – in chuyển nhiệt (nền xanh nhạt): thẻ Áo thun (hồng) và Túi tote (vàng), mỗi thẻ Combo 1 / Combo 2
@@ -28,9 +29,15 @@ function KitHead({ tier }) {
   )
 }
 
-function BasicCard({ product, title, tone, art }) {
+function BasicCard({ product, title, tone, art, i }) {
   return (
-    <article className={`kit-card tone-${tone}`}>
+    <article
+      className={`kit-card tone-${tone}`}
+      data-reveal
+      style={{ '--d': `${0.12 + i * 0.12}s` }}
+      {...tilt}
+    >
+      <span className="kit-glare" aria-hidden="true" />
       <h4 className="kit-card-name">{title}</h4>
       <div className="kit-card-body">
         <div className="kit-combos">
@@ -42,7 +49,9 @@ function BasicCard({ product, title, tone, art }) {
             </div>
           ))}
         </div>
-        <img className="kit-art" src={art} alt="" loading="lazy" width="340" height="430" />
+        <div className="kit-art-wrap">
+          <img className="kit-art" src={art} alt="" loading="lazy" width="340" height="430" />
+        </div>
       </div>
       <p className="kit-price">{vndText(priceOf(product, 'combo-1'))}</p>
       <div className="kit-card-ctas">
@@ -68,28 +77,36 @@ export default function KitBoard() {
         Bảng giá bộ kit
       </h2>
       <div className="kit-board">
-        <div className="kit-panel panel-blue">
+        <div className="kit-panel panel-blue" data-reveal>
           <KitHead tier={TIERS.basic} />
           <div className="kit-cards">
-            {BASIC_CARDS.map((c) => (
-              <BasicCard key={c.product} {...c} />
+            {BASIC_CARDS.map((c, i) => (
+              <BasicCard key={c.product} {...c} i={i} />
             ))}
           </div>
         </div>
 
-        <div className="kit-panel panel-mint">
+        <div className="kit-panel panel-mint" data-reveal style={{ '--d': '0.15s' }}>
           <KitHead tier={TIERS.premium} />
-          <article className="kit-card tone-mint is-premium">
+          <article className="kit-card tone-mint is-premium" data-reveal style={{ '--d': '0.35s' }} {...tilt}>
+            <span className="kit-glare" aria-hidden="true" />
             <h4 className="kit-card-name">Áo thun cao cấp</h4>
             <p className="kit-premium-text">{COMBO_COPY.premium.items.ao.join(' + ')}</p>
-            <img
-              className="kit-art"
-              src="/images/kits/kit-premium.webp"
-              alt=""
-              loading="lazy"
-              width="644"
-              height="247"
-            />
+            {/* dao gạt lướt qua khuôn in, để lại vệt mực */}
+            <div className="kit-art-wrap is-screen">
+              <img
+                className="kit-art"
+                src="/images/kits/kit-premium.webp"
+                alt=""
+                loading="lazy"
+                width="644"
+                height="247"
+              />
+              <span className="squeegee" aria-hidden="true">
+                <span className="squeegee-ink" />
+                <span className="squeegee-blade" />
+              </span>
+            </div>
             <p className="kit-price">{vndText(priceOf('ao', 'premium'))}</p>
             <div className="kit-card-ctas">
               <Link to="/premium" className="btn btn-dark btn-sm">
