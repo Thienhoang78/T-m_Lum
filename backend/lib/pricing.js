@@ -6,11 +6,12 @@ export const PRICING = {
     ao: { 'combo-1': 299000, 'combo-2': 299000 },
     tui: { 'combo-1': 219000, 'combo-2': 219000 },
   },
-  // Combo 1: khách tự chọn bộ sticker đi kèm, mỗi áo / túi 1 bộ. Combo 2: bộ đi kèm có sẵn trong kit.
-  chooseIncluded: ['combo-1'],
-  // Chỉ Combo 1 (áo, túi trơn) cho khách tải hình / vẽ tay để in thành sticker
-  uploads: ['combo-1'],
-  // Tấm sticker mua thêm (mọi combo)
+  // Combo 1: khách chọn 1 trong 3 cách làm sticker: tự vẽ ('ve'), tải hình của mình ('tai-len')
+  // hoặc 1 bộ sticker có sẵn của shop ('bo-sticker'). Combo 2: bộ sticker đi kèm có sẵn trong kit.
+  choices: { 'combo-1': ['ve', 'tai-len', 'bo-sticker'] },
+  chooseIncluded: ['combo-1'], // combo khách được chọn bộ sticker (khi chọn cách 'bo-sticker')
+  uploads: ['combo-1'], // combo nhận hình khách tự vẽ / tải lên
+  // Tấm sticker mua thêm (mọi combo): in đúng thiết kế sticker của combo (hình vẽ / hình tải lên / bộ sticker) theo khổ
   sheets: {
     a5: { name: 'Tấm sticker A5', price: 20000 },
     a4: { name: 'Tấm sticker A4', price: 30000 },
@@ -96,6 +97,7 @@ export const findVoucher = (code) => VOUCHERS[code?.trim().toUpperCase()] ?? nul
 export const priceOf = (product, combo) => PRICING.items[product]?.[combo] ?? null
 export const choosesIncludedSet = (combo) => PRICING.chooseIncluded.includes(combo)
 export const allowsUploads = (combo) => PRICING.uploads.includes(combo)
+export const choicesOf = (combo) => PRICING.choices[combo] ?? []
 
 // Bảng tính giá: cùng công thức với frontend/src/data/pricing.js.
 // sheets: { a5: số tấm, a4: số tấm }; province: tỉnh nhận hàng (giao tận nơi)

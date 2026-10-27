@@ -40,9 +40,11 @@ Theo bảng giá của studio (`docs/screenshots/trang-chu-bang-gia.png`):
 | 1. Cơ bản – in chuyển nhiệt | Túi tote | như áo                                                                                       | 219.000 | `/basic/tui`                   |
 
 Áo và túi đều màu trắng. Bộ kit cao cấp in lụa đã ngừng bán: `/premium` chuyển về trang chủ, API không trả về và từ chối
-đơn mới (đơn cũ giữ nguyên). Mỗi áo / túi đã gồm 1 bộ sticker in chuyển nhiệt: Combo 1 khách tự chọn bộ đi kèm (bắt buộc,
-tối đa 1 bộ cho mỗi áo / túi), Combo 2 có sẵn bộ. **Sticker không tính tiền riêng** (bộ đi kèm, hình tự tải lên, hình vẽ
-tay đã gồm trong giá combo). Mua thêm **tấm sticker A5 20.000₫ / A4 30.000₫** ở mọi combo. **Phí giao** theo tỉnh
+đơn mới (đơn cũ giữ nguyên). **Combo 1: khách chọn đúng 1 trong 3 cách làm sticker**: tự vẽ, tải hình của mình (ký cam kết bản quyền) hoặc 1 bộ
+sticker có sẵn của shop (`PRICING.choices`); trình phối chỉ hiện công cụ của cách đã chọn, server kiểm tra đúng 1 cách.
+Combo 2 có sẵn bộ sticker đi kèm. **Sticker không tính tiền riêng** (bộ đi kèm, hình tự tải lên, hình vẽ
+tay đã gồm trong giá combo). Mua thêm **tấm sticker A5 20.000₫ / A4 30.000₫** ở mọi combo: Combo 1 in lại đúng nội dung đã chọn theo khổ;
+Combo 2 mặc định in bộ đi kèm, đổi sang bộ khác của shop cho từng khổ được (đơn lưu `choice`, `sheets`, `sheetSets`). **Phí giao** theo tỉnh
 (34 tỉnh, thành sau sắp xếp 2025, bảng `PROVINCES`): Đà Nẵng 15.000₫, miền Trung 20.000₫, tỉnh khác 25.000₫, miễn phí
 cho đơn từ 500.000₫; nhận tại studio không tính phí. Sticker thư viện có **cỡ in cố định** (chỉ đổi vị trí, góc xoay);
 hình tự tải lên / hình vẽ đổi cỡ được, tối đa **khổ A4** (theo cỡ thật: ngang ngực áo size M 54 cm, mặt túi 35 cm).

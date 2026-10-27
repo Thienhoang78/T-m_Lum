@@ -8,7 +8,7 @@ import {
   PRODUCT_RULES,
   STICKER_SETS,
   allowsUploads,
-  choosesIncludedSet,
+  choicesOf,
   findVoucher,
   priceOf,
   provinceOf,
@@ -87,7 +87,14 @@ export async function POST(req) {
     : b.stickerSet
       ? [{ key: b.stickerSet, qty: b.stickerQty }]
       : []
-  if (wanted.length && !choosesIncludedSet(combo.slug)) return bad(`${combo.name} đã kèm sẵn bộ sticker.`)
+  // Combo 1: khách chọn đúng 1 trong 3 cách làm sticker; Combo 2: bộ sticker có sẵn, không chọn
+  const choices = choicesOf(combo.slug)
+  const choice = choices.length ? b.choice : null
+  if (choices.length && !choices.includes(choice))
+    return bad(`${combo.name}: chọn 1 trong 3 cách làm sticker (tự vẽ, tải hình hoặc bộ sticker có sẵn).`)
+  if (!choices.length && b.choice) return bad(`${combo.name} đã kèm sẵn bộ sticker.`)
+  if (wanted.length && choice !== 'bo-sticker')
+    return bad(`${combo.name} không chọn bộ sticker theo cách này.`)
   if (wanted.length > Object.keys(STICKER_SETS).length) return bad('Bộ sticker không hợp lệ.')
   const stickerSets = []
   for (const w of wanted) {
@@ -97,17 +104,35 @@ export async function POST(req) {
     if (!(sq >= 1 && sq <= 999)) return bad('Số bộ sticker từ 1 đến 999.')
     stickerSets.push({ key: w.key, name: STICKER_SETS[w.key], qty: sq })
   }
-  // Combo 1 kèm 1 bộ sticker khách tự chọn cho mỗi áo / túi: chọn ít nhất 1 bộ, không quá số áo / túi
-  const setQty = stickerSets.reduce((n, x) => n + x.qty, 0)
-  if (choosesIncludedSet(combo.slug) && !setQty)
-    return bad(`${combo.name} kèm 1 bộ sticker tự chọn, vui lòng chọn bộ sticker.`)
-  if (setQty > qty) return bad(`Mỗi ${rules.name.toLowerCase()} kèm 1 bộ sticker: chọn tối đa ${qty} bộ.`)
+  // Cách "bộ sticker có sẵn": đúng 1 bộ, mỗi áo / túi 1 bộ
+  if (choice === 'bo-sticker') {
+    if (stickerSets.length !== 1) return bad('Chọn 1 bộ sticker có sẵn của shop.')
+    if (stickerSets[0].qty > qty)
+      return bad(`Mỗi ${rules.name.toLowerCase()} kèm 1 bộ sticker: tối đa ${qty} bộ.`)
+  }
 
-  // Sticker khách tự tải lên: chỉ Combo 1 (áo, túi trơn), tối đa 5 hình, bắt buộc ký cam kết bản quyền
-  // mỗi hình: id upload, hoặc { id, cut } với cut = khách chọn bản đã tách nền
+  // Combo 2: nội dung từng khổ tấm sticker mua thêm ('combo' = bộ đi kèm, hoặc một bộ của shop)
+  const sheetSets = {}
+  if (!choices.length)
+    for (const k of Object.keys(sheets)) {
+      const v = b.sheetSets?.[k] ?? 'combo'
+      if (v !== 'combo' && !(v in STICKER_SETS)) return bad('Bộ sticker cho tấm mua thêm không hợp lệ.')
+      sheetSets[k] = v
+    }
+
+  // Hình tự tạo (Combo 1): cách "tự vẽ" chỉ nhận hình vẽ, cách "tải hình" chỉ nhận hình tải lên; tối đa 5 hình,
+  // bắt buộc ký cam kết bản quyền. Mỗi hình: { id, cut (bản đã tách nền), drawn (hình vẽ trong trình phối) }
   const picked = (Array.isArray(b.customStickers) ? b.customStickers : []).map((c) =>
-    typeof c === 'string' ? { id: c, cut: false } : { id: c?.id, cut: c?.cut === true }
+    typeof c === 'string'
+      ? { id: c, cut: false, drawn: false }
+      : { id: c?.id, cut: c?.cut === true, drawn: c?.drawn === true }
   )
+  if ((choice === 've' || choice === 'tai-len') && !picked.length)
+    return bad(choice === 've' ? 'Hãy vẽ ít nhất 1 hình.' : 'Hãy tải lên ít nhất 1 hình của bạn.')
+  if (picked.length && choice !== 've' && choice !== 'tai-len')
+    return bad(`${combo.name} không nhận hình tự tạo theo cách này.`)
+  if (picked.some((c) => c.drawn !== (choice === 've')))
+    return bad(choice === 've' ? 'Cách tự vẽ chỉ nhận hình vẽ.' : 'Cách tải hình chỉ nhận hình tải lên.')
   const ids = picked.map((c) => c.id)
   let customStickers = []
   let waiver
@@ -123,11 +148,12 @@ export async function POST(req) {
       return bad('Cần đồng ý và ký tên vào cam kết bản quyền trước khi dùng sticker tự tải lên.')
     if (b.waiver?.version !== WAIVER_VERSION) return bad('Cam kết đã được cập nhật, vui lòng tải lại trang.')
     const byId = new Map(files.map((f) => [String(f._id), f]))
-    customStickers = picked.map(({ id, cut }) => ({
+    customStickers = picked.map(({ id, cut, drawn }) => ({
       upload: id,
       name: byId.get(id).name,
       size: byId.get(id).size,
       cut,
+      drawn,
     }))
     waiver = {
       accepted: true,
@@ -195,7 +221,9 @@ export async function POST(req) {
     stickerSets,
     customStickers,
     waiver,
+    choice: choice ?? undefined,
     sheets,
+    sheetSets: Object.keys(sheetSets).length ? sheetSets : undefined,
     design,
     ...previews,
     customer: {

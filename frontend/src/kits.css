@@ -802,3 +802,89 @@
   font-weight: 600;
   font-size: 0.92rem;
 }
+
+/* ---------- Combo 1: chọn 1 trong 3 cách làm sticker ---------- */
+.choice-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  width: 100%;
+}
+.choice-card {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 4px;
+  padding: 14px 10px 12px;
+  border: 1.5px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  text-align: center;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease;
+}
+.choice-card input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.choice-card strong {
+  font-family: var(--font-kit);
+  font-size: 1.05rem;
+  color: var(--kit-ink);
+}
+.choice-card small {
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+.choice-card:hover {
+  border-color: var(--brand);
+}
+.choice-card:has(input:checked) {
+  border-color: var(--brand-strong);
+  background: var(--brand-soft);
+  box-shadow: inset 0 0 0 1px var(--brand-strong);
+}
+.choice-card:has(input:focus-visible) {
+  outline: 3px solid var(--brand-strong);
+  outline-offset: 2px;
+}
+.upl-draw {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+.sheet-note {
+  margin: 0 0 4px;
+}
+.sheet-row {
+  flex-wrap: wrap;
+}
+.sheet-set {
+  flex-basis: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font: inherit;
+  font-size: 0.86rem;
+  background: var(--surface);
+  color: var(--navy);
+}
+@media (max-width: 560px) {
+  .choice-cards {
+    grid-template-columns: 1fr;
+  }
+  .choice-card {
+    grid-template-columns: auto 1fr;
+    justify-items: start;
+    text-align: left;
+    column-gap: 10px;
+  }
+  .choice-card .sticker {
+    grid-row: span 2;
+  }
+}

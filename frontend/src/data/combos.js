@@ -18,10 +18,16 @@ export const tierOf = (combo) => TIERS[combo.tier] ?? TIERS.basic
 // Nội dung từng combo đúng theo bảng giá (ưu tiên hơn dữ liệu combo trong cơ sở dữ liệu)
 export const COMBO_COPY = {
   'combo-1': {
-    tagline: 'Trơn + 1 bộ sticker tự chọn',
+    tagline: 'Trơn + chọn 1 trong 3: tự vẽ, hình của bạn hoặc bộ sticker có sẵn',
     items: {
-      ao: ['1 áo thun trơn', '1 bộ sticker in chuyển nhiệt (tự chọn)'],
-      tui: ['1 túi tote trơn', '1 bộ sticker in chuyển nhiệt (tự chọn)'],
+      ao: [
+        '1 áo thun trơn',
+        'Sticker in chuyển nhiệt, chọn 1 trong 3: tự vẽ, tải hình của bạn hoặc 1 bộ sticker có sẵn của shop',
+      ],
+      tui: [
+        '1 túi tote trơn',
+        'Sticker in chuyển nhiệt, chọn 1 trong 3: tự vẽ, tải hình của bạn hoặc 1 bộ sticker có sẵn của shop',
+      ],
     },
   },
   'combo-2': {
@@ -32,6 +38,28 @@ export const COMBO_COPY = {
     },
   },
 }
+// Combo 1: 3 cách làm sticker, khách chọn đúng 1 (xem PRICING.choices)
+export const CHOICES = {
+  ve: {
+    name: 'Tự vẽ',
+    body: 'Vẽ thẳng lên áo / túi trong Phối thử bằng bút mực, bút dạ, bút chì…, khổ tối đa A4.',
+    shape: 'bolt',
+    color: 'var(--brand-strong)',
+  },
+  'tai-len': {
+    name: 'Tải hình của bạn',
+    body: 'Tải ảnh của bạn lên, hình được tách nền rồi in thành sticker. Cần ký cam kết bản quyền.',
+    shape: 'star',
+    color: 'var(--sun)',
+  },
+  'bo-sticker': {
+    name: 'Bộ sticker có sẵn',
+    body: 'Chọn 1 trong các bộ sticker của shop, xếp thử vị trí trong Phối thử.',
+    shape: 'heart',
+    color: 'var(--pink)',
+  },
+}
+
 export const withCopy = (combo) => ({ ...combo, ...COMBO_COPY[combo.slug] })
 // Combo còn bán (bỏ bộ kit cao cấp in lụa)
 export const onSale = (list) => list.filter((c) => c.tier !== 'premium' && c.slug !== 'premium')

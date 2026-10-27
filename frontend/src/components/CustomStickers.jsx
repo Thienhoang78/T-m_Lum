@@ -16,56 +16,83 @@ function statusText(it) {
   return it.cutReason ? `Dùng ảnh gốc: ${it.cutReason.toLowerCase()}` : 'Dùng ảnh gốc'
 }
 
-// Khối "Sticker của riêng bạn": chọn / kéo thả hình, xem trước, bỏ hình.
+// Khối hình tự tạo của Combo 1, theo cách khách đã chọn:
+//   kind 'upload': chọn / kéo thả hình, xem trước, bỏ hình (chỉ hiện hình tải lên)
+//   kind 'draw': nút mở Phối thử để vẽ, danh sách hình đã vẽ (chỉ hiện hình vẽ)
 // Có ít nhất 1 hình thì phải đồng ý và ký tên vào cam kết miễn trừ trách nhiệm bản quyền.
-export default function CustomStickers({ uid, custom, waiver, onWaiver, waiverError }) {
+export default function CustomStickers({
+  uid,
+  custom,
+  kind = 'upload',
+  onDraw,
+  waiver,
+  onWaiver,
+  waiverError,
+}) {
   const [over, setOver] = useState(false)
+  const draw = kind === 'draw'
+  const items = custom.items.filter((it) => !!it.drawn === draw)
+  const active = custom.active.filter((it) => !!it.drawn === draw)
   const full = custom.active.length >= MAX_CUSTOM_STICKERS
 
   return (
-    <OptionGroup label="Sticker của riêng bạn" note="tuỳ chọn">
+    <OptionGroup
+      label={draw ? 'Hình bạn tự vẽ' : 'Hình của bạn'}
+      note={draw ? 'vẽ trong Phối thử' : 'tải lên'}
+    >
       <div className="upl">
-        <label
-          className={`upl-drop${over ? ' is-over' : ''}${full ? ' is-full' : ''}`}
-          onDragOver={(e) => {
-            e.preventDefault()
-            setOver(true)
-          }}
-          onDragLeave={() => setOver(false)}
-          onDrop={(e) => {
-            e.preventDefault()
-            setOver(false)
-            if (!full) custom.add(e.dataTransfer.files)
-          }}
-        >
-          <input
-            type="file"
-            accept="image/png,image/jpeg,image/webp"
-            multiple
-            disabled={full}
-            onChange={(e) => {
-              custom.add(e.target.files)
-              e.target.value = ''
+        {draw ? (
+          <div className="upl-draw">
+            <button type="button" className="btn btn-dark btn-sm" onClick={onDraw}>
+              {items.length ? 'Mở Phối thử để vẽ tiếp' : 'Mở Phối thử để vẽ'}
+            </button>
+            <span className="upl-hint">
+              Vẽ thẳng lên áo / túi trong tab Vẽ, khổ tối đa A4; bấm Xong để lưu hình vẽ.
+            </span>
+          </div>
+        ) : (
+          <label
+            className={`upl-drop${over ? ' is-over' : ''}${full ? ' is-full' : ''}`}
+            onDragOver={(e) => {
+              e.preventDefault()
+              setOver(true)
             }}
-          />
-          <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true">
-            <path
-              d="M12 16V4m0 0l-4.5 4.5M12 4l4.5 4.5M4 15v3a2 2 0 002 2h12a2 2 0 002-2v-3"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+            onDragLeave={() => setOver(false)}
+            onDrop={(e) => {
+              e.preventDefault()
+              setOver(false)
+              if (!full) custom.add(e.dataTransfer.files)
+            }}
+          >
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              multiple
+              disabled={full}
+              onChange={(e) => {
+                custom.add(e.target.files)
+                e.target.value = ''
+              }}
             />
-          </svg>
-          <span className="upl-title">
-            {full ? `Đã đủ ${MAX_CUSTOM_STICKERS} hình` : 'Kéo thả hoặc bấm để chọn hình sticker của bạn'}
-          </span>
-          <span className="upl-hint">
-            PNG, JPG, WebP · tối đa {MAX_CUSTOM_STICKERS} hình, mỗi hình 4 MB · đã gồm trong giá combo. Nên
-            dùng PNG nền trong suốt, độ phân giải cao để in đẹp.
-          </span>
-        </label>
+            <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true">
+              <path
+                d="M12 16V4m0 0l-4.5 4.5M12 4l4.5 4.5M4 15v3a2 2 0 002 2h12a2 2 0 002-2v-3"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            <span className="upl-title">
+              {full ? `Đã đủ ${MAX_CUSTOM_STICKERS} hình` : 'Kéo thả hoặc bấm để chọn hình sticker của bạn'}
+            </span>
+            <span className="upl-hint">
+              PNG, JPG, WebP · tối đa {MAX_CUSTOM_STICKERS} hình, mỗi hình 4 MB · đã gồm trong giá combo. Nên
+              dùng PNG nền trong suốt, độ phân giải cao để in đẹp.
+            </span>
+          </label>
+        )}
 
         {custom.notice && (
           <p className="field-err" role="alert">
@@ -73,9 +100,9 @@ export default function CustomStickers({ uid, custom, waiver, onWaiver, waiverEr
           </p>
         )}
 
-        {custom.items.length > 0 && (
+        {items.length > 0 && (
           <ul className="upl-list">
-            {custom.items.map((it) => (
+            {items.map((it) => (
               <li key={it.key} className={`upl-item is-${it.status}`}>
                 <img src={it.url} alt="" />
                 <span className="upl-name">
@@ -131,14 +158,14 @@ export default function CustomStickers({ uid, custom, waiver, onWaiver, waiverEr
             ))}
           </ul>
         )}
-        {custom.items.length > 0 && (
+        {!draw && items.length > 0 && (
           <p className="upl-hint upl-note">
             Ảnh được tự tách nền để chỉ giữ lại sticker. Tách nền tự động có thể chưa hoàn hảo với ảnh chụp
             phức tạp, chưa ưng thì chọn “Ảnh gốc”.
           </p>
         )}
 
-        {custom.active.length > 0 && (
+        {active.length > 0 && (
           <div className="waiver" id={`${uid}-waiver`}>
             <p className="waiver-title">{WAIVER_TITLE}</p>
             <ol className="waiver-text" tabIndex={0} aria-label="Nội dung cam kết">

@@ -1,15 +1,14 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { createOrder, uploadSticker } from '../api.js'
-import { tierOf } from '../data/combos.js'
+import { CHOICES, tierOf } from '../data/combos.js'
 import { PRODUCTS, contentsOf, productFor } from '../data/products.js'
 import {
   DELIVERY,
   PAYMENTS,
   PRICING,
   PROVINCES,
-  allowsUploads,
-  choosesIncludedSet,
+  choicesOf,
   findVoucher,
   priceOf,
   quote,
@@ -29,7 +28,8 @@ import CustomStickers from '../components/CustomStickers.jsx'
 
 // Trang đặt hàng áo hoặc túi (trắng) trong bộ kit cơ bản – in chuyển nhiệt (Combo 1 / Combo 2).
 // Ảnh món (xem mặt trước / mặt sau) + "Bộ kit gồm" bên trái; bên phải: hướng dẫn size → chọn combo → size
-// → số lượng → bộ sticker đi kèm (Combo 1 tự chọn) → hình tự tải lên / vẽ tay (chỉ Combo 1) → tấm sticker mua thêm
+// → số lượng → Combo 1: chọn 1 trong 3 cách làm sticker (tự vẽ / tải hình / bộ sticker có sẵn); Combo 2: bộ có sẵn
+// → tấm sticker mua thêm (in lại đúng nội dung đã chọn theo khổ A5 / A4)
 // → thanh toán (nhận hàng, tỉnh / thành, thanh toán, mã giảm giá, bảng tính giá) → Phối thử / Đặt hàng.
 // Sticker không tính tiền riêng; phí giao theo tỉnh (xem data/pricing.js).
 const PHONE_RE = /^0\d{9}$/
@@ -83,8 +83,7 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
   const unit = product.unit
   const tabs = ['Mô tả', hasSizes ? 'Bảng size' : 'Kích thước', 'Bảo quản']
   const uid = useId()
-  const chooseSet = choosesIncludedSet(combo.slug) // Combo 1: khách tự chọn bộ sticker đi kèm
-  const allowUpload = allowsUploads(combo.slug) // chỉ Combo 1 cho tải hình / vẽ tay
+  const choices = choicesOf(combo.slug) // Combo 1: 3 cách làm sticker, chọn đúng 1
 
   const [sizeOpen, setSizeOpen] = useState(false)
   const [sizeChoice, setSize] = useState(null)
@@ -94,6 +93,9 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
   const [qty, setQty] = useState(1)
   const [sets, setSets] = useState({}) // bộ sticker đi kèm đã chọn (Combo 1): { [key]: số bộ }
   const [sheets, setSheets] = useState({}) // tấm sticker mua thêm: { a5, a4 }
+  // Combo 2: nội dung tấm mua thêm theo khổ: 'combo' (bộ đi kèm) hoặc khoá một bộ sticker của shop
+  const [sheetSets, setSheetSets] = useState({})
+  const [choiceKey, setChoice] = useState(null) // cách làm sticker của Combo 1
   const [side, setSide] = useState('front') // mặt đang xem
   const [customer, setCustomer] = useState(() => ({
     ...EMPTY_CUSTOMER,
@@ -147,45 +149,28 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
     }
   }, [designs, tier.key])
 
-  // Bộ sticker đi kèm (Combo 1): mỗi áo / túi 1 bộ, tổng số bộ không quá số áo / túi
-  const chosenSets = chooseSet ? STICKER_SETS.filter((s) => sets[s.key]) : []
-  const setsQty = chosenSets.reduce((n, s) => n + sets[s.key], 0)
-  const toggleSet = (key) =>
-    setSets((m) => {
-      const next = { ...m }
-      if (next[key]) delete next[key]
-      else if (Object.values(next).reduce((n, x) => n + x, 0) < qty) next[key] = 1
-      // đã đủ số bộ: đổi bộ được chọn duy nhất (1 áo) sang bộ mới
-      else if (qty === 1) return { [key]: 1 }
-      return next
-    })
-  // Số áo giảm thì bớt bộ đi kèm cho vừa
-  useEffect(() => {
-    setSets((m) => {
-      let left = qty
-      const next = {}
-      for (const [k, n] of Object.entries(m)) {
-        const take = Math.min(n, left)
-        if (take > 0) next[k] = take
-        left -= take
-      }
-      return next
-    })
-  }, [qty])
-  // Dùng sticker của một bộ trong trình phối: thêm bộ đó làm bộ đi kèm (Combo 1) nếu còn chỗ
-  const useSet = useCallback(
-    (key) =>
-      setSets((m) =>
-        m[key] || !chooseSet || Object.values(m).reduce((n, x) => n + x, 0) >= qty ? m : { ...m, [key]: 1 }
-      ),
-    [chooseSet, qty]
-  )
+  // Combo 1: chọn 1 trong 3 (đổi cách thì các lớp của cách khác bị ẩn, không mất; đổi lại thì hiện lại)
+  const choice = choices.includes(choiceKey) ? choiceKey : null
+  const pickSet = choice === 'bo-sticker'
+  const allowDraw = choice === 've'
+  const allowUpload = choice === 'tai-len'
+  // Bộ sticker có sẵn: chọn đúng 1 bộ, mỗi áo / túi 1 bộ
+  const setKey = Object.keys(sets)[0] ?? null
+  const chosenSets = pickSet && setKey ? STICKER_SETS.filter((st) => st.key === setKey) : []
+  const setsQty = chosenSets.length ? qty : 0
+  const chooseOneSet = (key) => setSets({ [key]: 1 })
+  // Dùng sticker của một bộ trong trình phối: bộ đó thành bộ được chọn (Combo 1, cách bộ sticker có sẵn)
+  const useSet = useCallback((key) => setSets((m) => (m[key] ? m : { [key]: 1 })), [])
+  // Hình tự tạo đúng loại với cách đã chọn: tự vẽ → hình vẽ; tải hình → hình tải lên
+  const ofChoice = (c) => (allowDraw ? !!c.drawn : allowUpload ? !c.drawn : false)
+  const myActive = custom.active.filter(ofChoice)
+  const myDone = custom.done.filter(ofChoice)
   const sheetCount = Object.values(sheets).reduce((n, x) => n + (x || 0), 0)
   const q = quote({ product: productKey, combo: combo.slug, qty, sheets, delivery, province, voucher })
   // Có hình tự tải lên / tự vẽ thì phải ký cam kết bản quyền; đang tải hình thì chưa cho đặt
-  const needsWaiver = allowUpload && custom.active.length > 0
+  const needsWaiver = (allowDraw || allowUpload) && myActive.length > 0
   const waiverOk = waiver.accepted && waiver.signedName.trim() !== ''
-  const blockReason = !allowUpload
+  const blockReason = !(allowDraw || allowUpload)
     ? null
     : custom.uploading
       ? 'Đang tải hình của bạn lên, chờ một chút…'
@@ -193,10 +178,11 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
         ? 'Cần tick đồng ý và ký tên vào cam kết bản quyền ở phần “Sticker của riêng bạn” để đặt hàng.'
         : null
   // Hình tự tải lên đã bị bỏ thì không hiện trên bản phối nữa; ảnh lấy theo bản đang chọn (gốc / tách nền)
-  const customOf = (key) => custom.items.find((c) => c.key === key && c.status !== 'error')
-  // Combo không nhận hình tự tải lên thì ẩn các hình đó khỏi bản phối (đổi lại Combo 1 thì hiện lại)
+  const customOf = (key) => custom.items.find((c) => c.key === key && c.status !== 'error' && ofChoice(c))
+  // Chỉ hiện các lớp của cách làm sticker đang chọn: Combo 1 theo 1 trong 3; Combo 2 chỉ sticker có sẵn
+  const libraryOk = (it) => (choices.length ? pickSet && (!setKey || it.set === setKey) : true)
   const shownDesign = design
-    .filter((it) => !it.custom || (allowUpload && customOf(it.custom)))
+    .filter((it) => (it.custom ? !!customOf(it.custom) : libraryOk(it)))
     .map((it) => (it.custom ? { ...it, src: customOf(it.custom).url } : it))
   const visibleDesign = shownDesign.filter((it) => !it.hidden)
   const sideItems = (s) => onSide(visibleDesign, s)
@@ -233,15 +219,18 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
 
   async function placeOrder() {
     const e = validate({ size, customer, delivery, province })
-    if (chooseSet && !setsQty) e.sets = `${combo.name} kèm 1 bộ sticker tự chọn: hãy chọn bộ bạn thích.`
+    if (choices.length && !choice) e.choice = `${combo.name}: chọn 1 trong 3 cách làm sticker.`
+    else if (pickSet && !setsQty) e.choice = 'Chọn 1 bộ sticker có sẵn của shop.'
+    else if (allowDraw && !myDone.length) e.choice = 'Vẽ ít nhất 1 hình trong Phối thử → Vẽ.'
+    else if (allowUpload && !myDone.length) e.choice = 'Tải lên ít nhất 1 hình của bạn.'
     if (needsWaiver && !waiverOk) e.waiver = 'Hãy tick đồng ý và ghi họ tên để ký cam kết.'
     setErrors(e)
     setSubmitError(null)
-    const first = ['size', 'sets', 'waiver', 'name', 'phone', 'province', 'address'].find((k) => e[k])
+    const first = ['size', 'choice', 'waiver', 'name', 'phone', 'province', 'address'].find((k) => e[k])
     if (first) {
       const el = document.getElementById(`${uid}-${first}`)
       el?.scrollIntoView({ block: 'center', behavior: 'smooth' })
-      if (!['size', 'sets', 'waiver'].includes(first)) el?.focus({ preventScroll: true })
+      if (!['size', 'choice', 'waiver'].includes(first)) el?.focus({ preventScroll: true })
       return
     }
     setBusy(true)
@@ -259,7 +248,7 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
       )
       // Bản phối gửi lên: sticker thư viện theo hình + bộ, hình tự tải lên theo vị trí trong customStickers
       const sent = visibleDesign
-        .filter((it) => !it.custom || custom.done.some((c) => c.key === it.custom))
+        .filter((it) => !it.custom || myDone.some((c) => c.key === it.custom))
         .map(({ id: _id, custom: key, src: _src, hidden: _h, locked: _l, drawing: _d, ar: _ar, ...it }) =>
           key
             ? {
@@ -268,7 +257,7 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
                 y: it.y,
                 r: it.r,
                 s: it.s,
-                upload: custom.done.findIndex((c) => c.key === key),
+                upload: myDone.findIndex((c) => c.key === key),
               }
             : it
         )
@@ -278,14 +267,18 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
         color: color.key,
         size,
         qty,
-        stickerSets: chosenSets.map((s) => ({ key: s.key, qty: sets[s.key] })),
+        choice: choice ?? undefined,
+        stickerSets: chosenSets.map((st) => ({ key: st.key, qty })),
         sheets,
+        sheetSets: choices.length ? undefined : sheetSets,
         delivery,
         province: delivery === 'giao-hang' ? province : undefined,
         payment,
         voucher,
         customer: { ...customer, phone: customer.phone.replace(/\s/g, '') },
-        customStickers: needsWaiver ? custom.done.map((c) => ({ id: c.id, cut: !!(c.useCut && c.cut) })) : [],
+        customStickers: needsWaiver
+          ? myDone.map((c) => ({ id: c.id, cut: !!(c.useCut && c.cut), drawn: !!c.drawn }))
+          : [],
         waiver: needsWaiver
           ? { accepted: true, signedName: waiver.signedName.trim(), version: WAIVER_VERSION }
           : undefined,
@@ -301,11 +294,12 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
         hasSizes,
         size,
         qty,
-        stickerSets: chosenSets.map((s) => ({ name: s.name, qty: sets[s.key] })),
+        choiceName: choice ? CHOICES[choice].name : null,
+        stickerSets: chosenSets.map((st) => ({ name: st.name, qty })),
         sheets: Object.entries(PRICING.sheets)
           .filter(([k]) => sheets[k])
           .map(([k, s]) => ({ name: s.name, qty: sheets[k] })),
-        customCount: needsWaiver ? custom.done.length : 0,
+        customCount: needsWaiver ? myDone.length : 0,
         delivery:
           DELIVERY.find((d) => d.key === delivery).label +
           (delivery === 'giao-hang' ? ` · ${PROVINCES.find((p) => p.key === province)?.name}` : ''),
@@ -500,53 +494,58 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
                 </div>
               </OptionGroup>
 
-              {/* 5. Bộ sticker đi kèm: Combo 1 tự chọn (1 bộ cho mỗi áo / túi); Combo 2 có sẵn trong kit */}
-              {chooseSet ? (
-                <OptionGroup label="Bộ sticker đi kèm" note={`tự chọn, 1 bộ cho mỗi ${unit}`}>
-                  <div className="tee-sets" id={`${uid}-sets`}>
-                    {STICKER_SETS.map((st) => (
-                      <button
-                        key={st.key}
-                        type="button"
-                        className="tee-set"
-                        aria-pressed={!!sets[st.key]}
-                        onClick={() => toggleSet(st.key)}
-                      >
-                        <span className="tee-set-art" aria-hidden="true">
-                          {st.stickers.map(([shape, c], i) => (
-                            <Sticker key={i} shape={shape} color={c} style={{ width: 26 }} />
-                          ))}
-                        </span>
-                        <span className="tee-set-name">
-                          {st.name} <small>(mẫu)</small>
-                        </span>
-                        <span className="tee-set-price">{sets[st.key] ? '✓ Đã chọn' : 'Kèm combo'}</span>
-                      </button>
+              {/* 5. Combo 1: chọn 1 trong 3 cách làm sticker; Combo 2: bộ sticker có sẵn trong kit */}
+              {choices.length ? (
+                <OptionGroup label="Sticker của bạn" note="chọn 1 trong 3">
+                  <div className="choice-cards" id={`${uid}-choice`} role="radiogroup">
+                    {choices.map((k) => (
+                      <label key={k} className="choice-card">
+                        <input
+                          type="radio"
+                          name={`${uid}-choice-r`}
+                          checked={choice === k}
+                          onChange={() => {
+                            setChoice(k)
+                            if (errors.choice) setErrors((e) => ({ ...e, choice: undefined }))
+                          }}
+                        />
+                        <Sticker shape={CHOICES[k].shape} color={CHOICES[k].color} style={{ width: 34 }} />
+                        <strong>{CHOICES[k].name}</strong>
+                        <small>{CHOICES[k].body}</small>
+                      </label>
                     ))}
                   </div>
-                  {qty > 1 &&
-                    chosenSets.map((st) => (
-                      <div key={st.key} className="tee-qty">
-                        <Stepper
-                          value={sets[st.key]}
-                          min={1}
-                          label={`Số bộ ${st.name}`}
-                          onChange={(n) =>
-                            setSets((m) => ({
-                              ...m,
-                              [st.key]: clampInt(n, 1, qty - (setsQty - m[st.key])),
-                            }))
-                          }
-                        />
-                        <span>{st.name}</span>
-                      </div>
-                    ))}
-                  {errors.sets && !setsQty && <p className="field-err">{errors.sets}</p>}
-                  {setsQty > 0 && setsQty < qty && (
-                    <p className="upl-hint">
-                      Mỗi {unit} kèm 1 bộ: bạn còn chọn được {qty - setsQty} bộ nữa.
-                    </p>
+                  {errors.choice && <p className="field-err">{errors.choice}</p>}
+
+                  {pickSet && (
+                    <div className="tee-sets" role="radiogroup" aria-label="Bộ sticker">
+                      {STICKER_SETS.map((st) => (
+                        <button
+                          key={st.key}
+                          type="button"
+                          className="tee-set"
+                          aria-pressed={setKey === st.key}
+                          onClick={() => {
+                            chooseOneSet(st.key)
+                            if (errors.choice) setErrors((e) => ({ ...e, choice: undefined }))
+                          }}
+                        >
+                          <span className="tee-set-art" aria-hidden="true">
+                            {st.stickers.map(([shape, c], i) => (
+                              <Sticker key={i} shape={shape} color={c} style={{ width: 26 }} />
+                            ))}
+                          </span>
+                          <span className="tee-set-name">
+                            {st.name} <small>(mẫu)</small>
+                          </span>
+                          <span className="tee-set-price">
+                            {setKey === st.key ? '✓ Đã chọn' : 'Chọn bộ này'}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
                   )}
+                  {pickSet && qty > 1 && <p className="upl-hint">Mỗi {unit} kèm 1 bộ đã chọn.</p>}
                 </OptionGroup>
               ) : (
                 <p className="kit-included">
@@ -554,11 +553,13 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
                 </p>
               )}
 
-              {/* 5b. Hình khách tự tải lên / vẽ tay + cam kết bản quyền: chỉ Combo 1 */}
-              {allowUpload ? (
+              {/* 5b. Hình tự tải lên / tự vẽ + cam kết bản quyền (Combo 1, theo cách đã chọn) */}
+              {(allowUpload || allowDraw) && (
                 <CustomStickers
                   uid={uid}
                   custom={custom}
+                  kind={allowDraw ? 'draw' : 'upload'}
+                  onDraw={() => setStudio(true)}
                   waiver={waiver}
                   onWaiver={(w) => {
                     setWaiver(w)
@@ -566,23 +567,29 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
                   }}
                   waiverError={errors.waiver}
                 />
-              ) : (
-                combos.some((c) => allowsUploads(c.slug)) && (
-                  <p className="kit-upload-off">
-                    Muốn in hình của riêng bạn hay vẽ tay lên {unit}? Tính năng tự tạo hình chỉ có ở Combo 1.
-                    <button
-                      type="button"
-                      className="link"
-                      onClick={() => pickCombo(combos.find((c) => allowsUploads(c.slug)).slug)}
-                    >
-                      Chuyển sang Combo 1
-                    </button>
-                  </p>
-                )
+              )}
+              {!choices.length && combos.some((c) => choicesOf(c.slug).length) && (
+                <p className="kit-upload-off">
+                  Muốn tự vẽ hay in hình của riêng bạn lên {unit}? Chọn Combo 1.
+                  <button
+                    type="button"
+                    className="link"
+                    onClick={() => pickCombo(combos.find((c) => choicesOf(c.slug).length).slug)}
+                  >
+                    Chuyển sang Combo 1
+                  </button>
+                </p>
               )}
 
               {/* 5c. Tấm sticker mua thêm (mọi combo) */}
               <OptionGroup label="Mua thêm tấm sticker" note="không bắt buộc">
+                <p className="upl-hint sheet-note">
+                  {choices.length
+                    ? choice
+                      ? `In lại nội dung bạn đã chọn (${CHOICES[choice].name.toLowerCase()}) trên khổ A5 / A4.`
+                      : 'In lại nội dung bạn chọn ở trên (tự vẽ, hình của bạn hoặc bộ sticker) trên khổ A5 / A4.'
+                    : 'Mặc định in bộ sticker đi kèm combo; đổi sang bộ khác của shop cho từng khổ nếu thích.'}
+                </p>
                 <div className="sheet-rows">
                   {Object.entries(PRICING.sheets).map(([k, sh]) => (
                     <div key={k} className="sheet-row">
@@ -596,6 +603,21 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
                         label={`Số ${sh.name.toLowerCase()}`}
                         onChange={(n) => setSheets((m) => ({ ...m, [k]: clampInt(n, 0, PRICING.maxSheets) }))}
                       />
+                      {!choices.length && sheets[k] > 0 && (
+                        <select
+                          className="sheet-set"
+                          aria-label={`Nội dung ${sh.name.toLowerCase()}`}
+                          value={sheetSets[k] ?? 'combo'}
+                          onChange={(ev) => setSheetSets((m) => ({ ...m, [k]: ev.target.value }))}
+                        >
+                          <option value="combo">Bộ đi kèm {combo.name}</option>
+                          {STICKER_SETS.map((st) => (
+                            <option key={st.key} value={st.key}>
+                              {st.name}
+                            </option>
+                          ))}
+                        </select>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -744,17 +766,17 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
                         <td>{qty}</td>
                         <td>{vnd(q.itemTotal)}</td>
                       </tr>
-                      {chooseSet ? (
-                        chosenSets.map((st) => (
-                          <tr key={st.key}>
+                      {choices.length ? (
+                        choice && (
+                          <tr>
                             <th scope="row">
-                              {st.name}
-                              <small>đi kèm combo (tự chọn)</small>
+                              {pickSet && chosenSets[0] ? chosenSets[0].name : CHOICES[choice].name}
+                              <small>sticker đã gồm trong combo</small>
                             </th>
-                            <td>{sets[st.key]}</td>
+                            <td>{pickSet ? qty : myActive.length}</td>
                             <td>0₫</td>
                           </tr>
-                        ))
+                        )
                       ) : (
                         <tr>
                           <th scope="row">
@@ -762,16 +784,6 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
                             <small>đã gồm trong combo</small>
                           </th>
                           <td>{qty}</td>
-                          <td>0₫</td>
-                        </tr>
-                      )}
-                      {needsWaiver && (
-                        <tr>
-                          <th scope="row">
-                            Hình bạn tự tạo
-                            <small>đã gồm trong combo</small>
-                          </th>
-                          <td>{custom.active.length}</td>
                           <td>0₫</td>
                         </tr>
                       )}
@@ -948,6 +960,9 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
           onUseSet={useSet}
           custom={custom}
           allowUpload={allowUpload}
+          allowDraw={allowDraw}
+          libraryOn={!choices.length || pickSet}
+          librarySets={pickSet && setKey ? [setKey] : null}
           initial={design}
           onChange={setDesign}
           total={q.total}
@@ -987,6 +1002,12 @@ function OrderPlaced({ placed, panelRef, onAgain }) {
             {placed.qty}
           </dd>
         </div>
+        {placed.choiceName && (
+          <div>
+            <dt>Sticker</dt>
+            <dd>{placed.choiceName}</dd>
+          </div>
+        )}
         {placed.customCount > 0 && (
           <div>
             <dt>Hình bạn tự tạo (đã ký cam kết)</dt>

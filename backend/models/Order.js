@@ -37,6 +37,7 @@ const OrderSchema = new mongoose.Schema(
         name: String,
         size: Number,
         cut: Boolean, // khách chọn bản đã tách nền
+        drawn: Boolean, // hình khách tự vẽ trong trình phối
       },
     ],
     // cam kết miễn trừ trách nhiệm bản quyền khách đã ký khi tải sticker lên
@@ -50,7 +51,12 @@ const OrderSchema = new mongoose.Schema(
       userAgent: String,
     },
     design: [DesignItemSchema], // bản phối: toạ độ % trên ảnh, thứ tự = thứ tự lớp (cuối cùng nằm trên)
-    sheets: { a5: Number, a4: Number }, // tấm sticker A5 / A4 mua thêm
+    // Combo 1: cách làm sticker khách chọn: 've' (tự vẽ), 'tai-len' (tải hình), 'bo-sticker' (bộ có sẵn)
+    choice: { type: String, enum: ['ve', 'tai-len', 'bo-sticker'] },
+    // tấm sticker A5 / A4 mua thêm: in lại đúng nội dung đã chọn (Combo 1) theo khổ
+    sheets: { a5: Number, a4: Number },
+    // Combo 2: nội dung từng khổ tấm mua thêm: 'combo' (bộ đi kèm) hoặc khoá bộ sticker của shop
+    sheetSets: { a5: String, a4: String },
     preview: { type: mongoose.Schema.Types.ObjectId, ref: 'Upload' }, // ảnh mockup PNG mặt trước
     previewBack: { type: mongoose.Schema.Types.ObjectId, ref: 'Upload' }, // ảnh mockup PNG mặt sau
     customer: { name: String, phone: String, province: String, address: String, note: String },

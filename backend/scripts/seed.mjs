@@ -5,19 +5,21 @@
 import mongoose from 'mongoose'
 
 const STICKER = '1 bộ sticker in chuyển nhiệt'
+const CHOICE =
+  'Sticker in chuyển nhiệt, chọn 1 trong 3: tự vẽ, tải hình của bạn hoặc 1 bộ sticker có sẵn của shop'
 
 const combos = [
   {
     slug: 'combo-1',
     tier: 'basic',
     name: 'Combo 1',
-    tagline: 'Trơn + 1 bộ sticker tự chọn',
+    tagline: 'Trơn + chọn 1 trong 3: tự vẽ, hình của bạn hoặc bộ sticker có sẵn',
     method: 'heat-transfer',
     patterned: false,
     products: ['ao', 'tui'],
     items: {
-      ao: ['1 áo thun trơn', `${STICKER} (tự chọn)`],
-      tui: ['1 túi tote trơn', `${STICKER} (tự chọn)`],
+      ao: ['1 áo thun trơn', CHOICE],
+      tui: ['1 túi tote trơn', CHOICE],
     },
     order: 1,
   },

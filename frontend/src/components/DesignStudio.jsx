@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { A4, PRODUCTS, cmToPct, maxWidthPctA4, productFor, stickerPct } from '../data/products.js'
 import { normalizeDesign, onSide, sideOf } from '../data/design.js'
-import { allowsUploads, priceOf, vnd } from '../data/pricing.js'
+import { priceOf, vnd } from '../data/pricing.js'
 import { MAX_CUSTOM_STICKERS } from '../data/consent.js'
 import { renderMockup } from '../data/mockup.js'
 import ProductVisual from './ProductVisual.jsx'
@@ -86,7 +86,11 @@ export default function DesignStudio({
   chosenSets, // { [key]: số bộ }
   onUseSet,
   custom, // useCustomStickers()
-  allowUpload = true, // combo có cho tải hình của bạn lên không (chỉ Combo 1)
+  // Công cụ theo cách làm sticker (Combo 1 chọn 1 trong 3: tự vẽ / tải hình / bộ sticker có sẵn; Combo 2: bộ có sẵn)
+  allowUpload = false, // tab Tải lên
+  allowDraw = false, // tab Vẽ
+  libraryOn = true, // tab Thư viện
+  librarySets = null, // chỉ hiện các bộ này trong Thư viện (null = mọi bộ)
   initial,
   onChange,
   total,
@@ -125,10 +129,12 @@ export default function DesignStudio({
   // Ảnh hiện tại của hình tự tải lên (bản gốc hoặc đã tách nền); hình đã bị bỏ thì không hiện
   // Combo không nhận hình tự tải lên thì các hình đó không hiện trên bản phối
   const customOf = (key) =>
-    allowUpload ? custom.items.find((c) => c.key === key && c.status !== 'error') : undefined
-  const tools = allowUpload ? TOOLS : TOOLS.filter(([key]) => key !== 'upload')
-  const uploadCombo = combos.find((c) => allowsUploads(c.slug))
-  const activeTool = tool === 'upload' && !allowUpload ? 'library' : tool
+    custom.items.find((c) => c.key === key && c.status !== 'error' && (c.drawn ? allowDraw : allowUpload))
+  const toolOn = { upload: allowUpload, draw: allowDraw, library: libraryOn }
+  const tools = TOOLS.filter(([key]) => toolOn[key] ?? true)
+  const fallbackTool = allowDraw ? 'draw' : allowUpload ? 'upload' : libraryOn ? 'library' : 'product'
+  const activeTool = tools.some(([key]) => key === tool) ? tool : fallbackTool
+  const shownSets = librarySets ? stickerSets.filter((st) => librarySets.includes(st.key)) : stickerSets
   const srcOf = (it) => (it.custom ? customOf(it.custom)?.url : null)
   const live = items.filter((it) => !it.custom || customOf(it.custom))
   const here = onSide(live, side) // các lớp của mặt đang phối
@@ -149,12 +155,21 @@ export default function DesignStudio({
 
   // Đổi sang combo không cho tự tạo hình thì thoát chế độ vẽ
   useEffect(() => {
-    if (!allowUpload) setDraw(null)
-  }, [allowUpload])
+    if (!allowDraw) setDraw(null)
+  }, [allowDraw])
 
   useEffect(() => {
     const d = dialogRef.current
     if (d && !d.open) d.showModal()
+  }, [])
+
+  // Combo 1 chọn "Tự vẽ": mở trình phối là vào luôn chế độ vẽ
+  const autoDraw = useRef(allowDraw)
+  useEffect(() => {
+    if (!autoDraw.current) return
+    autoDraw.current = false
+    setTool('draw')
+    setDraw({ editId: null, strokes: [], past: [], future: [], side: 'front' })
   }, [])
 
   // Mỗi thay đổi đều lưu ngay về trang đặt hàng (không cần bấm Lưu)
@@ -226,7 +241,7 @@ export default function DesignStudio({
 
   // ---------- Vẽ tay ----------
   function startDraw(target = sel) {
-    if (!allowUpload) return
+    if (!allowDraw) return
     const editing = target?.drawing && !target.locked ? target : null
     setDraw({
       editId: editing?.id ?? null,
@@ -659,7 +674,7 @@ export default function DesignStudio({
                   Bấm sticker để đặt lên {product.unit}, kéo để đổi vị trí, nắm chấm trên để xoay. Sticker có
                   cỡ in cố định nên không phóng to / thu nhỏ.
                 </p>
-                {stickerSets.map((set) => (
+                {shownSets.map((set) => (
                   <div key={set.key} className="studio-set">
                     <p className="studio-set-head">
                       <strong>
@@ -695,35 +710,20 @@ export default function DesignStudio({
             {activeTool === 'draw' && (
               <>
                 <h2 className="studio-h">Vẽ</h2>
-                {allowUpload ? (
-                  <>
-                    <p className="studio-note">
-                      Vẽ trực tiếp lên {product.unit} bằng chuột, ngón tay hoặc bút cảm ứng. Chọn bút, màu và
-                      cỡ ở khay bên dưới; bấm Xong để đặt hình vẽ thành một lớp, kéo / đổi cỡ / xoay như
-                      sticker.
-                    </p>
-                    {!draw && (
-                      <button type="button" className="btn btn-dark btn-sm" onClick={() => startDraw()}>
-                        {sel?.drawing ? 'Sửa hình vẽ đang chọn' : 'Vẽ hình mới'}
-                      </button>
-                    )}
-                    {custom.notice && <p className="field-err">{custom.notice}</p>}
-                    <p className="studio-note">
-                      Hình vẽ tối đa khổ A4 (khung nét đứt khi vẽ), in như một hình bạn tự tạo: đã gồm trong
-                      giá combo, tối đa {MAX_CUSTOM_STICKERS} hình mỗi đơn, cần ký cam kết bản quyền ở trang
-                      đặt hàng.
-                    </p>
-                  </>
-                ) : (
-                  <p className="kit-upload-off">
-                    Vẽ lên {product.unit} là tính năng tự tạo hình, chỉ có ở {uploadCombo?.name ?? 'Combo 1'}.
-                    {uploadCombo && (
-                      <button type="button" className="link" onClick={() => onCombo(uploadCombo.slug)}>
-                        Chuyển sang {uploadCombo.name}
-                      </button>
-                    )}
-                  </p>
+                <p className="studio-note">
+                  Vẽ trực tiếp lên {product.unit} bằng chuột, ngón tay hoặc bút cảm ứng. Chọn bút, màu và cỡ ở
+                  khay bên dưới; bấm Xong để đặt hình vẽ thành một lớp, kéo / đổi cỡ / xoay như sticker.
+                </p>
+                {!draw && (
+                  <button type="button" className="btn btn-dark btn-sm" onClick={() => startDraw()}>
+                    {sel?.drawing ? 'Sửa hình vẽ đang chọn' : 'Vẽ hình mới'}
+                  </button>
                 )}
+                {custom.notice && <p className="field-err">{custom.notice}</p>}
+                <p className="studio-note">
+                  Hình vẽ tối đa khổ A4 (khung nét đứt khi vẽ), in như một hình bạn tự tạo: đã gồm trong giá
+                  combo, tối đa {MAX_CUSTOM_STICKERS} hình mỗi đơn, cần ký cam kết bản quyền ở trang đặt hàng.
+                </p>
               </>
             )}
 
@@ -1042,7 +1042,7 @@ export default function DesignStudio({
               <button type="button" onClick={() => duplicate(sel.id)}>
                 Nhân bản
               </button>
-              {sel.drawing && allowUpload && !sel.locked && (
+              {sel.drawing && allowDraw && !sel.locked && (
                 <button
                   type="button"
                   onClick={() => {
