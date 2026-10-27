@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { PRODUCTS, productFor } from '../data/products.js'
-import { PRICING, allowsUploads, priceOf, vnd } from '../data/pricing.js'
+import { A4, PRODUCTS, cmToPct, maxWidthPctA4, productFor, stickerPct } from '../data/products.js'
+import { normalizeDesign, onSide, sideOf } from '../data/design.js'
+import { allowsUploads, priceOf, vnd } from '../data/pricing.js'
 import { MAX_CUSTOM_STICKERS } from '../data/consent.js'
 import { renderMockup } from '../data/mockup.js'
 import ProductVisual from './ProductVisual.jsx'
@@ -36,7 +37,11 @@ const TOOLS = [
   ['upload', 'Tải lên', 'M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M4 15v3a2 2 0 002 2h12a2 2 0 002-2v-3'],
   ['layers', 'Lớp', 'M12 3l9 5-9 5-9-5zM3 13l9 5 9-5M3 17l9 5 9-5'],
 ]
-const START_SIZE = 16
+const START_CM = 12 // hình tự tải lên mới đặt lên áo rộng 12 cm (đổi cỡ được, tối đa A4)
+const SIDES = [
+  ['front', 'Mặt trước'],
+  ['back', 'Mặt sau'],
+]
 const SNAP = 1.2 // % khoảng hút vào đường giữa
 const HISTORY = 60
 
@@ -45,10 +50,8 @@ const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v))
 const withIds = (list) => list.map((it) => ({ ...it, id: it.id ?? nextId++ }))
 const strip = (list) => list.map(({ id: _id, ...it }) => it)
 
-// Đặt sticker ở đâu trên áo / túi cũng được; chỉ giữ tâm trong khung ảnh để không kéo mất ra ngoài
-const MAX_SIZE = 60 // % bề ngang khung
-const MAX_DRAWING = 90 // hình vẽ có thể trải cả thân áo lẫn tay áo
-const fitIn = (s, it) => clamp(s, 4, it?.drawing ? MAX_DRAWING : MAX_SIZE)
+// Đặt sticker ở đâu trên áo / túi cũng được; chỉ giữ tâm trong khung ảnh để không kéo mất ra ngoài.
+// Sticker thư viện có cỡ in cố định (không đổi cỡ); hình tự tải lên / hình vẽ đổi cỡ được, tối đa khổ A4.
 const keepIn = (it) => ({ ...it, x: clamp(it.x, 2, 98), y: clamp(it.y, 2, 98) })
 // Tâm phần tử theo toạ độ màn hình
 function centerOf(stage, it) {
@@ -79,7 +82,6 @@ export default function DesignStudio({
   combo,
   onCombo,
   color,
-  onColor,
   stickerSets,
   chosenSets, // { [key]: số bộ }
   onUseSet,
@@ -100,7 +102,13 @@ export default function DesignStudio({
   const center = product.center
   const [tool, setTool] = useState('library')
   const [panelOpen, setPanelOpen] = useState(true)
-  const [hist, setHist] = useState(() => ({ past: [], present: withIds(initial), future: [] }))
+  const [hist, setHist] = useState(() => ({
+    past: [],
+    present: withIds(normalizeDesign(initial, productKey)),
+    future: [],
+  }))
+  const [side, setSide] = useState('front') // mặt đang phối
+  const [landscape, setLandscape] = useState(false) // khung A4 khi vẽ: dọc / ngang
   const [selected, setSelected] = useState(null)
   const [guides, setGuides] = useState({ v: false, h: false })
   const [zoom, setZoom] = useState(100)
@@ -123,6 +131,20 @@ export default function DesignStudio({
   const activeTool = tool === 'upload' && !allowUpload ? 'library' : tool
   const srcOf = (it) => (it.custom ? customOf(it.custom)?.url : null)
   const live = items.filter((it) => !it.custom || customOf(it.custom))
+  const here = onSide(live, side) // các lớp của mặt đang phối
+  // Cỡ hợp lệ: sticker thư viện giữ cỡ in thật; hình tự tải lên / vẽ không vượt khổ A4
+  const fitIn = useCallback(
+    (s, it) =>
+      it?.custom ? clamp(s, 3, maxWidthPctA4(productKey, it.ar ?? 1)) : stickerPct(productKey, it?.shape),
+    [productKey]
+  )
+  // Khung A4 khi vẽ (% khung ảnh), đặt giữa thân áo / túi
+  const a4 = (() => {
+    const w = cmToPct(productKey, landscape ? A4.h : A4.w)
+    const h = cmToPct(productKey, landscape ? A4.w : A4.h)
+    const c = product.drawCenter ?? center
+    return { x: c.x - w / 2, y: Math.max(1, c.y - h / 2), w, h }
+  })()
   const drawingCount = custom.items.filter((c) => c.drawn).length
 
   // Đổi sang combo không cho tự tạo hình thì thoát chế độ vẽ
@@ -165,17 +187,17 @@ export default function DesignStudio({
     )
   const update = (id, patch) => commit((list) => list.map((it) => (it.id === id ? { ...it, ...patch } : it)))
 
-  const fitSize = fitIn
   const keepInside = keepIn
 
   function add(base) {
     const it = keepInside({
       id: nextId++,
       ...base,
+      side,
       x: center.x,
       y: center.y,
       r: 0,
-      s: fitSize(START_SIZE),
+      s: base.custom ? fitIn(cmToPct(productKey, START_CM), base) : stickerPct(productKey, base.shape),
     })
     commit((list) => [...list, it])
     setSelected(it.id)
@@ -185,7 +207,13 @@ export default function DesignStudio({
     add({ shape, color: colorVar, label, set: set.key })
     onUseSet(set.key) // dùng sticker của bộ nào thì bộ đó được thêm vào đơn
   }
-  const addCustom = (c) => add({ custom: c.key })
+  // Hình tự tải lên: lấy tỉ lệ cao / ngang để giới hạn cỡ theo khổ A4
+  const addCustom = (c) => {
+    const im = new Image()
+    im.onload = () => add({ custom: c.key, ar: im.naturalHeight / Math.max(1, im.naturalWidth) })
+    im.onerror = () => add({ custom: c.key, ar: 1 })
+    im.src = c.url
+  }
 
   function remove(id) {
     const gone = items.find((it) => it.id === id)
@@ -203,9 +231,11 @@ export default function DesignStudio({
     setDraw({
       editId: editing?.id ?? null,
       strokes: editing ? placeStrokes(editing.drawing.strokes, editing.drawing.box, editing) : [],
+      side: editing ? sideOf(editing) : side,
       past: [],
       future: [],
     })
+    if (editing) setSide(sideOf(editing))
     setSelected(null)
   }
   const drawCommit = (strokes) =>
@@ -230,7 +260,7 @@ export default function DesignStudio({
     if (!d.strokes.length && !old) return setDraw(null)
     setSaving(true)
     try {
-      const out = await exportDrawing(d.strokes, await loadMask(productKey))
+      const out = await exportDrawing(d.strokes, await loadMask(productKey), a4)
       const shared = old && items.some((it) => it.id !== old.id && it.custom === old.custom)
       if (old && !shared) custom.remove(old.custom)
       if (!out) {
@@ -241,6 +271,8 @@ export default function DesignStudio({
       if (key == null) return // đã đủ số hình: giữ nguyên chế độ vẽ, thông báo hiện ở bảng Vẽ
       const placed = {
         custom: key,
+        side: d.side,
+        ar: out.ar,
         drawing: { strokes: d.strokes, box: { x: out.x, y: out.y, s: out.s, r: 0 } },
         x: out.x,
         y: out.y,
@@ -362,7 +394,7 @@ export default function DesignStudio({
             const [a, b] = pts
             const k = Math.hypot(a.x - b.x, a.y - b.y) / g.dist
             const ang = ((Math.atan2(b.y - a.y, b.x - a.x) - g.angle) * 180) / Math.PI
-            return keepIn({ ...it, s: fitIn(g.s * k, it), r: Math.round(g.r + ang) })
+            return keepIn({ ...it, s: it.custom ? fitIn(g.s * k, it) : it.s, r: Math.round(g.r + ang) })
           }
           const c = centerOf(stageRef.current, it)
           if (g.mode === 'resize') {
@@ -392,8 +424,8 @@ export default function DesignStudio({
       window.removeEventListener('pointerup', onUp)
       window.removeEventListener('pointercancel', onUp)
     }
-    // tâm áo / túi đổi khi đổi món
-  }, [center])
+    // tâm áo / túi và cỡ hợp lệ đổi khi đổi món
+  }, [center, fitIn])
 
   // ---------- Phím tắt ----------
   function onKeyDown(e) {
@@ -447,11 +479,15 @@ export default function DesignStudio({
   async function download() {
     setBusy(true)
     try {
-      const blob = await renderMockup(exportRef.current.querySelector('.tee-visual'), visibleForExport, 1200)
+      const blob = await renderMockup(
+        exportRef.current.querySelector(`.studio-export-${side} .tee-visual`),
+        exportSide(side),
+        1200
+      )
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `tum-lum-${productKey}-${combo.slug}.png`
+      a.download = `tum-lum-${productKey}-${combo.slug}${side === 'back' ? '-mat-sau' : ''}.png`
       a.click()
       setTimeout(() => URL.revokeObjectURL(url), 2000)
     } finally {
@@ -460,6 +496,7 @@ export default function DesignStudio({
   }
 
   const visibleForExport = live.filter((it) => !it.hidden).map((it) => ({ ...it, src: srcOf(it) }))
+  const exportSide = (s) => onSide(visibleForExport, s)
   const layerName = (it) =>
     it.drawing
       ? (customOf(it.custom)?.name.replace(/\.png$/, '') ?? 'Hình vẽ')
@@ -562,7 +599,7 @@ export default function DesignStudio({
             >
               <Icon d={d} />
               <span>{label}</span>
-              {key === 'layers' && live.length > 0 && <b className="studio-count">{live.length}</b>}
+              {key === 'layers' && here.length > 0 && <b className="studio-count">{here.length}</b>}
             </button>
           ))}
         </nav>
@@ -611,25 +648,6 @@ export default function DesignStudio({
                     </div>
                   </>
                 )}
-                {product.colors.length > 1 && (
-                  <>
-                    <p className="opt-label">Màu {product.unit}</p>
-                    <div className="pills">
-                      {product.colors.map((c) => (
-                        <button
-                          key={c.key}
-                          type="button"
-                          className="swatch"
-                          aria-pressed={color.key === c.key}
-                          onClick={() => onColor(c.key)}
-                        >
-                          <span className="swatch-dot" style={{ background: c.fill }} aria-hidden="true" />
-                          {c.name}
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                )}
                 <p className="studio-note">{product.blurb}</p>
               </>
             )}
@@ -638,9 +656,8 @@ export default function DesignStudio({
               <>
                 <h2 className="studio-h">Thư viện sticker</h2>
                 <p className="studio-note">
-                  Bấm hoặc kéo sticker lên {product.unit}. Dùng sticker của bộ nào thì bộ đó được thêm vào đơn
-                  ({vnd(PRICING.stickerSet)}
-                  /bộ, đổi số lượng ở trang đặt hàng).
+                  Bấm sticker để đặt lên {product.unit}, kéo để đổi vị trí, nắm chấm trên để xoay. Sticker có
+                  cỡ in cố định nên không phóng to / thu nhỏ.
                 </p>
                 {stickerSets.map((set) => (
                   <div key={set.key} className="studio-set">
@@ -648,10 +665,8 @@ export default function DesignStudio({
                       <strong>
                         {set.name} <small>(mẫu)</small>
                       </strong>
-                      {chosenSets[set.key] ? (
-                        <span className="studio-tag">Đã thêm vào đơn × {chosenSets[set.key]}</span>
-                      ) : (
-                        <span className="studio-set-price">+{vnd(PRICING.stickerSet)}</span>
+                      {chosenSets[set.key] > 0 && (
+                        <span className="studio-tag">Bộ đi kèm × {chosenSets[set.key]}</span>
                       )}
                     </p>
                     <div className="studio-grid">
@@ -694,8 +709,9 @@ export default function DesignStudio({
                     )}
                     {custom.notice && <p className="field-err">{custom.notice}</p>}
                     <p className="studio-note">
-                      Mỗi hình vẽ được in như một hình bạn tự tải lên ({vnd(PRICING.customSticker)} / hình,
-                      tối đa {MAX_CUSTOM_STICKERS} hình mỗi đơn) và cần ký cam kết bản quyền ở trang đặt hàng.
+                      Hình vẽ tối đa khổ A4 (khung nét đứt khi vẽ), in như một hình bạn tự tạo: đã gồm trong
+                      giá combo, tối đa {MAX_CUSTOM_STICKERS} hình mỗi đơn, cần ký cam kết bản quyền ở trang
+                      đặt hàng.
                     </p>
                   </>
                 ) : (
@@ -725,10 +741,10 @@ export default function DesignStudio({
                       e.target.value = ''
                     }}
                   />
-                  <Icon d={TOOLS[2][2]} size={26} />
+                  <Icon d={TOOLS.find(([k]) => k === 'upload')[2]} size={26} />
                   <span className="upl-title">Tải ảnh sticker của bạn</span>
                   <span className="upl-hint">
-                    PNG, JPG, WebP · tối đa {MAX_CUSTOM_STICKERS} hình · {vnd(PRICING.customSticker)}/hình
+                    PNG, JPG, WebP · tối đa {MAX_CUSTOM_STICKERS} hình · cỡ in tối đa A4
                   </span>
                 </label>
                 {custom.notice && <p className="field-err">{custom.notice}</p>}
@@ -805,14 +821,14 @@ export default function DesignStudio({
 
             {activeTool === 'layers' && (
               <>
-                <h2 className="studio-h">Lớp</h2>
-                {live.length === 0 ? (
+                <h2 className="studio-h">Lớp · {side === 'back' ? 'mặt sau' : 'mặt trước'}</h2>
+                {here.length === 0 ? (
                   <p className="studio-note">
                     Chưa có gì trên {product.unit}. Thêm sticker từ Thư viện hoặc Tải lên.
                   </p>
                 ) : (
                   <ol className="studio-layers">
-                    {[...live].reverse().map((it) => (
+                    {[...here].reverse().map((it) => (
                       <li
                         key={it.id}
                         className={`${it.id === selected ? 'is-selected' : ''}${dragLayer === it.id ? ' is-dragging' : ''}${it.hidden ? ' is-hidden' : ''}`}
@@ -927,10 +943,16 @@ export default function DesignStudio({
                 if (!e.target.closest('.studio-item')) setSelected(null)
               }}
             >
-              <ProductVisual productKey={productKey} color={color} pattern={combo.patterned} alt="">
+              <ProductVisual
+                productKey={productKey}
+                color={color}
+                pattern={combo.patterned}
+                side={side}
+                alt=""
+              >
                 {guides.v && <div className="studio-guide studio-guide-v" style={{ left: `${center.x}%` }} />}
                 {guides.h && <div className="studio-guide studio-guide-h" style={{ top: `${center.y}%` }} />}
-                {live.map((it) =>
+                {here.map((it) =>
                   it.hidden || it.id === draw?.editId ? null : (
                     <div
                       key={it.id}
@@ -955,7 +977,8 @@ export default function DesignStudio({
                             title="Xoay"
                             onPointerDown={(e) => startGesture(e, it, 'rotate')}
                           />
-                          {['nw', 'ne', 'sw', 'se'].map((c) => (
+                          {/* sticker thư viện có cỡ in cố định: chỉ hình tự tạo mới đổi cỡ (tối đa A4) */}
+                          {(it.custom ? ['nw', 'ne', 'sw', 'se'] : []).map((c) => (
                             <span
                               key={c}
                               className={`studio-handle studio-resize is-${c}`}
@@ -970,10 +993,20 @@ export default function DesignStudio({
                 )}
               </ProductVisual>
               {draw && (
+                <span
+                  className="draw-a4-frame"
+                  style={{ left: `${a4.x}%`, top: `${a4.y}%`, width: `${a4.w}%`, height: `${a4.h}%` }}
+                  aria-hidden="true"
+                >
+                  <small>Khổ A4 · 21 × 29,7 cm</small>
+                </span>
+              )}
+              {draw && (
                 <DrawingPad
                   productKey={productKey}
                   strokes={draw.strokes}
                   brush={brush}
+                  clip={a4}
                   onStroke={(st) => drawCommit([...draw.strokes, st])}
                 />
               )}
@@ -993,6 +1026,8 @@ export default function DesignStudio({
               onCancel={() => setDraw(null)}
               onDone={finishDraw}
               busy={saving}
+              landscape={landscape}
+              onLandscape={() => setLandscape((l) => !l)}
             />
           )}
 
@@ -1035,6 +1070,22 @@ export default function DesignStudio({
 
           {!draw && (
             <>
+              <div className="side-switch studio-sides" role="group" aria-label="Mặt đang phối">
+                {SIDES.map(([k, label]) => (
+                  <button
+                    key={k}
+                    type="button"
+                    aria-pressed={side === k}
+                    onClick={() => {
+                      setSide(k)
+                      setSelected(null)
+                    }}
+                  >
+                    {label}
+                    {onSide(live, k).length > 0 && <b>{onSide(live, k).length}</b>}
+                  </button>
+                ))}
+              </div>
               <label className="studio-zoom">
                 <span>{zoom}%</span>
                 <input
@@ -1048,7 +1099,8 @@ export default function DesignStudio({
                 />
               </label>
               <p className="studio-help">
-                Kéo để di chuyển · nắm góc để đổi cỡ · nắm chấm trên để xoay · Ctrl+Z hoàn tác
+                Kéo để di chuyển · nắm chấm trên để xoay · hình tự tạo đổi cỡ ở góc (tối đa A4) · Ctrl+Z hoàn
+                tác
               </p>
             </>
           )}
@@ -1058,11 +1110,16 @@ export default function DesignStudio({
       {liveOpen && (
         <LiveTryOn
           makeTexture={(opts) =>
-            renderMockup(exportRef.current.querySelector('.tee-visual'), visibleForExport, 800, {
-              transparent: true,
-              baseSrc: PRODUCTS.ao.cutout,
-              ...opts,
-            })
+            renderMockup(
+              exportRef.current.querySelector('.studio-export-front .tee-visual'),
+              exportSide('front'),
+              800,
+              {
+                transparent: true,
+                baseSrc: PRODUCTS.ao.cutout,
+                ...opts,
+              }
+            )
           }
           color={color?.fill}
           onClose={() => setLiveOpen(false)}
@@ -1071,13 +1128,18 @@ export default function DesignStudio({
 
       {/* Bản ẩn để xuất mockup PNG (không có tay nắm, đường căn) */}
       <div className="studio-export" aria-hidden="true" ref={exportRef}>
-        <ProductVisual
-          productKey={productKey}
-          color={color}
-          pattern={combo.patterned}
-          design={visibleForExport}
-          className="studio-export-visual"
-        />
+        {SIDES.map(([k]) => (
+          <div key={k} className={`studio-export-${k}`}>
+            <ProductVisual
+              productKey={productKey}
+              color={color}
+              pattern={combo.patterned}
+              side={k}
+              design={visibleForExport}
+              className="studio-export-visual"
+            />
+          </div>
+        ))}
       </div>
     </dialog>
   )

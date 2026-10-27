@@ -4,6 +4,7 @@ const DesignItemSchema = new mongoose.Schema(
   // upload: vị trí trong customStickers khi là sticker khách tự tải lên
   // set: bộ sticker của sticker thư viện
   {
+    side: { type: String, enum: ['front', 'back'], default: 'front' }, // mặt trước / mặt sau
     shape: String,
     color: String,
     label: String,
@@ -49,16 +50,19 @@ const OrderSchema = new mongoose.Schema(
       userAgent: String,
     },
     design: [DesignItemSchema], // bản phối: toạ độ % trên ảnh, thứ tự = thứ tự lớp (cuối cùng nằm trên)
-    preview: { type: mongoose.Schema.Types.ObjectId, ref: 'Upload' }, // ảnh mockup PNG của bản phối
-    customer: { name: String, phone: String, address: String, note: String },
+    sheets: { a5: Number, a4: Number }, // tấm sticker A5 / A4 mua thêm
+    preview: { type: mongoose.Schema.Types.ObjectId, ref: 'Upload' }, // ảnh mockup PNG mặt trước
+    previewBack: { type: mongoose.Schema.Types.ObjectId, ref: 'Upload' }, // ảnh mockup PNG mặt sau
+    customer: { name: String, phone: String, province: String, address: String, note: String },
     delivery: { type: String, enum: ['giao-hang', 'studio'] },
     payment: { type: String, enum: ['cod', 'chuyen-khoan', 'vi-dien-tu'] },
     voucher: String,
     totals: {
       unit: Number,
       itemTotal: Number,
-      stickerTotal: Number,
-      customTotal: Number,
+      stickerTotal: Number, // đơn cũ
+      customTotal: Number, // đơn cũ
+      sheetTotal: Number,
       goods: Number,
       shipping: Number,
       discount: Number,

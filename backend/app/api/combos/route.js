@@ -6,7 +6,10 @@ export const dynamic = 'force-dynamic'
 
 export async function GET() {
   await connectDB()
-  const combos = await Combo.find({ active: true }).sort({ order: 1 }).lean()
+  // Bộ kit cao cấp in lụa đã ngừng bán: không trả về dù cơ sở dữ liệu còn bật
+  const combos = await Combo.find({ active: true, tier: { $ne: 'premium' }, slug: { $ne: 'premium' } })
+    .sort({ order: 1 })
+    .lean()
   return Response.json(combos)
 }
 

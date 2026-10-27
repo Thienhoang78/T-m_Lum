@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { MAX_CUSTOM_STICKERS, WAIVER_TERMS, WAIVER_TITLE } from '../data/consent.js'
-import { PRICING, vnd } from '../data/pricing.js'
 import { OptionGroup } from './ProductParts.jsx'
 
 const kb = (n) =>
@@ -63,8 +62,8 @@ export default function CustomStickers({ uid, custom, waiver, onWaiver, waiverEr
             {full ? `Đã đủ ${MAX_CUSTOM_STICKERS} hình` : 'Kéo thả hoặc bấm để chọn hình sticker của bạn'}
           </span>
           <span className="upl-hint">
-            PNG, JPG, WebP · tối đa {MAX_CUSTOM_STICKERS} hình, mỗi hình 4 MB · {vnd(PRICING.customSticker)} /
-            hình. Nên dùng PNG nền trong suốt, độ phân giải cao để in đẹp.
+            PNG, JPG, WebP · tối đa {MAX_CUSTOM_STICKERS} hình, mỗi hình 4 MB · đã gồm trong giá combo. Nên
+            dùng PNG nền trong suốt, độ phân giải cao để in đẹp.
           </span>
         </label>
 

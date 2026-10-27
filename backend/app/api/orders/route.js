@@ -11,6 +11,7 @@ import {
   choosesIncludedSet,
   findVoucher,
   priceOf,
+  provinceOf,
   quote,
 } from '@/lib/pricing'
 import { WAIVER_VERSION, waiverText } from '@/lib/consent'
@@ -34,11 +35,13 @@ function orderCode() {
   return `TL-${ymd.join('')}-${rand}`
 }
 
-// Đặt áo hoặc túi theo gói Basic (Combo 1, 2) / Premium. Giá luôn tính lại ở server, không tin số tiền từ trình duyệt.
+// Đặt áo hoặc túi theo bộ kit cơ bản (Combo 1, 2). Giá luôn tính lại ở server, không tin số tiền từ trình duyệt.
+// Bộ kit cao cấp in lụa (premium) đã ngừng bán: đơn mới bị từ chối, đơn cũ giữ nguyên.
 export async function POST(req) {
   const b = await req.json().catch(() => null)
   if (!b) return bad('Dữ liệu đơn hàng không hợp lệ.')
 
+  if (b.combo === 'premium') return bad('Bộ kit cao cấp in lụa đã ngừng bán.')
   const rules = PRODUCT_RULES[b.product]
   if (!rules) return bad('Món hàng không hợp lệ.')
   if (!Object.values(PRICING.items).some((m) => b.combo in m)) return bad('Combo không còn bán.')
@@ -55,6 +58,16 @@ export async function POST(req) {
   if (!name) return bad('Vui lòng nhập họ tên người nhận.')
   if (!PHONE_RE.test(phone)) return bad('Số điện thoại gồm 10 số, bắt đầu bằng 0.')
   if (b.delivery === 'giao-hang' && !address) return bad('Vui lòng nhập địa chỉ nhận hàng.')
+  const province = b.delivery === 'giao-hang' ? provinceOf(b.province) : null
+  if (b.delivery === 'giao-hang' && !province) return bad('Vui lòng chọn tỉnh / thành phố nhận hàng.')
+
+  // Tấm sticker A5 / A4 mua thêm
+  const sheets = {}
+  for (const k of Object.keys(PRICING.sheets)) {
+    const n = b.sheets?.[k] == null ? 0 : int(b.sheets[k])
+    if (!(n >= 0 && n <= PRICING.maxSheets)) return bad(`Số tấm sticker từ 0 đến ${PRICING.maxSheets}.`)
+    if (n) sheets[k] = n
+  }
 
   const voucher = b.voucher ? str(b.voucher, 30).toUpperCase() : null
   if (voucher && !findVoucher(voucher)) return bad('Mã giảm giá không tồn tại.')
@@ -74,7 +87,7 @@ export async function POST(req) {
     : b.stickerSet
       ? [{ key: b.stickerSet, qty: b.stickerQty }]
       : []
-  if (wanted.length && combo.method === 'screen-print') return bad('Combo này không kèm bộ sticker.')
+  if (wanted.length && !choosesIncludedSet(combo.slug)) return bad(`${combo.name} đã kèm sẵn bộ sticker.`)
   if (wanted.length > Object.keys(STICKER_SETS).length) return bad('Bộ sticker không hợp lệ.')
   const stickerSets = []
   for (const w of wanted) {
@@ -84,9 +97,11 @@ export async function POST(req) {
     if (!(sq >= 1 && sq <= 999)) return bad('Số bộ sticker từ 1 đến 999.')
     stickerSets.push({ key: w.key, name: STICKER_SETS[w.key], qty: sq })
   }
-  // Combo 1 kèm 1 bộ sticker khách tự chọn: phải chọn ít nhất một bộ
-  if (choosesIncludedSet(combo.slug) && !stickerSets.length)
+  // Combo 1 kèm 1 bộ sticker khách tự chọn cho mỗi áo / túi: chọn ít nhất 1 bộ, không quá số áo / túi
+  const setQty = stickerSets.reduce((n, x) => n + x.qty, 0)
+  if (choosesIncludedSet(combo.slug) && !setQty)
     return bad(`${combo.name} kèm 1 bộ sticker tự chọn, vui lòng chọn bộ sticker.`)
+  if (setQty > qty) return bad(`Mỗi ${rules.name.toLowerCase()} kèm 1 bộ sticker: chọn tối đa ${qty} bộ.`)
 
   // Sticker khách tự tải lên: chỉ Combo 1 (áo, túi trơn), tối đa 5 hình, bắt buộc ký cam kết bản quyền
   // mỗi hình: id upload, hoặc { id, cut } với cut = khách chọn bản đã tách nền
@@ -133,6 +148,7 @@ export async function POST(req) {
         (Number.isInteger(it?.upload) && it.upload >= 0 && it.upload < customStickers.length)
     )
     .map((it) => ({
+      side: it.side === 'back' ? 'back' : 'front',
       ...(Number.isInteger(it.upload) && !SHAPES.includes(it.shape)
         ? { upload: it.upload }
         : {
@@ -147,23 +163,25 @@ export async function POST(req) {
       s: num(it.s, 4, 90),
     }))
 
-  // Ảnh mockup áo / túi kèm sticker (đã tải lên qua /api/uploads) để studio biết vị trí ép
-  let preview
-  if (b.preview) {
-    if (!mongoose.isValidObjectId(b.preview) || ids.includes(b.preview))
+  // Ảnh mockup mặt trước / mặt sau kèm sticker (đã tải lên qua /api/uploads) để studio biết vị trí ép
+  const previews = {}
+  for (const key of ['preview', 'previewBack']) {
+    const id = b[key]
+    if (!id) continue
+    if (!mongoose.isValidObjectId(id) || ids.includes(id) || Object.values(previews).includes(id))
       return bad('Ảnh xem trước không hợp lệ.')
-    if (!(await Upload.exists({ _id: b.preview, order: null })))
+    if (!(await Upload.exists({ _id: id, order: null })))
       return bad('Ảnh xem trước đã hết hạn, vui lòng đặt lại.')
-    preview = b.preview
+    previews[key] = id
   }
 
   const totals = quote({
     product: b.product,
     combo: b.combo,
     qty,
-    stickerQty: stickerSets.reduce((n, x) => n + x.qty, 0),
-    customQty: customStickers.length,
+    sheets,
     delivery: b.delivery,
+    province: province?.key,
     voucher,
   })
 
@@ -177,11 +195,13 @@ export async function POST(req) {
     stickerSets,
     customStickers,
     waiver,
+    sheets,
     design,
-    preview,
+    ...previews,
     customer: {
       name,
       phone,
+      province: province?.name ?? '',
       address: b.delivery === 'giao-hang' ? address : '',
       note: str(b.customer?.note, 500),
     },
@@ -196,7 +216,7 @@ export async function POST(req) {
     try {
       const order = await Order.create({ ...doc, code: orderCode() })
       // Gắn file vào đơn và bỏ hạn tự xoá
-      const attach = preview ? [...ids, preview] : ids
+      const attach = [...ids, ...Object.values(previews)]
       if (attach.length)
         await Upload.updateMany(
           { _id: { $in: attach } },

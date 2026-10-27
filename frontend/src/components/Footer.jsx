@@ -9,6 +9,7 @@ const COLUMNS = [
     links: [
       { label: 'Cách làm', href: '/#cach-lam' },
       { label: 'Bảng giá bộ kit', href: '/#combo' },
+      { label: 'Về chúng tôi', href: '/ve-chung-toi' },
       { label: 'Kho sticker', soon: true },
       { label: 'Áo & túi trơn', soon: true },
     ],

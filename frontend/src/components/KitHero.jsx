@@ -34,8 +34,8 @@ export default function KitHero() {
           <span>Good ideas brighter days</span>
         </p>
         <p className="kit-lede">
-          Chọn bộ kit, chọn sticker hoặc tự tạo hình của bạn, rồi tự tay in chuyển nhiệt hay in lụa thành
-          chiếc áo, chiếc túi không đụng hàng.
+          Chọn bộ kit, chọn sticker hoặc tự tạo hình của bạn, rồi tự tay in chuyển nhiệt thành chiếc áo, chiếc
+          túi không đụng hàng.
         </p>
         <div className="kit-hero-ctas">
           <a href="#combo" className="btn btn-dark">

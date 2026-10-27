@@ -64,7 +64,7 @@ function SceneIron() {
 const STEPS = [
   {
     title: 'Chọn bộ kit',
-    body: 'Bộ kit cơ bản in chuyển nhiệt (áo thun hoặc túi tote, Combo 1 hoặc Combo 2) hoặc bộ kit cao cấp in lụa.',
+    body: 'Bộ kit in chuyển nhiệt với áo thun hoặc túi tote trắng, Combo 1 hoặc Combo 2, thêm tấm sticker A5 / A4 nếu thích.',
     Scene: SceneChoose,
   },
   {
@@ -73,8 +73,8 @@ const STEPS = [
     Scene: ScenePlace,
   },
   {
-    title: 'In chuyển nhiệt hoặc in lụa',
-    body: 'Sticker in chuyển nhiệt bám chắc lên vải; bộ kit cao cấp có khuôn in, dao gạt và lọ mực để bạn tự in lụa.',
+    title: 'In chuyển nhiệt',
+    body: 'Ủi sticker lên vải theo hướng dẫn trong bộ kit: hình bám chắc, giặt đúng cách không bong.',
     Scene: SceneIron,
   },
 ]

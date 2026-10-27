@@ -296,11 +296,12 @@
 .kit-card-ctas .btn {
   flex: 1 1 140px;
 }
-.kit-card.is-premium {
+.kit-card.is-premium,
+.kit-card.is-sheets {
   grid-template-rows: auto auto 1fr auto auto;
   align-items: center;
 }
-.kit-premium-text {
+.kit-sheet-text {
   margin: 0;
   font-weight: 600;
   line-height: 1.45;
@@ -450,7 +451,7 @@
   .kit-board {
     grid-template-columns: 1fr;
   }
-  .kit-card.is-premium .kit-art {
+  .kit-card.is-sheets .kit-art {
     max-width: 520px;
     justify-self: center;
   }
@@ -661,4 +662,143 @@
   .draw-sliders input {
     width: 110px;
   }
+}
+
+/* thẻ tấm sticker mua thêm */
+.kit-card.is-sheets .kit-art-sheet {
+  width: auto;
+  max-height: 210px;
+  justify-self: center;
+  margin-inline: auto;
+  display: block;
+  rotate: -4deg;
+  mask-image: none;
+  border-radius: 10px;
+  box-shadow: 0 12px 24px rgba(15, 31, 92, 0.12);
+}
+.kit-sheet-prices {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.kit-sheet-prices li {
+  display: grid;
+  gap: 4px;
+  justify-items: center;
+}
+.kit-sheet-prices span {
+  font-family: var(--font-kit);
+  font-weight: 800;
+  font-size: 1.2rem;
+  color: var(--kit-ink);
+}
+.kit-sheet-prices .kit-price {
+  width: 100%;
+  font-size: clamp(1.1rem, 0.9rem + 0.8vw, 1.5rem);
+}
+
+/* ---------- Mặt trước / mặt sau ---------- */
+.side-switch {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  z-index: 3;
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--line);
+  box-shadow: 0 6px 16px rgba(13, 43, 69, 0.1);
+}
+.side-switch button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--navy);
+  padding: 6px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.side-switch button[aria-pressed='true'] {
+  background: var(--brand);
+}
+.side-switch b {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--navy);
+  color: #fff;
+  font-size: 0.7rem;
+  line-height: 18px;
+  text-align: center;
+}
+.studio-sides {
+  left: 16px;
+  bottom: 16px;
+}
+
+/* ---------- Khung A4 khi vẽ ---------- */
+.draw-a4-frame {
+  position: absolute;
+  z-index: 2;
+  border: 2px dashed rgba(30, 136, 229, 0.75);
+  border-radius: 4px;
+  pointer-events: none;
+}
+.draw-a4-frame small {
+  position: absolute;
+  left: 4px;
+  top: 2px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--brand-deep);
+  font-size: 0.66rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.draw-actions .draw-a4 {
+  border: 1px dashed var(--brand) !important;
+}
+
+/* ---------- Tấm sticker mua thêm, bộ sticker đã gồm ---------- */
+.sheet-rows {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+}
+.sheet-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+}
+.sheet-name {
+  display: grid;
+}
+.sheet-name small {
+  color: var(--muted);
+}
+.kit-included {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--kit-panel-blue);
+  color: var(--kit-ink);
+  font-weight: 600;
+  font-size: 0.92rem;
 }

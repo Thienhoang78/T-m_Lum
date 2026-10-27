@@ -4,9 +4,10 @@ import KitBoard from '../components/KitBoard.jsx'
 import Marquee from '../components/Marquee.jsx'
 import UploadFeature from '../components/UploadFeature.jsx'
 import Steps from '../components/Steps.jsx'
+import { AboutSection } from '../components/About.jsx'
 
 // Trang chủ theo bảng giá của studio, có chuyển động: cảnh áo + túi được ép sticker → bảng giá bộ kit
-// → ruy băng khẩu hiệu → tự tạo hình (Combo 1) → cách làm. Phần tử [data-reveal] hiện dần khi cuộn tới.
+// → ruy băng khẩu hiệu → tự tạo hình (Combo 1) → cách làm → về Tùm Lum Studio. Phần tử [data-reveal] hiện dần khi cuộn tới.
 export default function Landing() {
   const rootRef = useRef(null)
   useEffect(() => {
@@ -34,6 +35,7 @@ export default function Landing() {
       <Marquee />
       <UploadFeature />
       <Steps />
+      <AboutSection />
     </div>
   )
 }

@@ -143,19 +143,30 @@ export function drawStroke(ctx, stroke, W, H) {
 }
 
 // Vẽ cả hình (các nét theo thứ tự, tẩy xoá nét bên dưới) rồi giới hạn trong vùng áo / túi
-export function renderDrawing(ctx, strokes, W, H, mask) {
+// Giới hạn trong khung chữ nhật (khổ A4) theo % khung ảnh: { x, y, w, h }
+export function applyClip(ctx, clip, W, H) {
+  if (!clip) return
+  ctx.save()
+  ctx.globalCompositeOperation = 'destination-in'
+  ctx.fillRect((clip.x / 100) * W, (clip.y / 100) * H, (clip.w / 100) * W, (clip.h / 100) * H)
+  ctx.restore()
+}
+
+export function renderDrawing(ctx, strokes, W, H, mask, clip) {
   ctx.clearRect(0, 0, W, H)
   for (const s of strokes) drawStroke(ctx, s, W, H)
   applyMask(ctx, mask, W, H)
+  applyClip(ctx, clip, W, H)
 }
 
 // Xuất hình vẽ thành PNG nền trong suốt, cắt sát nét (độ phân giải in: khung 1600 px).
-// Trả về null nếu không còn nét nào; ngược lại { blob, x, y, s } là vị trí đặt lên khung (%).
-export async function exportDrawing(strokes, mask, F = 1600) {
+// Trả về null nếu không còn nét nào; ngược lại { blob, x, y, s, ar } là vị trí đặt lên khung (%) và tỉ lệ cao / ngang.
+// clip: khung A4 (%) mà hình vẽ không được vượt ra ngoài.
+export async function exportDrawing(strokes, mask, clip, F = 1600) {
   const c = document.createElement('canvas')
   c.width = c.height = F
   const ctx = c.getContext('2d', { willReadFrequently: true })
-  renderDrawing(ctx, strokes, F, F, mask)
+  renderDrawing(ctx, strokes, F, F, mask, clip)
   const data = ctx.getImageData(0, 0, F, F).data
   let x0 = F
   let y0 = F
@@ -170,11 +181,14 @@ export async function exportDrawing(strokes, mask, F = 1600) {
         if (y > y1) y1 = y
       }
   if (x1 < 0) return null
+  // chừa vài điểm ảnh quanh nét, nhưng không vượt khung A4
   const pad = 4
-  x0 = Math.max(0, x0 - pad)
-  y0 = Math.max(0, y0 - pad)
-  x1 = Math.min(F - 1, x1 + pad)
-  y1 = Math.min(F - 1, y1 + pad)
+  const lo = (v) => (clip ? Math.floor((v / 100) * F) : 0)
+  const hi = (v, d) => (clip ? Math.ceil(((v + d) / 100) * F) - 1 : F - 1)
+  x0 = Math.max(lo(clip?.x), 0, x0 - pad)
+  y0 = Math.max(lo(clip?.y), 0, y0 - pad)
+  x1 = Math.min(hi(clip?.x, clip?.w), F - 1, x1 + pad)
+  y1 = Math.min(hi(clip?.y, clip?.h), F - 1, y1 + pad)
   const w = x1 - x0 + 1
   const h = y1 - y0 + 1
   const out = document.createElement('canvas')
@@ -182,7 +196,7 @@ export async function exportDrawing(strokes, mask, F = 1600) {
   out.height = h
   out.getContext('2d').drawImage(c, x0, y0, w, h, 0, 0, w, h)
   const blob = await new Promise((r) => out.toBlob(r, 'image/png'))
-  return { blob, x: ((x0 + w / 2) / F) * 100, y: ((y0 + h / 2) / F) * 100, s: (w / F) * 100 }
+  return { blob, x: ((x0 + w / 2) / F) * 100, y: ((y0 + h / 2) / F) * 100, s: (w / F) * 100, ar: h / w }
 }
 
 // Nét của hình vẽ đã bị kéo / đổi cỡ / xoay trên áo: đưa về toạ độ khung hiện tại để sửa tiếp

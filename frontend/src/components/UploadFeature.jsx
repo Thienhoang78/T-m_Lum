@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom'
 import { MAX_CUSTOM_STICKERS } from '../data/consent.js'
-import { PRICING, vnd } from '../data/pricing.js'
 import Sticker from './Sticker.jsx'
 import { TeeArt } from './GarmentArt.jsx'
 
@@ -10,7 +9,7 @@ const POINTS = [
     shape: 'star',
     color: 'var(--sun)',
     title: 'Tải hình của bạn lên',
-    body: `PNG, JPG hoặc WebP, tối đa ${MAX_CUSTOM_STICKERS} hình mỗi đơn, ${vnd(PRICING.customSticker)} / hình.`,
+    body: `PNG, JPG hoặc WebP, tối đa ${MAX_CUSTOM_STICKERS} hình mỗi đơn, đã gồm trong giá Combo 1.`,
   },
   {
     shape: 'flower',
@@ -22,7 +21,7 @@ const POINTS = [
     shape: 'bolt',
     color: 'var(--brand-strong)',
     title: 'Hoặc vẽ tay lên áo',
-    body: 'Bút mực, bút kim, bút dạ, bút chì và tẩy, vẽ thẳng lên áo hay túi ngay trong trình phối.',
+    body: 'Bút mực, bút kim, bút dạ, bút chì và tẩy, vẽ thẳng lên áo hay túi, khổ tối đa A4.',
   },
   {
     shape: 'heart',

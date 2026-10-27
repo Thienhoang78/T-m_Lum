@@ -6,7 +6,7 @@ import { useReducedMotion } from './useReducedMotion.js'
 
 // Cảnh đầu trang: thanh treo đồ với áo thun (ảnh thật đã cắt nền) và túi tote đung đưa.
 // Mỗi vài giây một bộ sticker mới bay tới, "ép nhiệt" xuống áo / túi (nảy nhẹ, loé sáng, hơi nước bốc lên),
-// bộ cũ bóc ra bay đi. Rê chuột thì cảnh nghiêng theo (parallax). Túi đổi được 3 màu thật của túi.
+// bộ cũ bóc ra bay đi. Rê chuột thì cảnh nghiêng theo (parallax). Áo và túi đều màu trắng.
 // Giảm chuyển động (prefers-reduced-motion): đứng yên với bộ sticker đầu tiên.
 const DESIGNS = [
   {
@@ -78,7 +78,7 @@ function Steam({ cycle, count }) {
 export default function HeroScene() {
   const reduced = useReducedMotion()
   const [cycle, setCycle] = useState(0)
-  const [toteColor, setToteColor] = useState(PRODUCTS.tui.colors[0])
+  const toteColor = PRODUCTS.tui.colors[0]
   const sceneRef = useRef(null)
 
   useEffect(() => {
@@ -153,21 +153,6 @@ export default function HeroScene() {
             <Steam cycle={cycle} count={2} />
           </div>
         </div>
-      </div>
-
-      <div className="scene-colors" role="group" aria-label="Thử màu túi tote">
-        {PRODUCTS.tui.colors.map((c) => (
-          <button
-            key={c.key}
-            type="button"
-            aria-pressed={toteColor.key === c.key}
-            onClick={() => setToteColor(c)}
-            title={`Túi màu ${c.name.toLowerCase()}`}
-          >
-            <span style={{ background: c.fill }} aria-hidden="true" />
-            {c.name}
-          </button>
-        ))}
       </div>
     </div>
   )
