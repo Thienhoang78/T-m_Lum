@@ -6,10 +6,10 @@
 // Điểm neo trên ảnh áo thật (ao-trang.webp / ao-trang-cat.webp): đường may vai rơi và hai góc gấu áo,
 // theo tỉ lệ 0..1 của khung ảnh vuông
 export const TEE_ANCHORS = {
-  shoulderL: { x: 0.213, y: 0.163 },
-  shoulderR: { x: 0.788, y: 0.163 },
-  hemL: { x: 0.205, y: 0.952 },
-  hemR: { x: 0.777, y: 0.952 },
+  shoulderL: { x: 0.193, y: 0.152 },
+  shoulderR: { x: 0.807, y: 0.152 },
+  hemL: { x: 0.219, y: 0.932 },
+  hemR: { x: 0.778, y: 0.932 },
 }
 
 // Chỉ số điểm mốc của MediaPipe Pose

@@ -69,9 +69,9 @@ function dropDir(a, g, out) {
   return len < 1e-4 ? out.set(0, 0, 0) : out.multiplyScalar(Math.min(1, len / 0.35) / len)
 }
 
-// Ánh xạ toạ độ mô hình (x theo S, y theo T) → toạ độ ảnh áo phẳng (0..1): vai rơi ở (0.213 / 0.788, 0.163), gấu ở 0.952
-const photoU = (x) => 0.5 + x * (0.2875 / SHAPE.bodyA)
-const photoV = (y) => 0.163 + (0.05 - y) * (0.789 / 1.29)
+// Ánh xạ toạ độ mô hình (x theo S, y theo T) → toạ độ ảnh áo phẳng (0..1): vai rơi ở (0.193 / 0.807, 0.152), gấu ở 0.932
+const photoU = (x) => 0.5 + x * (0.307 / SHAPE.bodyA)
+const photoV = (y) => 0.152 + (0.05 - y) * (0.78 / 1.29)
 
 const smooth = (a, b, x) => {
   const t = Math.min(1, Math.max(0, (x - a) / (b - a)))

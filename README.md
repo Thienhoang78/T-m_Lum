@@ -56,8 +56,9 @@ tay đã gồm trong giá combo). Mua thêm **tấm sticker A5 20.000₫ / A4 30
 Combo 2 mặc định in bộ đi kèm, đổi sang bộ khác của shop cho từng khổ được (đơn lưu `choice`, `sheets`, `sheetSets`). **Phí giao** theo tỉnh
 (34 tỉnh, thành sau sắp xếp 2025, bảng `PROVINCES`): Đà Nẵng 15.000₫, miền Trung 20.000₫, tỉnh khác 25.000₫, miễn phí
 cho đơn từ 500.000₫; nhận tại studio không tính phí. Sticker thư viện có **cỡ in cố định** (chỉ đổi vị trí, góc xoay);
-hình tự tải lên / hình vẽ đổi cỡ được, tối đa **khổ A4** (theo cỡ thật: ngang ngực áo size M 54 cm, mặt túi 35 cm).
-Trình phối luôn hiện **khung in khổ A4 nét đứt đúng cỡ thật** trên từng mặt (dọc 21 × 29,7 cm hoặc ngang): sticker, hình
+hình tự tải lên / hình vẽ đổi cỡ được, tối đa **khổ A4** (thang cỡ: ngang ngực áo tính 44 cm cho khung A4 cân đối, `widthCm` trong
+`frontend/src/data/products.js`; mặt túi 35 cm).
+Trình phối luôn hiện **khung in khổ A4 nét đứt** (theo thang cỡ `widthCm`) trên từng mặt (dọc 21 × 29,7 cm hoặc ngang): sticker, hình
 tải lên, hình vẽ chỉ nằm trong khung; vị trí khung ở `printArea` (`frontend/src/data/products.js`), khung từng mặt gửi
 kèm đơn (`printFrame`). Khung không có trong ảnh mockup.
 **Phối thử có mặt trước / mặt sau** (mặt sau áo dựng từ ảnh mặt trước, túi dùng lại ảnh); đơn hàng gửi kèm mockup cả hai mặt. Nội dung combo nằm

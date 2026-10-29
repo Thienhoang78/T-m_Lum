@@ -58,7 +58,7 @@ const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v))
 const withIds = (list) => list.map((it) => ({ ...it, id: it.id ?? nextId++ }))
 const strip = (list) => list.map(({ id: _id, ...it }) => it)
 
-// Mỗi mặt có một khung in khổ A4 đúng cỡ thật (dọc / ngang): sticker đặt ở vị trí nào trong khung cũng được,
+// Mỗi mặt có một khung in khổ A4 theo thang cỡ của áo / túi (dọc / ngang): sticker đặt ở vị trí nào trong khung cũng được,
 // không kéo ra ngoài khung. Sticker thư viện có cỡ in cố định; hình tự tải lên / hình vẽ đổi cỡ được, tối đa vừa khung.
 const DEFAULT_FRAMES = { front: 'doc', back: 'doc' }
 // Tâm phần tử theo toạ độ màn hình
@@ -151,7 +151,7 @@ export default function DesignStudio({
   const srcOf = (it) => (it.custom ? customOf(it.custom)?.url : null)
   const live = items.filter((it) => !it.custom || customOf(it.custom))
   const here = onSide(live, side) // các lớp của mặt đang phối
-  // Khung in A4 của từng mặt (% khung ảnh, đúng cỡ thật)
+  // Khung in A4 của từng mặt (% khung ảnh, theo thang cỡ của món)
   const areaOf = useCallback((s) => printArea(productKey, s, frames[s]), [productKey, frames])
   const a4 = areaOf(draw?.side ?? side)
   const a4c = useMemo(() => ({ x: a4.x + a4.w / 2, y: a4.y + a4.h / 2 }), [a4.x, a4.y, a4.w, a4.h])
@@ -1039,7 +1039,7 @@ export default function DesignStudio({
                   )
                 )}
               </ProductVisual>
-              {/* khung in khổ A4 đúng cỡ thật: chỉ hiện trong trình phối, không có trong ảnh mockup */}
+              {/* khung in khổ A4: chỉ hiện trong trình phối, không có trong ảnh mockup */}
               <span
                 className={`draw-a4-frame${draw ? ' is-drawing' : ''}`}
                 style={{ left: `${a4.x}%`, top: `${a4.y}%`, width: `${a4.w}%`, height: `${a4.h}%` }}
