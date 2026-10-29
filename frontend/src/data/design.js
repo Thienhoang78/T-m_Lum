@@ -72,7 +72,8 @@ function loadImage(src) {
 }
 
 // neck: toạ độ 0..1 theo khung ảnh: cx (giữa cổ), rx (nửa bề ngang phần khoét), top (mép trên cổ bo sau),
-// bottom (đáy phần khoét trước), fabric: điểm lấy mẫu màu vải [x, y]
+// bottom (đáy phần khoét trước), sag (độ võng giữa cổ sau, mặc định 0,9 bề dày cổ), wide / edge (mép cắt phía trên cổ sau
+// kéo tới wide × rx, ở độ cao edge), rib (độ đậm gân cổ), fabric: điểm lấy mẫu màu vải [x, y]
 async function buildBack(src, neck) {
   const im = await loadImage(src)
   const W = im.naturalWidth
@@ -110,7 +111,22 @@ async function buildBack(src, neck) {
 
   // cổ bo phía sau: dải hơi cong, cao hơn cổ trước, có gân mờ
   const y0 = top
-  const sag = band * 0.9 // độ võng xuống ở giữa
+  const sag = neck.sag != null ? neck.sag * H : band * 0.9 // độ võng xuống ở giữa
+  // bỏ phần ảnh phía trên mép cổ sau (cổ trước nhìn từ trước cao hơn) để mép trên áo cong theo cổ sau
+  g.save()
+  g.globalCompositeOperation = 'destination-out'
+  g.beginPath()
+  // mép cắt kéo rộng ra hai bên tới vai (wide × rx, ở độ cao edge) để cổ sau liền với đường vai
+  const wide = neck.wide ?? 1.04
+  const edge = neck.edge != null ? neck.edge * H : y0 + band * 0.2
+  g.moveTo(cx - rx * wide, 0)
+  g.lineTo(cx - rx * wide, edge)
+  // giữa mép cắt trùng giữa mép trên cổ bo (đường cong cổ bo đi qua y0 + band × 0,1 + sag / 2 ở giữa)
+  g.quadraticCurveTo(cx, 2 * (y0 + band * 0.1 + sag / 2) - edge, cx + rx * wide, edge)
+  g.lineTo(cx + rx * wide, 0)
+  g.closePath()
+  g.fill()
+  g.restore()
   const path = new Path2D()
   path.moveTo(cx - rx, y0 + band * 0.2)
   path.quadraticCurveTo(cx, y0 + sag, cx + rx, y0 + band * 0.2)
@@ -121,7 +137,7 @@ async function buildBack(src, neck) {
   g.fill(path)
   g.save()
   g.clip(path)
-  g.strokeStyle = 'rgba(40, 45, 60, 0.07)'
+  g.strokeStyle = `rgba(40, 45, 60, ${neck.rib ?? 0.07})`
   g.lineWidth = Math.max(1, W * 0.0018)
   for (let x = cx - rx; x < cx + rx; x += W * 0.006) {
     g.beginPath()

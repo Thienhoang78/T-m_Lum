@@ -14,12 +14,25 @@ export const PRODUCTS = {
     cutout: '/images/ao-trang-cat.webp', // cùng ảnh, khoét hẳn vùng cổ: dùng cho live mặc thử
     // Tâm thân áo theo % khung ảnh vuông: đường căn giữa và chỗ đặt sticker mới khi phối
     center: { x: 50, y: 55 },
-    widthCm: 54,
-    bodyFrac: 0.539,
+    // Thang cỡ trên ảnh áo: ngang ngực theo bảng size là 54 cm, nhưng tính 44 cm để khung A4 rộng cỡ nửa ngực
+    // cho cân đối khi phối (chủ shop chọn). Đổi số này là đổi cỡ khung A4, sticker và giới hạn hình trên áo.
+    widthCm: 44,
+    bodyFrac: 0.536,
     // Mặt sau dựng từ ảnh mặt trước (xem data/design.js): vùng cổ theo toạ độ 0..1 của ảnh
-    backNeck: { cx: 0.5, rx: 0.118, top: 0.025, band: 0.03, bottom: 0.165, fabric: [0.5, 0.32] },
-    // Vùng in khổ A4: mép trên cách đáy cổ trước ~7,5 cm; mặt sau đặt cao hơn (cổ sau cao hơn cổ trước)
-    printArea: { cx: 49.5, top: { front: 24, back: 18 } },
+    backNeck: {
+      cx: 0.505,
+      rx: 0.14,
+      top: 0.0516,
+      band: 0.022,
+      sag: 0.0164,
+      wide: 1.45,
+      edge: 0.05,
+      rib: 0.03,
+      bottom: 0.163,
+      fabric: [0.5, 0.32],
+    },
+    // Vùng in khổ A4: mép trên dưới đáy cổ trước một chút; mặt sau đặt cao hơn (cổ sau cao hơn cổ trước)
+    printArea: { cx: 50, top: { front: 23, back: 16 } },
     colors: [{ key: 'trang', name: 'Trắng', fill: '#f7f4ee', seam: '#cfc7b8' }],
     sizes: ['S', 'M', 'L', 'XL', 'XXL'],
     extras: ['Tay trái', 'Tay phải', 'Nhãn áo tùy chỉnh'],
