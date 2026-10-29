@@ -2,7 +2,14 @@ import Sticker from './Sticker.jsx'
 
 // Hai dải ruy băng chéo nhau chạy ngược chiều: khẩu hiệu và những thứ có trong bộ kit, xen sticker.
 const TOP = ['Good ideas brighter days', 'Tùm Lum Studio', 'DIY Kits', 'Không đụng hàng']
-const BOTTOM = ['áo thun', 'túi tote', 'sticker in chuyển nhiệt', 'in lụa', 'tự tạo hình', 'vẽ tay lên áo']
+const BOTTOM = [
+  'áo thun',
+  'túi tote',
+  'sticker in chuyển nhiệt',
+  'tấm sticker A5 · A4',
+  'tự tạo hình',
+  'vẽ tay lên áo',
+]
 const SHAPES = [
   ['star', 'var(--sun)'],
   ['heart', 'var(--pink)'],

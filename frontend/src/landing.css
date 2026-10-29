@@ -163,8 +163,8 @@
   --depth: 1;
 }
 .hang-tote {
-  right: 5%;
-  width: 34%;
+  right: 7%;
+  width: 26%;
   animation-duration: 3.8s;
   animation-name: swing-wide;
   --depth: -0.7;
@@ -195,7 +195,7 @@
   margin-top: -9%;
 }
 .scene-garment.is-tote {
-  margin-top: -14%;
+  margin-top: -6%;
 }
 .scene-garment img,
 .scene-tote-art {
@@ -477,40 +477,6 @@
 }
 .tone-yellow .kit-art-wrap {
   animation-delay: -2s;
-}
-/* dao gạt in lụa lướt qua khung in */
-.kit-art-wrap.is-screen {
-  animation: none;
-}
-.squeegee {
-  position: absolute;
-  left: 37%;
-  top: 6%;
-  width: 26%;
-  height: 72%;
-  overflow: hidden;
-  border-radius: 6px;
-  pointer-events: none;
-}
-.squeegee-ink {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(90deg, rgba(160, 100, 230, 0.35), rgba(200, 120, 240, 0.25));
-  transform-origin: left center;
-  transform: scaleX(0);
-  animation: ink-spread 4.6s ease-in-out infinite;
-}
-.squeegee-blade {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 12px;
-  border-radius: 6px;
-  background: linear-gradient(90deg, #2f9e74, #4cc495 40%, #e6c39b 60%, #c58b4f);
-  box-shadow: 2px 0 8px rgba(13, 43, 69, 0.25);
-  opacity: 0;
-  animation: blade 4.6s ease-in-out infinite;
 }
 
 /* ---------- Ba bước có cảnh động ---------- */
@@ -886,41 +852,6 @@
     left: 130%;
   }
 }
-@keyframes ink-spread {
-  0%,
-  15% {
-    transform: scaleX(0);
-    opacity: 1;
-  }
-  55% {
-    transform: scaleX(1);
-    opacity: 1;
-  }
-  80%,
-  100% {
-    transform: scaleX(1);
-    opacity: 0;
-  }
-}
-@keyframes blade {
-  0%,
-  12% {
-    left: -12px;
-    opacity: 0;
-  }
-  16% {
-    opacity: 1;
-  }
-  55% {
-    left: calc(100% - 4px);
-    opacity: 1;
-  }
-  62%,
-  100% {
-    left: calc(100% - 4px);
-    opacity: 0;
-  }
-}
 @keyframes lid {
   0%,
   10%,
@@ -1159,5 +1090,70 @@
   }
   .scene-print.is-leaving {
     display: none;
+  }
+}
+
+/* ---------- Về Tùm Lum Studio ---------- */
+.about-lede {
+  margin: 0;
+  color: var(--muted);
+  font-size: 1.05rem;
+}
+.about .display-sm em {
+  color: var(--kit-pink);
+}
+.about-values {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.about-values li {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  padding: 22px;
+  border-radius: 22px;
+  background: linear-gradient(160deg, #fff, var(--kit-panel-blue));
+  border: 1px solid var(--line);
+}
+.about-values li:nth-child(2) {
+  background: linear-gradient(160deg, #fff, var(--kit-card-pink));
+}
+.about-values li:nth-child(3) {
+  background: linear-gradient(160deg, #fff, var(--kit-panel-mint));
+}
+.about-values h3 {
+  margin: 0;
+  font-family: var(--font-kit);
+  font-weight: 700;
+  font-size: 1.3rem;
+  line-height: 1.2;
+}
+.about-values p {
+  margin: 0;
+  color: var(--muted);
+}
+.about-more {
+  margin: 0;
+}
+.about-page {
+  padding-bottom: 40px;
+}
+.about-story p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 1.02rem;
+}
+.about-ctas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+@media (max-width: 720px) {
+  .about-values {
+    grid-template-columns: 1fr;
   }
 }

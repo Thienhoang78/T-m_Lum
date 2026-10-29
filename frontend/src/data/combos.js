@@ -1,7 +1,6 @@
-// Hai bộ kit theo bảng giá của studio:
-//   1. Bộ kit cơ bản – in chuyển nhiệt: áo thun hoặc túi tote, chọn Combo 1 / Combo 2
-//   2. Bộ kit cao cấp – in lụa: áo thun + bộ dụng cụ in lụa
-// method: 'heat-transfer' = sticker in chuyển nhiệt, 'screen-print' = bộ dụng cụ tự in lụa.
+// Bộ kit cơ bản – in chuyển nhiệt: áo thun hoặc túi tote, chọn Combo 1 / Combo 2.
+// (Bộ kit cao cấp in lụa đã ngừng bán: lọc bỏ cả khi dữ liệu cũ còn gửi về.)
+// method: 'heat-transfer' = sticker in chuyển nhiệt.
 // patterned: món nền in sẵn nền/hoạ tiết đen trắng. products: món nền có trong combo.
 export const TIERS = {
   basic: {
@@ -12,15 +11,6 @@ export const TIERS = {
     tagline: 'Áo thun hoặc túi tote · 2 combo',
     accent: 'sun',
   },
-  premium: {
-    key: 'premium',
-    no: 2,
-    name: 'Bộ kit cao cấp',
-    method: 'In lụa',
-    tagline: 'Áo thun + bộ dụng cụ in lụa',
-    accent: 'sky',
-    featured: true,
-  },
 }
 
 export const tierOf = (combo) => TIERS[combo.tier] ?? TIERS.basic
@@ -28,10 +18,16 @@ export const tierOf = (combo) => TIERS[combo.tier] ?? TIERS.basic
 // Nội dung từng combo đúng theo bảng giá (ưu tiên hơn dữ liệu combo trong cơ sở dữ liệu)
 export const COMBO_COPY = {
   'combo-1': {
-    tagline: 'Trơn + 1 bộ sticker tự chọn',
+    tagline: 'Trơn + chọn 1 trong 3: tự vẽ, hình của bạn hoặc bộ sticker có sẵn',
     items: {
-      ao: ['1 áo thun trơn', '1 bộ sticker in chuyển nhiệt (tự chọn)'],
-      tui: ['1 túi tote trơn', '1 bộ sticker in chuyển nhiệt (tự chọn)'],
+      ao: [
+        '1 áo thun trơn',
+        'Sticker in chuyển nhiệt, chọn 1 trong 3: tự vẽ, tải hình của bạn hoặc 1 bộ sticker có sẵn của shop',
+      ],
+      tui: [
+        '1 túi tote trơn',
+        'Sticker in chuyển nhiệt, chọn 1 trong 3: tự vẽ, tải hình của bạn hoặc 1 bộ sticker có sẵn của shop',
+      ],
     },
   },
   'combo-2': {
@@ -41,18 +37,32 @@ export const COMBO_COPY = {
       tui: ['1 túi tote có nền/hoạ tiết đen trắng thiết kế sẵn', '1 bộ sticker in chuyển nhiệt'],
     },
   },
-  premium: {
-    tagline: 'Áo thun + bộ dụng cụ in lụa + 1 bộ sticker',
-    items: {
-      ao: [
-        '1 áo thun trơn',
-        '1 bộ dụng cụ in lụa gồm 1 khuôn in, 1 dao gạt và 1 lọ mực',
-        '1 bộ sticker in chuyển nhiệt',
-      ],
-    },
+}
+// Combo 1: 3 cách làm sticker, khách chọn đúng 1 (xem PRICING.choices)
+export const CHOICES = {
+  ve: {
+    name: 'Tự vẽ',
+    body: 'Vẽ thẳng lên áo / túi trong Phối thử bằng bút mực, bút dạ, bút chì…, khổ tối đa A4.',
+    shape: 'bolt',
+    color: 'var(--brand-strong)',
+  },
+  'tai-len': {
+    name: 'Tải hình của bạn',
+    body: 'Tải ảnh của bạn lên, hình được tách nền rồi in thành sticker. Cần ký cam kết bản quyền.',
+    shape: 'star',
+    color: 'var(--sun)',
+  },
+  'bo-sticker': {
+    name: 'Bộ sticker có sẵn',
+    body: 'Chọn 1 trong các bộ sticker của shop, xếp thử vị trí trong Phối thử.',
+    shape: 'heart',
+    color: 'var(--pink)',
   },
 }
+
 export const withCopy = (combo) => ({ ...combo, ...COMBO_COPY[combo.slug] })
+// Combo còn bán (bỏ bộ kit cao cấp in lụa)
+export const onSale = (list) => list.filter((c) => c.tier !== 'premium' && c.slug !== 'premium')
 
 export const PLACEHOLDER_COMBOS = [
   {
@@ -70,13 +80,5 @@ export const PLACEHOLDER_COMBOS = [
     method: 'heat-transfer',
     patterned: true,
     products: ['ao', 'tui'],
-  },
-  {
-    slug: 'premium',
-    tier: 'premium',
-    name: 'Premium',
-    method: 'screen-print',
-    patterned: false,
-    products: ['ao'],
   },
 ].map(withCopy)

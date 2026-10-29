@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import { DRAW_COLORS, DRAW_TOOLS, applyMask, drawStroke, loadMask } from '../data/drawing.js'
+import { DRAW_COLORS, DRAW_TOOLS, applyClip, applyMask, drawStroke, loadMask } from '../data/drawing.js'
 
 // Lớp vẽ phủ lên áo / túi trong trình phối: nhận nét từ chuột, ngón tay hoặc bút cảm ứng.
 // Chỉ theo một con trỏ: ngón tay thứ hai (hay lòng bàn tay khi đang dùng bút) bị bỏ qua, không cuộn / phóng trang.
-export function DrawingPad({ productKey, strokes, brush, onStroke }) {
+export function DrawingPad({ productKey, strokes, brush, clip, onStroke }) {
   const canvasRef = useRef(null)
   const baseRef = useRef(null) // các nét đã xong, vẽ sẵn để mỗi lần di bút chỉ vẽ thêm nét đang vẽ
   const maskRef = useRef(null)
@@ -42,6 +42,7 @@ export function DrawingPad({ productKey, strokes, brush, onStroke }) {
     if (cur.current) drawStroke(ctx, cur.current.stroke, W, W)
     // giới hạn trong thân áo / túi
     applyMask(ctx, maskRef.current, W, W)
+    applyClip(ctx, clip, W, W)
   }
 
   useEffect(() => {
@@ -155,6 +156,8 @@ export function DrawTray({
   onCancel,
   onDone,
   busy,
+  landscape,
+  onLandscape,
 }) {
   const t = DRAW_TOOLS[brush.tool]
   const set = (p) => onBrush((b) => ({ ...b, ...p }))
@@ -234,6 +237,14 @@ export function DrawTray({
       </div>
 
       <div className="draw-actions">
+        <button
+          type="button"
+          className="draw-a4"
+          onClick={onLandscape}
+          title="Hình vẽ tối đa khổ A4 (21 × 29,7 cm): đổi khung dọc / ngang"
+        >
+          Khổ A4 {landscape ? 'ngang' : 'dọc'}
+        </button>
         <button type="button" onClick={onUndo} disabled={!canUndo} title="Hoàn tác nét">
           Hoàn tác
         </button>

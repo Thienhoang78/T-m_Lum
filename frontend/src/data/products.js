@@ -1,5 +1,7 @@
-// Cấu hình 2 món nền khách chọn trong mỗi combo. Áo: chỉ áo trắng, bảng size thật.
-// Túi: màu và số đo vẫn là NỘI DUNG MẪU, thay khi có số liệu thật.
+// Cấu hình 2 món nền khách chọn trong mỗi combo. Áo và túi đều màu trắng. Áo: bảng size thật.
+// Túi: số đo vẫn là NỘI DUNG MẪU, thay khi có số liệu thật.
+// Cỡ thật trên ảnh (để giới hạn hình vẽ / hình tải lên tối đa A4 và đặt sticker đúng cỡ in):
+//   widthCm: bề ngang thật của thân áo (ngang ngực size M) / mặt túi; bodyFrac: phần khung ảnh vuông mà bề ngang đó chiếm.
 export const PRODUCTS = {
   ao: {
     key: 'ao',
@@ -8,10 +10,15 @@ export const PRODUCTS = {
     title: 'Áo thun cotton trắng',
     blurb:
       'Áo thun cotton trắng trơn, form oversize vai rơi, cổ bo gân; mặt trước và mặt sau đủ rộng để trang trí theo ý bạn.',
-    photo: '/images/ao-trang.png', // áo trắng trơn oversize, cổ bo gân
-    cutout: '/images/ao-trang-cat.png', // cùng ảnh, nền trong suốt, hở cổ: dùng cho live mặc thử
+    photo: '/images/ao-trang.webp', // ảnh áo thật của studio, đã cắt nền (áo trắng, cổ tròn bo gân, form suông)
+    cutout: '/images/ao-trang-cat.webp', // cùng ảnh, khoét hẳn vùng cổ: dùng cho live mặc thử
     // Tâm thân áo theo % khung ảnh vuông: đường căn giữa và chỗ đặt sticker mới khi phối
-    center: { x: 50, y: 50 },
+    center: { x: 50, y: 55 },
+    widthCm: 54,
+    bodyFrac: 0.539,
+    // Mặt sau dựng từ ảnh mặt trước (xem data/design.js): vùng cổ theo toạ độ 0..1 của ảnh
+    backNeck: { cx: 0.5, rx: 0.118, top: 0.025, band: 0.03, bottom: 0.165, fabric: [0.5, 0.32] },
+    drawCenter: { x: 50, y: 40 }, // tâm khung A4 khi vẽ (giữa ngực)
     colors: [{ key: 'trang', name: 'Trắng', fill: '#f7f4ee', seam: '#cfc7b8' }],
     sizes: ['S', 'M', 'L', 'XL', 'XXL'],
     extras: ['Tay trái', 'Tay phải', 'Nhãn áo tùy chỉnh'],
@@ -32,13 +39,14 @@ export const PRODUCTS = {
     name: 'Túi tote',
     unit: 'túi',
     title: 'Túi tote canvas',
-    center: { x: 50, y: 64 }, // tâm thân túi (dưới quai)
-    blurb: 'Túi tote vải canvas dày, quai đeo vai, mặt túi phẳng để trang trí thoải mái.',
-    colors: [
-      { key: 'moc', name: 'Mộc', fill: '#d8c7a6', seam: '#a8956f' },
-      { key: 'den', name: 'Đen', fill: '#25202c', seam: '#6b6276' },
-      { key: 'kem', name: 'Kem', fill: '#eee5d2', seam: '#bfae8c' },
-    ],
+    photo: '/images/tui-trang.webp', // ảnh túi thật của studio, đã cắt nền
+    cutout: '/images/tui-trang.webp', // vùng được vẽ: theo ảnh túi
+    center: { x: 50, y: 70 }, // tâm thân túi (dưới quai)
+    drawCenter: { x: 50, y: 70 },
+    blurb: 'Túi tote vải canvas trắng, quai đeo vai, mặt túi phẳng để trang trí thoải mái.',
+    widthCm: 35,
+    bodyFrac: 0.4525,
+    colors: [{ key: 'trang', name: 'Trắng', fill: '#f7f4ee', seam: '#cfc7b8' }],
     sizes: ['Một size'],
     extras: [],
     sizeChart: {
@@ -51,17 +59,12 @@ export const PRODUCTS = {
 
 export const PRINT_SIDES = ['Chỉ in mặt trước', 'Chỉ in mặt sau', 'In cả 2 mặt']
 
-// Cách in theo combo: sticker in chuyển nhiệt (đã gồm 1 bộ, mua thêm được), hoặc bộ dụng cụ để khách tự in lụa.
+// Cách in theo combo: sticker in chuyển nhiệt (bộ kit cao cấp in lụa đã ngừng bán)
 export const METHODS = {
   'heat-transfer': {
     label: 'In chuyển nhiệt',
     stickers: true,
     orderModes: ['Chọn sticker tại studio', 'Bạn tự thiết kế', 'Tùm Lum thiết kế hộ'],
-  },
-  'screen-print': {
-    label: 'In lụa (tự in bằng bộ dụng cụ)',
-    stickers: false,
-    orderModes: ['Bạn tự thiết kế', 'Tùm Lum thiết kế hộ'],
   },
 }
 export const methodOf = (combo) => METHODS[combo.method] ?? METHODS['heat-transfer']
@@ -80,3 +83,24 @@ export function contentsOf(combo, key) {
   const items = combo.items
   return Array.isArray(items) ? items : (items?.[key] ?? [])
 }
+
+// Bề ngang thật (cm) của cả khung ảnh vuông của món nền: đổi % khung ↔ cm
+export const frameCm = (productKey) => {
+  const p = PRODUCTS[productKey] ?? PRODUCTS.ao
+  return p.widthCm / p.bodyFrac
+}
+export const pctToCm = (productKey, pct) => (pct / 100) * frameCm(productKey)
+export const cmToPct = (productKey, cm) => (cm / frameCm(productKey)) * 100
+
+// Khổ A4 (cm): hình vẽ / hình tải lên không được lớn hơn A4 (dọc hoặc ngang)
+export const A4 = { w: 21, h: 29.7 }
+// Bề ngang lớn nhất (% khung) của hình có tỉ lệ cao / ngang = ar để vẫn nằm gọn trong A4
+export function maxWidthPctA4(productKey, ar = 1) {
+  const a = Math.max(0.05, ar)
+  const cm = Math.max(Math.min(A4.w, A4.h / a), Math.min(A4.h, A4.w / a))
+  return cmToPct(productKey, cm)
+}
+
+// Cỡ in thật của sticker thư viện (bề ngang, cm): sticker có cỡ cố định, chỉ đổi vị trí / góc xoay
+export const STICKER_CM = { star: 7, heart: 7, bolt: 6, flower: 7, smile: 7, blob: 9 }
+export const stickerPct = (productKey, shape) => cmToPct(productKey, STICKER_CM[shape] ?? 7)

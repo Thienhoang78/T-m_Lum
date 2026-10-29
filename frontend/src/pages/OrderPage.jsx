@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { createOrder, uploadSticker } from '../api.js'
-import { tierOf } from '../data/combos.js'
-import { PRODUCTS, contentsOf, methodOf, productFor } from '../data/products.js'
+import { CHOICES, tierOf } from '../data/combos.js'
+import { PRODUCTS, contentsOf, productFor } from '../data/products.js'
 import {
   DELIVERY,
   PAYMENTS,
   PRICING,
-  allowsUploads,
-  choosesIncludedSet,
+  PROVINCES,
+  choicesOf,
   findVoucher,
   priceOf,
   quote,
@@ -16,6 +16,7 @@ import {
 } from '../data/pricing.js'
 import { STICKER_SETS } from '../data/stickerSets.js'
 import { WAIVER_VERSION } from '../data/consent.js'
+import { normalizeDesign, onSide } from '../data/design.js'
 import { useCustomStickers } from '../data/useCustomStickers.js'
 import { OptionGroup, Pills, SizeChart, Stepper } from '../components/ProductParts.jsx'
 import Sticker from '../components/Sticker.jsx'
@@ -25,70 +26,84 @@ import LiveTryOn from '../components/LiveTryOn.jsx'
 import { renderMockup } from '../data/mockup.js'
 import CustomStickers from '../components/CustomStickers.jsx'
 
-// Trang đặt hàng cho áo hoặc túi trong Bộ kit cơ bản – in chuyển nhiệt (Combo 1 / Combo 2) và
-// Bộ kit cao cấp – in lụa (áo + bộ dụng cụ in lụa + 1 bộ sticker).
-// Ảnh món + "Bộ kit gồm" bên trái; bên phải: hướng dẫn size → chọn combo → (màu túi) → size → số lượng
-// → bộ sticker (Combo 1 tự chọn bộ đi kèm, Combo 2 mua thêm) → hình tự tải lên (chỉ Combo 1)
-// → thanh toán (nhận hàng, thanh toán, mã giảm giá, bảng tính giá) → Phối thử / Đặt hàng.
-const INK = 'var(--brand-strong)' // màu mực minh hoạ cho gói in lụa
+// Trang đặt hàng áo hoặc túi (trắng) trong bộ kit cơ bản – in chuyển nhiệt (Combo 1 / Combo 2).
+// Ảnh món (xem mặt trước / mặt sau) + "Bộ kit gồm" bên trái; bên phải: hướng dẫn size → chọn combo → size
+// → số lượng → Combo 1: chọn 1 trong 3 cách làm sticker (tự vẽ / tải hình / bộ sticker có sẵn); Combo 2: bộ có sẵn
+// → tấm sticker mua thêm (in lại đúng nội dung đã chọn theo khổ A5 / A4)
+// → thanh toán (nhận hàng, tỉnh / thành, thanh toán, mã giảm giá, bảng tính giá) → Phối thử / Đặt hàng.
+// Sticker không tính tiền riêng; phí giao theo tỉnh (xem data/pricing.js).
 const PHONE_RE = /^0\d{9}$/
 const EMPTY_CUSTOMER = { name: '', phone: '', address: '', note: '' }
 const clampInt = (n, lo, hi) => Math.min(hi, Math.max(lo, Math.floor(Number(n)) || lo))
 // Hình minh hoạ bộ kit (cắt từ bảng giá của studio)
-const KIT_ART = {
-  ao: '/images/kits/kit-ao.webp',
-  tui: '/images/kits/kit-tui.webp',
-  premium: '/images/kits/kit-premium.webp',
-}
+const KIT_ART = { ao: '/images/kits/kit-ao.webp', tui: '/images/kits/kit-tui.webp' }
+const SIDES = [
+  ['front', 'Mặt trước'],
+  ['back', 'Mặt sau'],
+]
 
 // Bản phối của từng món (áo / túi) lưu trong sessionStorage theo gói, để tải lại trang không mất.
-// Hình khách tự tải lên không lưu được (ảnh chỉ nằm trong trình duyệt), nên chỉ lưu sticker thư viện.
+// Hình khách tự tải lên / tự vẽ không lưu được (ảnh chỉ nằm trong trình duyệt), nên chỉ lưu sticker thư viện.
 const designKey = (tier) => `tl-design:${tier}`
 function loadDesigns(tier) {
   try {
-    return JSON.parse(sessionStorage.getItem(designKey(tier))) ?? {}
+    const saved = JSON.parse(sessionStorage.getItem(designKey(tier))) ?? {}
+    return Object.fromEntries(Object.entries(saved).map(([k, list]) => [k, normalizeDesign(list, k)]))
   } catch {
     return {}
   }
 }
 
-function validate({ size, customer, delivery }) {
+function validate({ size, customer, delivery, province }) {
   const e = {}
   if (!size) e.size = 'Chọn size.'
   if (!customer.name.trim()) e.name = 'Nhập họ tên người nhận.'
   if (!PHONE_RE.test(customer.phone.replace(/\s/g, ''))) e.phone = 'Số điện thoại gồm 10 số, bắt đầu bằng 0.'
+  if (delivery === 'giao-hang' && !province) e.province = 'Chọn tỉnh / thành phố nhận hàng.'
   if (delivery === 'giao-hang' && !customer.address.trim()) e.address = 'Nhập địa chỉ nhận hàng.'
   return e
 }
 
+// Ảnh mockup một mặt (khối ẩn trong trang) → id ảnh đã tải lên, hoặc undefined
+async function uploadMockup(el, items, name) {
+  if (!el || !items.length) return undefined
+  try {
+    const blob = await renderMockup(el.querySelector('.tee-visual'), items, 1000)
+    return blob ? (await uploadSticker(new File([blob], name, { type: 'image/png' }))).id : undefined
+  } catch {
+    return undefined
+  }
+}
+
 export default function OrderPage({ combos, combo, productKey, products, onProduct, user }) {
   const [, setSearchParams] = useSearchParams()
-  const method = methodOf(combo)
   const tier = tierOf(combo)
   const product = productFor(PRODUCTS[productKey], combo)
   const hasSizes = product.sizes.length > 1
   const unit = product.unit
-  const sample = !!PRICING.sample[combo.slug]
   const tabs = ['Mô tả', hasSizes ? 'Bảng size' : 'Kích thước', 'Bảo quản']
   const uid = useId()
-  const isPremium = tier.key === 'premium'
-  const tone = isPremium ? 'premium' : productKey
-  const chooseSet = choosesIncludedSet(combo.slug) // Combo 1: khách tự chọn bộ sticker đi kèm
-  const allowUpload = allowsUploads(combo.slug) // chỉ Combo 1 cho tải hình của bạn lên
+  const choices = choicesOf(combo.slug) // Combo 1: 3 cách làm sticker, chọn đúng 1
 
   const [sizeOpen, setSizeOpen] = useState(false)
   const [sizeChoice, setSize] = useState(null)
   // Đổi áo ↔ túi ngay trên trang: size cũ không hợp lệ thì phải chọn lại, túi chỉ có một size
   const size = hasSizes ? (product.sizes.includes(sizeChoice) ? sizeChoice : null) : product.sizes[0]
-  const [colorKey, setColorKey] = useState(product.colors[0].key)
+  const color = product.colors[0] // áo và túi đều màu trắng
   const [qty, setQty] = useState(1)
-  const [sets, setSets] = useState({}) // bộ sticker đã chọn: { [key]: số bộ }
+  const [sets, setSets] = useState({}) // bộ sticker đi kèm đã chọn (Combo 1): { [key]: số bộ }
+  const [sheets, setSheets] = useState({}) // tấm sticker mua thêm: { a5, a4 }
+  // Combo 2: nội dung tấm mua thêm theo khổ: 'combo' (bộ đi kèm) hoặc khoá một bộ sticker của shop
+  const [sheetSets, setSheetSets] = useState({})
+  const [choiceKey, setChoice] = useState(null) // cách làm sticker của Combo 1
+  const [side, setSide] = useState('front') // mặt đang xem
   const [customer, setCustomer] = useState(() => ({
     ...EMPTY_CUSTOMER,
     name: user?.name ?? '',
     phone: user?.phone ?? '',
   }))
   const [delivery, setDelivery] = useState('giao-hang')
+  const [province, setProvince] = useState('')
   const [payment, setPayment] = useState('cod')
   const [voucherInput, setVoucherInput] = useState('')
   const [voucher, setVoucher] = useState(null)
@@ -98,12 +113,13 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
   const [studio, setStudio] = useState(false)
   const [live, setLive] = useState(false) // live mặc thử áo bằng camera
   const visualRef = useRef(null)
+  const exportRefs = { front: useRef(null), back: useRef(null) } // khối ẩn để xuất mockup từng mặt
   const [busy, setBusy] = useState(false)
   const [submitError, setSubmitError] = useState(null)
   const [placed, setPlaced] = useState(null)
   const [tab, setTab] = useState(0)
   const placedRef = useRef(null)
-  const custom = useCustomStickers() // sticker khách tự tải lên
+  const custom = useCustomStickers() // hình khách tự tải lên / tự vẽ
   const [waiver, setWaiver] = useState({ accepted: false, signedName: '' })
 
   // Đăng nhập sau khi đã mở trang: điền tên và số điện thoại vào ô còn trống
@@ -133,52 +149,48 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
     }
   }, [designs, tier.key])
 
-  // Đổi sang combo hoạ tiết thì chỉ còn một màu nền: rơi về màu đầu tiên còn hợp lệ
-  const color = product.colors.find((c) => c.key === colorKey) ?? product.colors[0]
-  const chosenSets = method.stickers ? STICKER_SETS.filter((s) => sets[s.key]) : []
-  const setsQty = chosenSets.reduce((n, s) => n + sets[s.key], 0)
-  const toggleSet = (key) =>
-    setSets((m) => {
-      const next = { ...m }
-      if (next[key]) delete next[key]
-      else next[key] = 1
-      return next
-    })
-  // Dùng sticker của một bộ trong trình phối: thêm bộ đó vào đơn (1 bộ) nếu chưa có
-  const useSet = useCallback((key) => setSets((m) => (m[key] ? m : { ...m, [key]: 1 })), [])
-  const q = quote({
-    product: productKey,
-    combo: combo.slug,
-    qty,
-    stickerQty: setsQty,
-    customQty: allowUpload ? custom.active.length : 0,
-    delivery,
-    voucher,
-  })
-  // Có sticker tự tải lên thì phải ký cam kết bản quyền; đang tải hình thì chưa cho đặt
-  const needsWaiver = allowUpload && custom.active.length > 0
+  // Combo 1: chọn 1 trong 3 (đổi cách thì các lớp của cách khác bị ẩn, không mất; đổi lại thì hiện lại)
+  const choice = choices.includes(choiceKey) ? choiceKey : null
+  const pickSet = choice === 'bo-sticker'
+  const allowDraw = choice === 've'
+  const allowUpload = choice === 'tai-len'
+  // Bộ sticker có sẵn: chọn đúng 1 bộ, mỗi áo / túi 1 bộ
+  const setKey = Object.keys(sets)[0] ?? null
+  const chosenSets = pickSet && setKey ? STICKER_SETS.filter((st) => st.key === setKey) : []
+  const setsQty = chosenSets.length ? qty : 0
+  const chooseOneSet = (key) => setSets({ [key]: 1 })
+  // Dùng sticker của một bộ trong trình phối: bộ đó thành bộ được chọn (Combo 1, cách bộ sticker có sẵn)
+  const useSet = useCallback((key) => setSets((m) => (m[key] ? m : { [key]: 1 })), [])
+  // Hình tự tạo đúng loại với cách đã chọn: tự vẽ → hình vẽ; tải hình → hình tải lên
+  const ofChoice = (c) => (allowDraw ? !!c.drawn : allowUpload ? !c.drawn : false)
+  const myActive = custom.active.filter(ofChoice)
+  const myDone = custom.done.filter(ofChoice)
+  const sheetCount = Object.values(sheets).reduce((n, x) => n + (x || 0), 0)
+  const q = quote({ product: productKey, combo: combo.slug, qty, sheets, delivery, province, voucher })
+  // Có hình tự tải lên / tự vẽ thì phải ký cam kết bản quyền; đang tải hình thì chưa cho đặt
+  const needsWaiver = (allowDraw || allowUpload) && myActive.length > 0
   const waiverOk = waiver.accepted && waiver.signedName.trim() !== ''
-  const blockReason = !allowUpload
+  const blockReason = !(allowDraw || allowUpload)
     ? null
     : custom.uploading
-      ? 'Đang tải hình sticker của bạn lên, chờ một chút…'
+      ? 'Đang tải hình của bạn lên, chờ một chút…'
       : needsWaiver && !waiverOk
         ? 'Cần tick đồng ý và ký tên vào cam kết bản quyền ở phần “Sticker của riêng bạn” để đặt hàng.'
         : null
-  // Sticker tự tải lên đã bị bỏ thì không hiện trên bản phối nữa; ảnh lấy theo bản đang chọn (gốc / tách nền)
-  const customOf = (key) => custom.items.find((c) => c.key === key && c.status !== 'error')
-  // Combo không nhận hình tự tải lên thì ẩn các hình đó khỏi bản phối (đổi lại Combo 1 thì hiện lại)
+  // Hình tự tải lên đã bị bỏ thì không hiện trên bản phối nữa; ảnh lấy theo bản đang chọn (gốc / tách nền)
+  const customOf = (key) => custom.items.find((c) => c.key === key && c.status !== 'error' && ofChoice(c))
+  // Chỉ hiện các lớp của cách làm sticker đang chọn: Combo 1 theo 1 trong 3; Combo 2 chỉ sticker có sẵn
+  const libraryOk = (it) => (choices.length ? pickSet && (!setKey || it.set === setKey) : true)
   const shownDesign = design
-    .filter((it) => !it.custom || (allowUpload && customOf(it.custom)))
+    .filter((it) => (it.custom ? !!customOf(it.custom) : libraryOk(it)))
     .map((it) => (it.custom ? { ...it, src: customOf(it.custom).url } : it))
   const visibleDesign = shownDesign.filter((it) => !it.hidden)
+  const sideItems = (s) => onSide(visibleDesign, s)
   const v = findVoucher(voucher)
   const visual = { productKey, color, pattern: combo.patterned }
 
   // Combo lưu trên URL (?combo=combo-2), combo đầu tiên của gói thì để URL gọn
   function pickCombo(slug) {
-    // Bộ sticker chỉ chọn làm bộ đi kèm Combo 1 (không tốn tiền) thì bỏ khi sang combo khác, tránh bị tính tiền
-    if (chooseSet && !choosesIncludedSet(slug) && setsQty <= qty) setSets({})
     setSearchParams(slug === combos[0].slug ? {} : { combo: slug }, {
       replace: true,
       state: { keepScroll: true },
@@ -206,39 +218,47 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
   }
 
   async function placeOrder() {
-    const e = validate({ size, customer, delivery })
-    if (chooseSet && !setsQty) e.sets = `${combo.name} kèm 1 bộ sticker tự chọn: hãy chọn bộ bạn thích.`
+    const e = validate({ size, customer, delivery, province })
+    if (choices.length && !choice) e.choice = `${combo.name}: chọn 1 trong 3 cách làm sticker.`
+    else if (pickSet && !setsQty) e.choice = 'Chọn 1 bộ sticker có sẵn của shop.'
+    else if (allowDraw && !myDone.length) e.choice = 'Vẽ ít nhất 1 hình trong Phối thử → Vẽ.'
+    else if (allowUpload && !myDone.length) e.choice = 'Tải lên ít nhất 1 hình của bạn.'
     if (needsWaiver && !waiverOk) e.waiver = 'Hãy tick đồng ý và ghi họ tên để ký cam kết.'
     setErrors(e)
     setSubmitError(null)
-    const first = ['size', 'sets', 'waiver', 'name', 'phone', 'address'].find((k) => e[k])
+    const first = ['size', 'choice', 'waiver', 'name', 'phone', 'province', 'address'].find((k) => e[k])
     if (first) {
       const el = document.getElementById(`${uid}-${first}`)
       el?.scrollIntoView({ block: 'center', behavior: 'smooth' })
-      if (!['size', 'sets', 'waiver'].includes(first)) el?.focus({ preventScroll: true })
+      if (!['size', 'choice', 'waiver'].includes(first)) el?.focus({ preventScroll: true })
       return
     }
     setBusy(true)
     try {
-      // Ảnh mockup áo / túi kèm sticker gửi kèm đơn để studio biết vị trí ép (lỗi thì vẫn đặt hàng được)
-      let preview
-      if (visibleDesign.length) {
-        try {
-          const blob = await renderMockup(visualRef.current.querySelector('.tee-visual'), visibleDesign, 1000)
-          if (blob)
-            preview = (
-              await uploadSticker(new File([blob], `mockup-${productKey}.png`, { type: 'image/png' }))
-            ).id
-        } catch {
-          preview = undefined
-        }
-      }
-      // Bản phối gửi lên: sticker thư viện theo hình + bộ, sticker tự tải lên theo vị trí trong customStickers
-      const design = visibleDesign
-        .filter((it) => !it.custom || custom.done.some((c) => c.key === it.custom))
-        .map(({ id: _id, custom: key, src: _src, hidden: _h, locked: _l, ...it }) =>
+      // Ảnh mockup mặt trước / mặt sau kèm sticker gửi kèm đơn để studio biết vị trí ép (lỗi vẫn đặt hàng được)
+      const preview = await uploadMockup(
+        exportRefs.front.current,
+        sideItems('front'),
+        `mockup-${productKey}.png`
+      )
+      const previewBack = await uploadMockup(
+        exportRefs.back.current,
+        sideItems('back'),
+        `mockup-${productKey}-sau.png`
+      )
+      // Bản phối gửi lên: sticker thư viện theo hình + bộ, hình tự tải lên theo vị trí trong customStickers
+      const sent = visibleDesign
+        .filter((it) => !it.custom || myDone.some((c) => c.key === it.custom))
+        .map(({ id: _id, custom: key, src: _src, hidden: _h, locked: _l, drawing: _d, ar: _ar, ...it }) =>
           key
-            ? { x: it.x, y: it.y, r: it.r, s: it.s, upload: custom.done.findIndex((c) => c.key === key) }
+            ? {
+                side: it.side,
+                x: it.x,
+                y: it.y,
+                r: it.r,
+                s: it.s,
+                upload: myDone.findIndex((c) => c.key === key),
+              }
             : it
         )
       const res = await createOrder({
@@ -247,30 +267,42 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
         color: color.key,
         size,
         qty,
-        stickerSets: chosenSets.map((s) => ({ key: s.key, qty: sets[s.key] })),
+        choice: choice ?? undefined,
+        stickerSets: chosenSets.map((st) => ({ key: st.key, qty })),
+        sheets,
+        sheetSets: choices.length ? undefined : sheetSets,
         delivery,
+        province: delivery === 'giao-hang' ? province : undefined,
         payment,
         voucher,
         customer: { ...customer, phone: customer.phone.replace(/\s/g, '') },
-        customStickers: needsWaiver ? custom.done.map((c) => ({ id: c.id, cut: !!(c.useCut && c.cut) })) : [],
+        customStickers: needsWaiver
+          ? myDone.map((c) => ({ id: c.id, cut: !!(c.useCut && c.cut), drawn: !!c.drawn }))
+          : [],
         waiver: needsWaiver
           ? { accepted: true, signedName: waiver.signedName.trim(), version: WAIVER_VERSION }
           : undefined,
-        design,
+        design: sent,
         preview,
+        previewBack,
       })
       setPlaced({
         code: res.code,
         totals: res.totals,
         comboName: combo.name,
         productName: product.name,
-        colorName: color.name,
         hasSizes,
         size,
         qty,
-        stickerSets: chosenSets.map((s) => ({ name: s.name, qty: sets[s.key] })),
-        customCount: needsWaiver ? custom.done.length : 0,
-        delivery: DELIVERY.find((d) => d.key === delivery).label,
+        choiceName: choice ? CHOICES[choice].name : null,
+        stickerSets: chosenSets.map((st) => ({ name: st.name, qty })),
+        sheets: Object.entries(PRICING.sheets)
+          .filter(([k]) => sheets[k])
+          .map(([k, s]) => ({ name: s.name, qty: sheets[k] })),
+        customCount: needsWaiver ? myDone.length : 0,
+        delivery:
+          DELIVERY.find((d) => d.key === delivery).label +
+          (delivery === 'giao-hang' ? ` · ${PROVINCES.find((p) => p.key === province)?.name}` : ''),
         payment: PAYMENTS.find((p) => p.key === payment).label,
         phone: customer.phone,
       })
@@ -308,18 +340,21 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
     )
   }
 
+  const shipText = `Đà Nẵng ${vnd(PRICING.shipping['da-nang'])} · miền Trung ${vnd(
+    PRICING.shipping['mien-trung']
+  )} · tỉnh khác ${vnd(PRICING.shipping['con-lai'])}; miễn phí cho đơn từ ${vnd(PRICING.freeShipFrom)}`
+
   return (
     <div className="page product tee-page">
       <div className="pp-grid">
-        {/* ---------- Cột trái: ảnh áo trắng ---------- */}
+        {/* ---------- Cột trái: ảnh món, xem mặt trước / mặt sau ---------- */}
         <div className="pp-gallery">
           <div className="pp-main tee-main" ref={visualRef}>
             <ProductVisual
               {...visual}
+              side={side}
               design={shownDesign}
-              flat={!method.stickers}
-              ink={INK}
-              alt={productKey === 'ao' ? 'Áo thun trắng trơn form oversize, cổ bo gân' : product.title}
+              alt={`${product.title}, ${side === 'back' ? 'mặt sau' : 'mặt trước'}`}
             />
             {combo.patterned && (
               <span className="tee-badge">
@@ -328,9 +363,17 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
               </span>
             )}
             {visibleDesign.length > 0 && <span className="pp-view-tag">Bản phối của bạn</span>}
+            <div className="side-switch" role="group" aria-label="Xem mặt">
+              {SIDES.map(([k, label]) => (
+                <button key={k} type="button" aria-pressed={side === k} onClick={() => setSide(k)}>
+                  {label}
+                  {sideItems(k).length > 0 && <b>{sideItems(k).length}</b>}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className={`kit-inbox tone-${tone}`}>
-            <img src={KIT_ART[tone]} alt="" loading="lazy" />
+          <div className={`kit-inbox tone-${productKey}`}>
+            <img src={KIT_ART[productKey]} alt="" loading="lazy" />
             <div>
               <p>Bộ kit gồm</p>
               <ul>
@@ -351,27 +394,17 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
             <span aria-hidden="true">›</span>
             <span aria-current="page">{product.name}</span>
           </nav>
-          <p className={`kit-label${isPremium ? ' is-premium' : ''}`}>
+          <p className="kit-label">
             <span className="kit-no" aria-hidden="true">
               {tier.no}.
             </span>
             {tier.name} – {tier.method}
           </p>
           <h1 className="pp-title">
-            {isPremium ? (
-              'Áo thun cao cấp'
-            ) : (
-              <>
-                {product.title} <em>· {combo.name}</em>
-              </>
-            )}
+            {product.title} <em>· {combo.name}</em>
           </h1>
-          <p className={`pp-price kit-price-pill kit-tone-${tone}`}>
-            {vnd(q.unit)}{' '}
-            <small>
-              / {unit}
-              {sample && ' · tạm tính'}
-            </small>
+          <p className={`pp-price kit-price-pill kit-tone-${productKey}`}>
+            {vnd(q.unit)} <small>/ {unit}</small>
           </p>
           <p className="pp-blurb">{product.blurb}</p>
 
@@ -406,9 +439,9 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
               </div>
 
               {/* 2. Chọn combo */}
-              <OptionGroup label={combos.length > 1 ? 'Combo' : 'Gói'}>
+              <OptionGroup label="Combo">
                 <div className="tee-combos">
-                  {combos.map((c) => (
+                  {combos.map((c, i) => (
                     <label key={c.slug} className="tee-combo">
                       <input
                         type="radio"
@@ -418,11 +451,7 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
                         onChange={() => pickCombo(c.slug)}
                       />
                       <span className="tee-combo-head">
-                        {combos.length > 1 ? (
-                          <strong className={`kit-tag tag-${combos.indexOf(c) + 1}`}>{c.name}</strong>
-                        ) : (
-                          <strong>{c.name}</strong>
-                        )}
+                        <strong className={`kit-tag tag-${i + 1}`}>{c.name}</strong>
                         <span>{vnd(priceOf(productKey, c.slug) ?? 0)}</span>
                       </span>
                       <span className="tee-combo-tag">{c.tagline}</span>
@@ -431,29 +460,10 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
                           <li key={it}>{it}</li>
                         ))}
                       </ul>
-                      {methodOf(c).note && <span className="combo-note">{methodOf(c).note}</span>}
                     </label>
                   ))}
                 </div>
               </OptionGroup>
-
-              {/* Màu: túi trơn có nhiều màu; áo và món in sẵn hoạ tiết chỉ một màu */}
-              {product.colors.length > 1 && (
-                <OptionGroup label={`Màu ${unit}`}>
-                  {product.colors.map((c) => (
-                    <button
-                      key={c.key}
-                      type="button"
-                      className="swatch"
-                      aria-pressed={color.key === c.key}
-                      onClick={() => setColorKey(c.key)}
-                    >
-                      <span className="swatch-dot" style={{ background: c.fill }} aria-hidden="true" />
-                      {c.name}
-                    </button>
-                  ))}
-                </OptionGroup>
-              )}
 
               {/* 3. Size (túi một size thì bỏ qua) */}
               {hasSizes && (
@@ -484,68 +494,72 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
                 </div>
               </OptionGroup>
 
-              {/* 5. Bộ sticker: Combo 1 tự chọn bộ đi kèm (bắt buộc), Combo 2 đã gồm 1 bộ, chọn thêm nếu muốn */}
-              {method.stickers && (
-                <OptionGroup
-                  label={chooseSet ? 'Bộ sticker đi kèm' : 'Bộ sticker mua thêm'}
-                  note={
-                    chooseSet
-                      ? `tự chọn, 1 bộ cho mỗi ${unit}; chọn thêm bộ khác thì +${vnd(PRICING.stickerSet)} / bộ`
-                      : `đã gồm 1 bộ sticker in chuyển nhiệt cho mỗi ${unit}; chọn thêm nếu muốn`
-                  }
-                >
-                  <div className="tee-sets" id={`${uid}-sets`}>
-                    {STICKER_SETS.map((st) => (
-                      <button
-                        key={st.key}
-                        type="button"
-                        className="tee-set"
-                        aria-pressed={!!sets[st.key]}
-                        onClick={() => toggleSet(st.key)}
-                      >
-                        <span className="tee-set-art" aria-hidden="true">
-                          {st.stickers.map(([shape, color], i) => (
-                            <Sticker key={i} shape={shape} color={color} style={{ width: 26 }} />
-                          ))}
-                        </span>
-                        <span className="tee-set-name">
-                          {st.name} <small>(mẫu)</small>
-                        </span>
-                        <span className="tee-set-price">
-                          {sets[st.key]
-                            ? '✓ Đã chọn'
-                            : chooseSet && setsQty < qty
-                              ? 'Kèm combo'
-                              : `+${vnd(PRICING.stickerSet)} / bộ`}
-                        </span>
-                      </button>
+              {/* 5. Combo 1: chọn 1 trong 3 cách làm sticker; Combo 2: bộ sticker có sẵn trong kit */}
+              {choices.length ? (
+                <OptionGroup label="Sticker của bạn" note="chọn 1 trong 3">
+                  <div className="choice-cards" id={`${uid}-choice`} role="radiogroup">
+                    {choices.map((k) => (
+                      <label key={k} className="choice-card">
+                        <input
+                          type="radio"
+                          name={`${uid}-choice-r`}
+                          checked={choice === k}
+                          onChange={() => {
+                            setChoice(k)
+                            if (errors.choice) setErrors((e) => ({ ...e, choice: undefined }))
+                          }}
+                        />
+                        <Sticker shape={CHOICES[k].shape} color={CHOICES[k].color} style={{ width: 34 }} />
+                        <strong>{CHOICES[k].name}</strong>
+                        <small>{CHOICES[k].body}</small>
+                      </label>
                     ))}
                   </div>
-                  {chosenSets.map((st) => (
-                    <div key={st.key} className="tee-qty">
-                      <Stepper
-                        value={sets[st.key]}
-                        min={1}
-                        label={`Số bộ ${st.name}`}
-                        onChange={(n) => setSets((m) => ({ ...m, [st.key]: clampInt(n, 1, 999) }))}
-                      />
-                      <span>{st.name}</span>
+                  {errors.choice && <p className="field-err">{errors.choice}</p>}
+
+                  {pickSet && (
+                    <div className="tee-sets" role="radiogroup" aria-label="Bộ sticker">
+                      {STICKER_SETS.map((st) => (
+                        <button
+                          key={st.key}
+                          type="button"
+                          className="tee-set"
+                          aria-pressed={setKey === st.key}
+                          onClick={() => {
+                            chooseOneSet(st.key)
+                            if (errors.choice) setErrors((e) => ({ ...e, choice: undefined }))
+                          }}
+                        >
+                          <span className="tee-set-art" aria-hidden="true">
+                            {st.stickers.map(([shape, c], i) => (
+                              <Sticker key={i} shape={shape} color={c} style={{ width: 26 }} />
+                            ))}
+                          </span>
+                          <span className="tee-set-name">
+                            {st.name} <small>(mẫu)</small>
+                          </span>
+                          <span className="tee-set-price">
+                            {setKey === st.key ? '✓ Đã chọn' : 'Chọn bộ này'}
+                          </span>
+                        </button>
+                      ))}
                     </div>
-                  ))}
-                  {errors.sets && !setsQty && <p className="field-err">{errors.sets}</p>}
-                  {chooseSet && setsQty > 0 && setsQty < qty && (
-                    <p className="upl-hint">
-                      Mỗi {unit} kèm 1 bộ: bạn còn chọn được {qty - setsQty} bộ nữa không mất thêm tiền.
-                    </p>
                   )}
+                  {pickSet && qty > 1 && <p className="upl-hint">Mỗi {unit} kèm 1 bộ đã chọn.</p>}
                 </OptionGroup>
+              ) : (
+                <p className="kit-included">
+                  Đã gồm 1 bộ sticker in chuyển nhiệt cho mỗi {unit} trong {combo.name}.
+                </p>
               )}
 
-              {/* 5b. Hình khách tự tải lên + cam kết bản quyền: chỉ Combo 1 */}
-              {allowUpload ? (
+              {/* 5b. Hình tự tải lên / tự vẽ + cam kết bản quyền (Combo 1, theo cách đã chọn) */}
+              {(allowUpload || allowDraw) && (
                 <CustomStickers
                   uid={uid}
                   custom={custom}
+                  kind={allowDraw ? 'draw' : 'upload'}
+                  onDraw={() => setStudio(true)}
                   waiver={waiver}
                   onWaiver={(w) => {
                     setWaiver(w)
@@ -553,21 +567,61 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
                   }}
                   waiverError={errors.waiver}
                 />
-              ) : (
-                method.stickers &&
-                combos.some((c) => allowsUploads(c.slug)) && (
-                  <p className="kit-upload-off">
-                    Muốn in hình của riêng bạn? Tính năng tự tải hình lên chỉ có ở Combo 1.
-                    <button
-                      type="button"
-                      className="link"
-                      onClick={() => pickCombo(combos.find((c) => allowsUploads(c.slug)).slug)}
-                    >
-                      Chuyển sang Combo 1
-                    </button>
-                  </p>
-                )
               )}
+              {!choices.length && combos.some((c) => choicesOf(c.slug).length) && (
+                <p className="kit-upload-off">
+                  Muốn tự vẽ hay in hình của riêng bạn lên {unit}? Chọn Combo 1.
+                  <button
+                    type="button"
+                    className="link"
+                    onClick={() => pickCombo(combos.find((c) => choicesOf(c.slug).length).slug)}
+                  >
+                    Chuyển sang Combo 1
+                  </button>
+                </p>
+              )}
+
+              {/* 5c. Tấm sticker mua thêm (mọi combo) */}
+              <OptionGroup label="Mua thêm tấm sticker" note="không bắt buộc">
+                <p className="upl-hint sheet-note">
+                  {choices.length
+                    ? choice
+                      ? `In lại nội dung bạn đã chọn (${CHOICES[choice].name.toLowerCase()}) trên khổ A5 / A4.`
+                      : 'In lại nội dung bạn chọn ở trên (tự vẽ, hình của bạn hoặc bộ sticker) trên khổ A5 / A4.'
+                    : 'Mặc định in bộ sticker đi kèm combo; đổi sang bộ khác của shop cho từng khổ nếu thích.'}
+                </p>
+                <div className="sheet-rows">
+                  {Object.entries(PRICING.sheets).map(([k, sh]) => (
+                    <div key={k} className="sheet-row">
+                      <span className="sheet-name">
+                        <strong>{sh.name}</strong>
+                        <small>{vnd(sh.price)} / tấm</small>
+                      </span>
+                      <Stepper
+                        value={sheets[k] ?? 0}
+                        min={0}
+                        label={`Số ${sh.name.toLowerCase()}`}
+                        onChange={(n) => setSheets((m) => ({ ...m, [k]: clampInt(n, 0, PRICING.maxSheets) }))}
+                      />
+                      {!choices.length && sheets[k] > 0 && (
+                        <select
+                          className="sheet-set"
+                          aria-label={`Nội dung ${sh.name.toLowerCase()}`}
+                          value={sheetSets[k] ?? 'combo'}
+                          onChange={(ev) => setSheetSets((m) => ({ ...m, [k]: ev.target.value }))}
+                        >
+                          <option value="combo">Bộ đi kèm {combo.name}</option>
+                          {STICKER_SETS.map((st) => (
+                            <option key={st.key} value={st.key}>
+                              {st.name}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </OptionGroup>
 
               {/* 6. Thanh toán */}
               <section className="tee-checkout" aria-labelledby={`${uid}-pay`}>
@@ -594,17 +648,43 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
                         />
                         <span>
                           {d.label}
-                          <small>
-                            {d.key === 'studio'
-                              ? 'Miễn phí vận chuyển'
-                              : `${vnd(PRICING.shipping)}, miễn phí cho đơn từ ${vnd(PRICING.freeShipFrom)}`}
-                          </small>
+                          {d.key === 'giao-hang' && <small>{shipText}</small>}
                         </span>
                       </label>
                     ))}
                   </div>
-                  {delivery === 'giao-hang' &&
-                    field('address', 'Địa chỉ nhận hàng', { autoComplete: 'street-address' })}
+                  {delivery === 'giao-hang' && (
+                    <>
+                      <div className="field">
+                        <label htmlFor={`${uid}-province`}>Tỉnh / thành phố</label>
+                        <select
+                          id={`${uid}-province`}
+                          value={province}
+                          onChange={(ev) => {
+                            setProvince(ev.target.value)
+                            if (errors.province) setErrors((e) => ({ ...e, province: undefined }))
+                          }}
+                          aria-invalid={!!errors.province}
+                          aria-describedby={errors.province ? `${uid}-province-err` : undefined}
+                        >
+                          <option value="">Chọn tỉnh / thành phố</option>
+                          {PROVINCES.map((p) => (
+                            <option key={p.key} value={p.key}>
+                              {p.name}
+                            </option>
+                          ))}
+                        </select>
+                        {errors.province && (
+                          <p className="field-err" id={`${uid}-province-err`}>
+                            {errors.province}
+                          </p>
+                        )}
+                      </div>
+                      {field('address', 'Địa chỉ nhận hàng (số nhà, đường, phường / xã)', {
+                        autoComplete: 'street-address',
+                      })}
+                    </>
+                  )}
                   {field('note', 'Ghi chú (không bắt buộc)', { as: 'textarea', rows: 2 })}
                 </fieldset>
 
@@ -678,7 +758,7 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
                       <tr>
                         <th scope="row">
                           {product.name} {combo.name}
-                          {hasSizes ? size && ` · size ${size}` : ` · ${color.name}`}
+                          {hasSizes && size && ` · size ${size}`}
                           <small>
                             {vnd(q.unit)} / {unit}
                           </small>
@@ -686,7 +766,18 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
                         <td>{qty}</td>
                         <td>{vnd(q.itemTotal)}</td>
                       </tr>
-                      {!chooseSet && (
+                      {choices.length ? (
+                        choice && (
+                          <tr>
+                            <th scope="row">
+                              {pickSet && chosenSets[0] ? chosenSets[0].name : CHOICES[choice].name}
+                              <small>sticker đã gồm trong combo</small>
+                            </th>
+                            <td>{pickSet ? qty : myActive.length}</td>
+                            <td>0₫</td>
+                          </tr>
+                        )
+                      ) : (
                         <tr>
                           <th scope="row">
                             Bộ sticker in chuyển nhiệt
@@ -696,35 +787,27 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
                           <td>0₫</td>
                         </tr>
                       )}
-                      {billSets(chosenSets, sets, chooseSet ? qty : 0).map((r) => (
-                        <tr key={r.key}>
-                          <th scope="row">
-                            {r.name}
-                            <small>
-                              {r.free ? 'đi kèm combo (tự chọn)' : `${vnd(PRICING.stickerSet)} / bộ`}
-                            </small>
-                          </th>
-                          <td>{r.qty}</td>
-                          <td>{vnd(r.free ? 0 : PRICING.stickerSet * r.qty)}</td>
-                        </tr>
-                      ))}
-                      {q.customTotal > 0 && (
-                        <tr>
-                          <th scope="row">
-                            Sticker của bạn
-                            <small>{vnd(PRICING.customSticker)} / hình</small>
-                          </th>
-                          <td>{custom.active.length}</td>
-                          <td>{vnd(q.customTotal)}</td>
-                        </tr>
-                      )}
+                      {Object.entries(PRICING.sheets)
+                        .filter(([k]) => sheets[k])
+                        .map(([k, sh]) => (
+                          <tr key={k}>
+                            <th scope="row">
+                              {sh.name}
+                              <small>{vnd(sh.price)} / tấm</small>
+                            </th>
+                            <td>{sheets[k]}</td>
+                            <td>{vnd(sh.price * sheets[k])}</td>
+                          </tr>
+                        ))}
                     </tbody>
                     <tfoot>
                       <tr>
                         <th scope="row" colSpan={2}>
                           Phí vận chuyển
                         </th>
-                        <td>{q.shipping === 0 ? 'Miễn phí' : vnd(q.shipping)}</td>
+                        <td>
+                          {q.shippingPending ? 'Chọn tỉnh' : q.shipping === 0 ? 'Miễn phí' : vnd(q.shipping)}
+                        </td>
                       </tr>
                       {q.discount > 0 && (
                         <tr className="tee-bill-discount">
@@ -744,13 +827,12 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
                   </table>
                 </div>
                 <p className="placeholder-note">
-                  {sample
-                    ? `Giá gói ${tier.name} đang là giá tạm tính, sẽ cập nhật khi có giá chính thức.`
-                    : `Giá dự kiến của studio. ${method.stickers ? 'Giá bộ sticker mua thêm, phí' : 'Phí'} vận chuyển và mã giảm giá đang là số mẫu.`}
+                  Giá dự kiến của studio. Sticker đi kèm và hình bạn tự tạo đã gồm trong giá combo
+                  {sheetCount > 0 ? '; tấm sticker mua thêm tính theo tấm' : ''}. Mã giảm giá đang là số mẫu.
                 </p>
               </section>
 
-              {/* Live mặc thử áo bằng camera (chỉ áo) */}
+              {/* Live mặc thử áo bằng camera (chỉ áo, mặt trước) */}
               {productKey === 'ao' && (
                 <button
                   type="button"
@@ -771,13 +853,10 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
               )}
 
               {/* 7. Phối thử + Đặt hàng */}
-              {/* Gói in lụa không có sticker để phối nên ẩn Phối thử */}
-              <div className={`tee-actions${method.stickers ? '' : ' tee-actions-single'}`}>
-                {method.stickers && (
-                  <button type="button" className="btn btn-glass" onClick={() => setStudio(true)}>
-                    Phối thử
-                  </button>
-                )}
+              <div className="tee-actions">
+                <button type="button" className="btn btn-glass" onClick={() => setStudio(true)}>
+                  Phối thử
+                </button>
                 <button
                   type="button"
                   className="btn btn-brand"
@@ -831,10 +910,7 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
         <div className="pp-panel" role="tabpanel" id={`${uid}-panel`} aria-labelledby={`${uid}-tab-${tab}`}>
           {tab === 0 && (
             <p>
-              {product.blurb}{' '}
-              {method.stickers
-                ? 'Sticker in chuyển nhiệt bám chắc lên vải, không bong khi mặc và giặt đúng cách.'
-                : `Bộ kit gồm 1 khuôn in, 1 dao gạt và 1 lọ mực để bạn tự tay in lụa lên ${unit}, kèm 1 bộ sticker in chuyển nhiệt.`}
+              {product.blurb} Sticker in chuyển nhiệt bám chắc lên vải, không bong khi mặc và giặt đúng cách.
             </p>
           )}
           {tab === 1 && <SizeChart chart={product.sizeChart} />}
@@ -848,10 +924,19 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
         </div>
       </section>
 
+      {/* Khối ẩn để xuất mockup PNG từng mặt gửi kèm đơn */}
+      <div className="studio-export" aria-hidden="true">
+        {SIDES.map(([k]) => (
+          <div key={k} ref={exportRefs[k]}>
+            <ProductVisual {...visual} side={k} design={visibleDesign} />
+          </div>
+        ))}
+      </div>
+
       {live && (
         <LiveTryOn
           makeTexture={(opts) =>
-            renderMockup(visualRef.current.querySelector('.tee-visual'), visibleDesign, 800, {
+            renderMockup(exportRefs.front.current.querySelector('.tee-visual'), sideItems('front'), 800, {
               transparent: true,
               baseSrc: product.cutout,
               ...opts,
@@ -870,12 +955,14 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
           combo={combo}
           onCombo={pickCombo}
           color={color}
-          onColor={setColorKey}
           stickerSets={STICKER_SETS}
           chosenSets={sets}
           onUseSet={useSet}
           custom={custom}
           allowUpload={allowUpload}
+          allowDraw={allowDraw}
+          libraryOn={!choices.length || pickSet}
+          librarySets={pickSet && setKey ? [setKey] : null}
           initial={design}
           onChange={setDesign}
           total={q.total}
@@ -891,20 +978,6 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
       )}
     </div>
   )
-}
-
-// Dòng bộ sticker trong bảng tính giá: `free` bộ đầu tiên (Combo 1: 1 bộ cho mỗi áo / túi) tính 0₫
-function billSets(chosen, sets, free) {
-  const rows = []
-  let left = free
-  for (const st of chosen) {
-    const n = sets[st.key]
-    const f = Math.min(left, n)
-    left -= f
-    if (f) rows.push({ key: `${st.key}-free`, name: st.name, qty: f, free: true })
-    if (n - f) rows.push({ key: st.key, name: st.name, qty: n - f, free: false })
-  }
-  return rows
 }
 
 function OrderPlaced({ placed, panelRef, onAgain }) {
@@ -925,16 +998,29 @@ function OrderPlaced({ placed, panelRef, onAgain }) {
             {placed.productName} {placed.comboName}
           </dt>
           <dd>
-            {placed.hasSizes ? `Size ${placed.size}` : placed.colorName} × {placed.qty}
+            {placed.hasSizes ? `Size ${placed.size} × ` : '× '}
+            {placed.qty}
           </dd>
         </div>
+        {placed.choiceName && (
+          <div>
+            <dt>Sticker</dt>
+            <dd>{placed.choiceName}</dd>
+          </div>
+        )}
         {placed.customCount > 0 && (
           <div>
-            <dt>Sticker của bạn (đã ký cam kết)</dt>
+            <dt>Hình bạn tự tạo (đã ký cam kết)</dt>
             <dd>× {placed.customCount}</dd>
           </div>
         )}
         {placed.stickerSets.map((st) => (
+          <div key={st.name}>
+            <dt>{st.name}</dt>
+            <dd>× {st.qty}</dd>
+          </div>
+        ))}
+        {placed.sheets.map((st) => (
           <div key={st.name}>
             <dt>{st.name}</dt>
             <dd>× {st.qty}</dd>

@@ -1,6 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
 import { LM, bodyAnchors, bodyYaw, drawGarment, withFolds } from '../data/garmentFit.js'
 import { makeLandmarkFilter } from '../data/oneEuro.js'
+import {
+  addGrain,
+  bodyWidthAt,
+  drawNeckHair,
+  dynamicFolds,
+  featherLayer,
+  sceneTone,
+  shadeCollarArms,
+  tintLayer,
+} from '../data/tryOnRealism.js'
 
 // Live mặc thử áo: mở camera, nhận dạng dáng người bằng MediaPipe Pose (Apache-2.0) ngay trên trình duyệt,
 // đứng đủ người trong khung thì áo (kèm bản phối) tự ướm lên người theo vai và hông.
@@ -197,7 +207,8 @@ export default function LiveTryOn({ makeTexture, color = '#f7f4ee', onClose }) {
   const [canSwitch, setCanSwitch] = useState(false)
   const [showGuide, setShowGuide] = useState(true)
   const [has3D, setHas3D] = useState(supportsWebGL2)
-  const [mode, setMode] = useState(() => (supportsWebGL2() ? '3d' : '2d'))
+  // Mặc định áo ảnh thật (2.5D): trông giống ảnh chụp nhất; áo 3D vẫn chọn được ở nút 2D / 3D
+  const [mode, setMode] = useState('2d')
   const [notice, setNotice] = useState(null)
   const modeRef = useRef(mode)
   const fittedRef = useRef(false)
@@ -361,6 +372,9 @@ export default function LiveTryOn({ makeTexture, color = '#f7f4ee', onClose }) {
     const maskCanvas = document.createElement('canvas')
     const mctx = maskCanvas.getContext('2d')
     let maskImage = null
+    const tmp = document.createElement('canvas') // canvas nháp: ánh màu, mép mềm
+    const neckLayer = document.createElement('canvas') // cổ / cằm / tóc trên cổ áo
+    const nctx = neckLayer.getContext('2d')
 
     const tick = () => {
       rafRef.current = requestAnimationFrame(tick)
@@ -368,8 +382,8 @@ export default function LiveTryOn({ makeTexture, color = '#f7f4ee', onClose }) {
       const W = v.videoWidth
       const H = v.videoHeight
       if (c.width !== W || c.height !== H) {
-        c.width = layer.width = arms.width = W
-        c.height = layer.height = arms.height = H
+        c.width = layer.width = arms.width = neckLayer.width = W
+        c.height = layer.height = arms.height = neckLayer.height = H
       }
       const st = state.current
       const now = performance.now()
@@ -511,17 +525,22 @@ export default function LiveTryOn({ makeTexture, color = '#f7f4ee', onClose }) {
       const use3D = modeRef.current === '3d' && shirt && st.pose3 && st.world
       if (!fittedRef.current || !body) st.mon = null
       if (fittedRef.current && body && (tex || use3D)) {
-        // độ sáng áo theo ánh sáng quanh ngực (đo vài khung hình một lần)
+        // độ sáng và ánh màu của cảnh (đo vài khung hình một lần) lấy ở hai bên đầu, không lấy ở ngực:
+        // ngực là áo thật của người đứng trước camera, màu áo đó không phải màu ánh sáng
         if (st.frame++ % 10 === 0) {
           const mx = (body.shoulderA.x + body.shoulderB.x) / 2
-          const my = (body.shoulderA.y + body.hipA.y) / 2
           const side = Math.abs(body.shoulderA.x - body.shoulderB.x)
-          pctx.drawImage(c, mx - side / 2, my - side / 2, side, side, 0, 0, 12, 12)
-          const d = pctx.getImageData(0, 0, 12, 12).data
-          let sum = 0
-          for (let i = 0; i < d.length; i += 4) sum += 0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]
-          const lum = sum / (d.length / 4)
-          st.light = Math.min(1.08, Math.max(0.72, 0.62 + lum / 420))
+          const nose = st.smooth[LM.nose]
+          const my = nose ? nose.y : (body.shoulderA.y + body.shoulderB.y) / 2 - side * 0.6
+          const box = side * 0.5
+          const clampX = (x) => Math.min(W - box, Math.max(0, x))
+          const clampY = (y) => Math.min(H - box, Math.max(0, y))
+          pctx.clearRect(0, 0, 12, 12)
+          pctx.drawImage(c, clampX(mx - side * 1.1 - box / 2), clampY(my - box / 2), box, box, 0, 0, 6, 12)
+          pctx.drawImage(c, clampX(mx + side * 1.1 - box / 2), clampY(my - box / 2), box, box, 6, 0, 6, 12)
+          const tone = sceneTone(pctx.getImageData(0, 0, 12, 12).data)
+          st.light = tone.light
+          st.tint = tone.tint
         }
         const fade = Math.min(1, (now - st.fittedAt) / 300)
         const shadow = `drop-shadow(0 ${Math.round(H * 0.008)}px ${Math.round(H * 0.014)}px rgba(0,0,0,0.35))`
@@ -551,18 +570,7 @@ export default function LiveTryOn({ makeTexture, color = '#f7f4ee', onClose }) {
         }
         st.mon = null
         if (!tex) return
-        const yaw = bodyYaw(body.shoulderA, body.shoulderB, W)
-        const dst = bodyAnchors(body)
-        lctx.clearRect(0, 0, W, H)
-        drawGarment(lctx, withFolds(tex), dst, { yaw })
-        shadeSides(lctx, dst, yaw)
-        ctx.save()
-        ctx.globalAlpha = fade
-        ctx.filter = `brightness(${st.light.toFixed(2)}) ${shadow}`
-        ctx.drawImage(layer, 0, 0)
-        ctx.restore()
-
-        // tay đưa ra trước người: vẽ lại đúng phần tay từ camera lên trên áo
+        // mặt nạ người (bản mới nhất) ra canvas: dùng để đo bề ngang thân, vẽ tay / cổ / tóc lên trên áo
         if (st.mask) {
           const { data, width: mw, height: mh } = st.mask
           if (!maskImage || maskImage.width !== mw || maskImage.height !== mh) {
@@ -577,6 +585,60 @@ export default function LiveTryOn({ makeTexture, color = '#f7f4ee', onClose }) {
             mctx.putImageData(maskImage, 0, 0)
             st.mask.fresh = false
           }
+        }
+        const yaw = bodyYaw(body.shoulderA, body.shoulderB, W)
+        const sMid = {
+          x: (body.shoulderA.x + body.shoulderB.x) / 2,
+          y: (body.shoulderA.y + body.shoulderB.y) / 2,
+        }
+        const hMid = { x: (body.hipA.x + body.hipB.x) / 2, y: (body.hipA.y + body.hipB.y) / 2 }
+        const lean = Math.atan2(hMid.x - sMid.x, hMid.y - sMid.y)
+        let dst = bodyAnchors(body)
+        // áo vừa người thật: so bề ngang ngực đo từ mặt nạ với bề ngang áo ở ngực, nới / thu áo theo chiều ngang
+        const chest = { x: sMid.x + (hMid.x - sMid.x) * 0.3, y: sMid.y + (hMid.y - sMid.y) * 0.3 }
+        const bw = bodyWidthAt(st.mask, mirror, W, H, chest.x, chest.y)
+        if (bw) {
+          const at = (a, b, t) => a + (b - a) * t
+          const gw =
+            Math.abs(at(dst.shoulderR.x, dst.hemR.x, 0.3) - at(dst.shoulderL.x, dst.hemL.x, 0.3)) || 1
+          const k = Math.min(1.3, Math.max(0.85, (bw * 1.12) / gw))
+          st.fitK = st.fitK ? st.fitK + (k - st.fitK) * 0.15 : k
+        }
+        if (st.fitK) {
+          const cx = (sMid.x + hMid.x) / 2
+          const sx = (p) => ({ ...p, x: cx + (p.x - cx) * st.fitK })
+          dst = {
+            shoulderL: sx(dst.shoulderL),
+            shoulderR: sx(dst.shoulderR),
+            hemL: sx(dst.hemL),
+            hemR: sx(dst.hemR),
+          }
+        }
+        lctx.clearRect(0, 0, W, H)
+        drawGarment(lctx, withFolds(tex), dst, { yaw })
+        shadeSides(lctx, dst, yaw)
+        dynamicFolds(lctx, dst, yaw, lean)
+        shadeCollarArms(lctx, dst)
+        if (st.tint) tintLayer(layer, tmp, st.tint)
+        addGrain(lctx, 0.018 + Math.max(0, 1 - st.light) * 0.07, st.frame)
+        featherLayer(layer, tmp, Math.max(1, Math.round(H * 0.0025)))
+        ctx.save()
+        ctx.globalAlpha = fade
+        ctx.filter = `brightness(${st.light.toFixed(2)}) ${shadow}`
+        ctx.drawImage(layer, 0, 0)
+        ctx.restore()
+
+        // cổ, cằm, tóc phía trên cổ áo nằm trên áo
+        if (st.mask) {
+          drawNeckHair(nctx, v, maskCanvas, mirror, W, H, dst, st.smooth[LM.nose])
+          ctx.save()
+          ctx.globalAlpha = fade
+          ctx.drawImage(neckLayer, 0, 0)
+          ctx.restore()
+        }
+
+        // tay đưa ra trước người: vẽ lại đúng phần tay từ camera lên trên áo
+        if (st.mask) {
           const sw = Math.hypot(body.shoulderA.x - body.shoulderB.x, body.shoulderA.y - body.shoulderB.y)
           if (drawArms(actx, sw, st.smooth, W, H)) {
             actx.save()

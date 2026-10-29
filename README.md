@@ -1,6 +1,6 @@
 # Tùm Lum Studio
 
-Web bán bộ kit DIY "Tùm Lum Studio DIY Kits": áo thun / túi tote kèm sticker in chuyển nhiệt, hoặc bộ kit in lụa.
+Web bán bộ kit DIY "Tùm Lum Studio DIY Kits": áo thun / túi tote trắng kèm sticker in chuyển nhiệt.
 
 ```
 frontend/   React + Vite: trang chủ (bảng giá bộ kit, tự tạo hình, 3 bước, đăng ký/đăng nhập, footer), trang đặt hàng
@@ -22,13 +22,22 @@ npm run dev                                  # chạy cả 2: web :5173, API :30
 Mở http://localhost:5173. Frontend tự chuyển `/api/*` sang backend nên cookie đăng nhập hoạt động khi dev.
 Nếu backend chưa chạy, trang vẫn hiện combo mẫu trong `frontend/src/data/combos.js`.
 
+## Ảnh sản phẩm và logo
+
+Ảnh áo và túi thật của studio (gốc 736 px, đã cắt nền bằng Python + Pillow / NumPy / SciPy, lưu WebP có nền trong suốt) nằm ở
+`frontend/public/images/`: `ao-trang.webp` (ảnh sản phẩm, đã lấp phần cổ), `ao-trang-cat.webp` (khoét vùng cổ, dùng cho
+live mặc thử), `tui-trang.webp`, `tui-trang-treo.webp` (cắt sát, dùng ở thanh treo trang chủ). Điểm neo áo
+(`TEE_ANCHORS`), tỉ lệ thân / khung (`bodyFrac`), tâm, vùng cổ mặt sau (`backNeck`) theo ảnh mới, xem `products.js`.
+Logo ở `frontend/public/brand/`: `logo-128/320/640.webp`, `favicon-32/48.png` (đám mây trong logo), `apple-touch-icon.png`,
+`og-image.jpg` (ảnh chia sẻ 1200×630). File logo gốc 4725 px không đưa vào repo.
+
 ## Trang chủ sinh động
 
 Trang chủ (`frontend/src/pages/Landing.jsx`, kiểu ở `frontend/src/landing.css`) chỉ dùng CSS, Pointer Events và
 IntersectionObserver, không thêm thư viện: cảnh áo + túi tote đung đưa trên thanh treo, mỗi vài giây một bộ sticker bay tới
-"ép nhiệt" lên (nảy, loé sáng, hơi nước) rồi bóc ra đổi bộ khác, rê chuột thì cảnh nghiêng theo, túi đổi 3 màu thật;
-sticker quanh đầu trang kéo thả được; ruy băng khẩu hiệu; thẻ giá nghiêng theo chuột, viên giá có vệt sáng, dao gạt lướt
-qua khung in lụa; mục tự tạo hình và ba bước có cảnh động. Bật "giảm chuyển động" trong hệ điều hành thì trang đứng yên.
+"ép nhiệt" lên (nảy, loé sáng, hơi nước) rồi bóc ra đổi bộ khác, rê chuột thì cảnh nghiêng theo (áo và túi đều trắng);
+sticker quanh đầu trang kéo thả được; ruy băng khẩu hiệu; thẻ giá nghiêng theo chuột, viên giá có vệt sáng; thẻ tấm sticker
+mua thêm; mục tự tạo hình, ba bước có cảnh động và mục "Về Tùm Lum Studio" (trang riêng `/ve-chung-toi`). Bật "giảm chuyển động" trong hệ điều hành thì trang đứng yên.
 
 ## Bộ kit và trang đặt hàng
 
@@ -38,15 +47,22 @@ Theo bảng giá của studio (`docs/screenshots/trang-chu-bang-gia.png`):
 | --------------------------- | -------- | -------------------------------------------------------------------------------------------- | ------- | ------------------------------ |
 | 1. Cơ bản – in chuyển nhiệt | Áo thun  | Combo 1: áo trơn + 1 bộ sticker (tự chọn); Combo 2: áo nền/hoạ tiết đen trắng + 1 bộ sticker | 299.000 | `/basic/ao` (`?combo=combo-2`) |
 | 1. Cơ bản – in chuyển nhiệt | Túi tote | như áo                                                                                       | 219.000 | `/basic/tui`                   |
-| 2. Cao cấp – in lụa         | Áo thun  | áo trơn + bộ dụng cụ in lụa (1 khuôn in, 1 dao gạt, 1 lọ mực) + 1 bộ sticker                 | 699.000 | `/premium`                     |
 
-Mỗi áo / túi đã gồm 1 bộ sticker in chuyển nhiệt. Combo 1: khách tự chọn bộ đi kèm (bắt buộc chọn; số bộ bằng số áo /
-túi được tính 0₫), chọn thêm thì tính tiền từng bộ. Combo 2: bộ đi kèm có sẵn, bộ chọn thêm tính tiền. Nội dung combo nằm
+Áo và túi đều màu trắng. Bộ kit cao cấp in lụa đã ngừng bán: `/premium` chuyển về trang chủ, API không trả về và từ chối
+đơn mới (đơn cũ giữ nguyên). **Combo 1: khách chọn đúng 1 trong 3 cách làm sticker**: tự vẽ, tải hình của mình (ký cam kết bản quyền) hoặc 1 bộ
+sticker có sẵn của shop (`PRICING.choices`); trình phối chỉ hiện công cụ của cách đã chọn, server kiểm tra đúng 1 cách.
+Combo 2 có sẵn bộ sticker đi kèm. **Sticker không tính tiền riêng** (bộ đi kèm, hình tự tải lên, hình vẽ
+tay đã gồm trong giá combo). Mua thêm **tấm sticker A5 20.000₫ / A4 30.000₫** ở mọi combo: Combo 1 in lại đúng nội dung đã chọn theo khổ;
+Combo 2 mặc định in bộ đi kèm, đổi sang bộ khác của shop cho từng khổ được (đơn lưu `choice`, `sheets`, `sheetSets`). **Phí giao** theo tỉnh
+(34 tỉnh, thành sau sắp xếp 2025, bảng `PROVINCES`): Đà Nẵng 15.000₫, miền Trung 20.000₫, tỉnh khác 25.000₫, miễn phí
+cho đơn từ 500.000₫; nhận tại studio không tính phí. Sticker thư viện có **cỡ in cố định** (chỉ đổi vị trí, góc xoay);
+hình tự tải lên / hình vẽ đổi cỡ được, tối đa **khổ A4** (theo cỡ thật: ngang ngực áo size M 54 cm, mặt túi 35 cm).
+**Phối thử có mặt trước / mặt sau** (mặt sau áo dựng từ ảnh mặt trước, túi dùng lại ảnh); đơn hàng gửi kèm mockup cả hai mặt. Nội dung combo nằm
 ở `COMBO_COPY` (`frontend/src/data/combos.js`), quy tắc ở `PRICING.chooseIncluded` / `PRICING.uploads` (hai file
 pricing). Hình minh hoạ bộ kit cắt từ bảng giá: `frontend/public/images/kits/`. Link cũ `/combo/...` tự chuyển sang trang mới.
 
-Tính năng **tự tạo hình** (tải hình của bạn lên in thành sticker) **chỉ có ở Combo 1** của áo và túi; Combo 2 và bộ kit
-cao cấp ẩn phần tải hình (cả trong trình phối), server cũng từ chối đơn có hình tự tải lên ở các combo đó.
+Tính năng **tự tạo hình** (tải hình của bạn lên in thành sticker, hoặc vẽ tay) **chỉ có ở Combo 1** của áo và túi; Combo 2
+ẩn phần tải hình / vẽ (cả trong trình phối), server cũng từ chối đơn có hình tự tải lên ở các combo khác.
 
 **Vẽ tay lên áo / túi** (tab **Vẽ** trong trình phối, chỉ Combo 1): bút mực, bút kim, bút dạ (trong mờ, chỉnh độ đậm),
 bút chì (có hạt), tẩy; mỗi bút một cỡ, bảng màu + chọn màu khác, hoàn tác / làm lại từng nét, xoá hết. Nét mượt và theo
@@ -79,16 +95,20 @@ vị trí, cỡ, góc xoay, nguồn sticker) và ảnh mockup PNG để studio b
 **Live mặc thử áo** (nút trên trang đặt áo và trong trình phối, chỉ với áo): mở camera, nhận dạng dáng người bằng
 MediaPipe Pose Landmarker lite (`frontend/public/models/pose_landmarker_lite.task`, Apache-2.0, ~5,5 MB) chạy bằng
 `@mediapipe/tasks-vision` (Apache-2.0) ngay trên trình duyệt; hình camera không gửi đi đâu. Khung người hướng dẫn nhắc lùi
-xa / lại gần / đứng giữa; đứng đủ đầu, vai, hông trong khung khoảng nửa giây thì áo (ảnh `ao-trang-cat.png` đã cắt nền +
+xa / lại gần / đứng giữa; đứng đủ đầu, vai, hông trong khung khoảng nửa giây thì áo (ảnh `ao-trang-cat.webp` đã cắt nền +
 bản phối) được bẻ lưới theo vai và hông (`frontend/src/data/garmentFit.js`) để ướm lên người, có chụp ảnh và đổi camera.
 Hiệu ứng "2.5D": áo uốn theo thân hình trụ và xoay theo độ sâu hai vai (bên xa co lại), có nếp vải và bóng hai bên sườn;
 tay đưa ra trước người được vẽ lại từ camera lên trên áo, giới hạn bằng mặt nạ tách người của MediaPipe.
-Áo 3D (mặc định khi trình duyệt có WebGL2): lưới áo thun dựng bằng code (`frontend/src/data/tryOn3d.js`, không dùng file
+Áo 2.5D (ảnh áo thật) là chế độ **mặc định** vì trông giống ảnh chụp nhất; thêm cho thật (`frontend/src/data/tryOnRealism.js`):
+đo bề ngang thân từ mặt nạ người để áo vừa người thật, ánh màu và độ sáng lấy từ cảnh hai bên đầu (không lấy màu áo thật
+đang mặc), bóng dưới cổ áo và nách, nếp vải nhích theo khi xoay / nghiêng, mép áo mềm, hạt nhiễu giống camera, cổ / cằm /
+tóc phía trên cổ áo nằm trên áo. Live mặc thử chỉ ướm mặt trước.
+Áo 3D (chọn ở nút 2D / 3D): lưới áo thun dựng bằng code (`frontend/src/data/tryOn3d.js`, không dùng file
 mô hình), vẽ bằng Three.js (MIT, chỉ tải khi mở live, ~121 KB gzip). Áo gắn theo vai, thân, hông và bắp tay (tay áo theo
 tay, xoay người thì áo xoay theo độ sâu của worldLandmarks), có ánh sáng theo độ sáng khung hình, nếp vải (normal map vẽ
 bằng code), bóng mềm; bản phối in lên ngực theo đúng toạ độ ảnh áo phẳng. Cẳng tay, bàn tay và cổ thật được vẽ đè lên áo
-nhờ các khối chỉ ghi độ sâu. Không có mô phỏng vải. Nút 2D / 3D trong live; máy không có WebGL2 hoặc áo 3D chạy dưới
-20 khung hình/giây thì tự chuyển sang áo 2.5D ở trên. Khi chạy dev có thể thử bằng dáng người giả lập qua
+nhờ các khối chỉ ghi độ sâu. Không có mô phỏng vải. Máy không có WebGL2 hoặc áo 3D chạy dưới 20 khung hình/giây thì tự
+chuyển về áo 2.5D. Khi chạy dev có thể thử bằng dáng người giả lập qua
 `window.__tryOnFakePose` (xem `LiveTryOn.jsx`).
 
 ![Live mặc thử áo 3D (người mẫu vẽ giả lập)](docs/screenshots/live-ao-3d.png)

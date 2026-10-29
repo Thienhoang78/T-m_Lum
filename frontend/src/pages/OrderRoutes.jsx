@@ -6,7 +6,7 @@ import OrderPage from './OrderPage.jsx'
 
 // Đường dẫn trang đặt hàng:
 //   /basic/ao, /basic/tui   gói Basic, chọn Combo 1 / Combo 2 trên trang (?combo=combo-2)
-//   /premium                gói Premium, chỉ có áo
+//   /premium                bộ kit cao cấp in lụa đã ngừng bán: chuyển về trang chủ
 const inTier = (combos, tier, product) =>
   combos.filter((c) => (c.tier ?? 'basic') === tier && (!c.products || c.products.includes(product)))
 
@@ -46,14 +46,15 @@ export function BasicOrder({ user }) {
   return <TierOrder tier="basic" productKey={product} user={user} />
 }
 
-export function PremiumOrder({ user }) {
-  return <TierOrder tier="premium" productKey="ao" user={user} />
+// Bộ kit cao cấp in lụa đã ngừng bán
+export function PremiumOrder() {
+  return <Navigate to="/" replace />
 }
 
 // Link cũ /combo/combo-1/ao, /combo/combo-3/ao... chuyển sang đường dẫn mới
 export function LegacyComboRedirect() {
   const { slug, product } = useParams()
-  if (slug === 'combo-3' || slug === 'premium') return <Navigate to="/premium" replace />
+  if (slug === 'combo-3' || slug === 'premium') return <Navigate to="/" replace />
   const to = PRODUCTS[product] ? `/basic/${product}` : '/#combo'
   return <Navigate to={slug === 'combo-2' ? `${to}?combo=combo-2` : to} replace />
 }

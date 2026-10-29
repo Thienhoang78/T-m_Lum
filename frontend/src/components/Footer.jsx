@@ -9,6 +9,7 @@ const COLUMNS = [
     links: [
       { label: 'Cách làm', href: '/#cach-lam' },
       { label: 'Bảng giá bộ kit', href: '/#combo' },
+      { label: 'Về chúng tôi', href: '/ve-chung-toi' },
       { label: 'Kho sticker', soon: true },
       { label: 'Áo & túi trơn', soon: true },
     ],
@@ -49,10 +50,14 @@ export default function Footer({ onRegister }) {
 
       <div className="footer-grid">
         <div className="footer-brand">
-          <p className="brand">
-            <span className="brand-dot" aria-hidden="true" />
-            Tùm Lum <em>Studio</em>
-          </p>
+          <img
+            className="footer-logo"
+            src="/brand/logo-320.webp"
+            alt="Tùm Lum Studio"
+            width="132"
+            height="132"
+            loading="lazy"
+          />
           <p className="footer-blurb">Áo thun, túi tote và sticker in chuyển nhiệt theo ý bạn.</p>
           <dl className="contact">
             <div>

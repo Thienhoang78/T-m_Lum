@@ -1,24 +1,25 @@
-// Nạp các combo vào MongoDB theo bảng giá của studio: Bộ kit cơ bản – in chuyển nhiệt (Combo 1, Combo 2 cho áo và túi)
-// và Bộ kit cao cấp – in lụa (Premium: áo + bộ dụng cụ in lụa + 1 bộ sticker).
+// Nạp các combo vào MongoDB theo bảng giá của studio: Bộ kit cơ bản – in chuyển nhiệt (Combo 1, Combo 2 cho áo và túi).
+// Bộ kit cao cấp in lụa (premium) đã ngừng bán: không còn trong danh sách nên chạy seed sẽ tắt nó.
 // Nội dung giữ cùng với COMBO_COPY trong frontend/src/data/combos.js.
 // Combo cũ không còn trong danh sách được tắt (active: false), không xoá. Sửa rồi chạy: npm run seed
 import mongoose from 'mongoose'
 
-const KIT_LUA = '1 bộ dụng cụ in lụa gồm 1 khuôn in, 1 dao gạt và 1 lọ mực'
 const STICKER = '1 bộ sticker in chuyển nhiệt'
+const CHOICE =
+  'Sticker in chuyển nhiệt, chọn 1 trong 3: tự vẽ, tải hình của bạn hoặc 1 bộ sticker có sẵn của shop'
 
 const combos = [
   {
     slug: 'combo-1',
     tier: 'basic',
     name: 'Combo 1',
-    tagline: 'Trơn + 1 bộ sticker tự chọn',
+    tagline: 'Trơn + chọn 1 trong 3: tự vẽ, hình của bạn hoặc bộ sticker có sẵn',
     method: 'heat-transfer',
     patterned: false,
     products: ['ao', 'tui'],
     items: {
-      ao: ['1 áo thun trơn', `${STICKER} (tự chọn)`],
-      tui: ['1 túi tote trơn', `${STICKER} (tự chọn)`],
+      ao: ['1 áo thun trơn', CHOICE],
+      tui: ['1 túi tote trơn', CHOICE],
     },
     order: 1,
   },
@@ -35,17 +36,6 @@ const combos = [
       tui: ['1 túi tote có nền/hoạ tiết đen trắng thiết kế sẵn', STICKER],
     },
     order: 2,
-  },
-  {
-    slug: 'premium',
-    tier: 'premium',
-    name: 'Premium',
-    tagline: 'Áo thun + bộ dụng cụ in lụa + 1 bộ sticker',
-    method: 'screen-print',
-    patterned: false,
-    products: ['ao'],
-    items: { ao: ['1 áo thun trơn', KIT_LUA, STICKER] },
-    order: 3,
   },
 ]
 
