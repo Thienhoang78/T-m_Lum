@@ -911,3 +911,54 @@
     height: 38px;
   }
 }
+
+/* ---------- Khung in khổ A4 trong trình phối ---------- */
+.draw-a4-frame:not(.is-drawing) {
+  border-color: rgba(30, 136, 229, 0.55);
+}
+/* góc dưới bên phải, trên thanh thu phóng (điện thoại: thanh thu phóng ẩn, khung nằm sát đáy) */
+.studio-frame {
+  left: auto;
+  right: 16px;
+  bottom: 60px;
+  align-items: center;
+}
+@media (max-width: 760px) {
+  .studio-frame {
+    bottom: 16px;
+  }
+  .studio-frame span {
+    display: none;
+  }
+}
+.studio-frame span {
+  padding: 0 6px 0 8px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+.a4-note {
+  position: absolute;
+  left: 50%;
+  bottom: 108px;
+  z-index: 4;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--navy);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 8px 20px rgba(13, 43, 69, 0.2);
+}
+/* lời nhắc nằm giữa nút Mặt trước / Mặt sau (trái) và thanh thu phóng (phải) */
+.studio-canvas .studio-help {
+  left: 236px;
+  right: 216px;
+  bottom: 14px;
+  text-align: center;
+  line-height: 1.35;
+  font-size: 0.72rem;
+}

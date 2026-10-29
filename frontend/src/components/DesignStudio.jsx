@@ -1,6 +1,14 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { A4, PRODUCTS, cmToPct, maxWidthPctA4, productFor, stickerPct } from '../data/products.js'
-import { normalizeDesign, onSide, sideOf } from '../data/design.js'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  FRAMES,
+  PRODUCTS,
+  cmToPct,
+  maxWidthPctA4,
+  printArea,
+  productFor,
+  stickerPct,
+} from '../data/products.js'
+import { insideArea, keepInArea, normalizeDesign, onSide, sideOf } from '../data/design.js'
 import { priceOf, vnd } from '../data/pricing.js'
 import { MAX_CUSTOM_STICKERS } from '../data/consent.js'
 import { renderMockup } from '../data/mockup.js'
@@ -50,9 +58,9 @@ const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v))
 const withIds = (list) => list.map((it) => ({ ...it, id: it.id ?? nextId++ }))
 const strip = (list) => list.map(({ id: _id, ...it }) => it)
 
-// Đặt sticker ở đâu trên áo / túi cũng được; chỉ giữ tâm trong khung ảnh để không kéo mất ra ngoài.
-// Sticker thư viện có cỡ in cố định (không đổi cỡ); hình tự tải lên / hình vẽ đổi cỡ được, tối đa khổ A4.
-const keepIn = (it) => ({ ...it, x: clamp(it.x, 2, 98), y: clamp(it.y, 2, 98) })
+// Mỗi mặt có một khung in khổ A4 đúng cỡ thật (dọc / ngang): sticker đặt ở vị trí nào trong khung cũng được,
+// không kéo ra ngoài khung. Sticker thư viện có cỡ in cố định; hình tự tải lên / hình vẽ đổi cỡ được, tối đa vừa khung.
+const DEFAULT_FRAMES = { front: 'doc', back: 'doc' }
 // Tâm phần tử theo toạ độ màn hình
 function centerOf(stage, it) {
   const r = stage.getBoundingClientRect()
@@ -93,6 +101,8 @@ export default function DesignStudio({
   librarySets = null, // chỉ hiện các bộ này trong Thư viện (null = mọi bộ)
   initial,
   onChange,
+  initialFrames, // khung A4 từng mặt: { front: 'doc' | 'ngang', back: ... }
+  onFrames,
   total,
   onOrder,
   onClose,
@@ -103,16 +113,19 @@ export default function DesignStudio({
   const gesture = useRef(null)
   const pointers = useRef(new Map())
   const product = productFor(PRODUCTS[productKey], combo)
-  const center = product.center
   const [tool, setTool] = useState('library')
   const [panelOpen, setPanelOpen] = useState(true)
+  const [frames, setFrames] = useState(() => ({ ...DEFAULT_FRAMES, ...initialFrames }))
   const [hist, setHist] = useState(() => ({
     past: [],
-    present: withIds(normalizeDesign(initial, productKey)),
+    // bản phối cũ có lớp nằm ngoài khung A4 thì đưa vào trong khung
+    present: withIds(normalizeDesign(initial, productKey)).map((it) =>
+      keepInArea(it, printArea(productKey, sideOf(it), frames[sideOf(it)]))
+    ),
     future: [],
   }))
   const [side, setSide] = useState('front') // mặt đang phối
-  const [landscape, setLandscape] = useState(false) // khung A4 khi vẽ: dọc / ngang
+  const [frameNote, setFrameNote] = useState(null) // thông báo ngắn khi đưa lớp vào lại khung
   const [selected, setSelected] = useState(null)
   const [guides, setGuides] = useState({ v: false, h: false })
   const [zoom, setZoom] = useState(100)
@@ -138,19 +151,21 @@ export default function DesignStudio({
   const srcOf = (it) => (it.custom ? customOf(it.custom)?.url : null)
   const live = items.filter((it) => !it.custom || customOf(it.custom))
   const here = onSide(live, side) // các lớp của mặt đang phối
-  // Cỡ hợp lệ: sticker thư viện giữ cỡ in thật; hình tự tải lên / vẽ không vượt khổ A4
+  // Khung in A4 của từng mặt (% khung ảnh, đúng cỡ thật)
+  const areaOf = useCallback((s) => printArea(productKey, s, frames[s]), [productKey, frames])
+  const a4 = areaOf(draw?.side ?? side)
+  const a4c = useMemo(() => ({ x: a4.x + a4.w / 2, y: a4.y + a4.h / 2 }), [a4.x, a4.y, a4.w, a4.h])
+  const keepIn = useCallback((it, shrink) => keepInArea(it, areaOf(sideOf(it)), shrink), [areaOf])
+  // Cỡ hợp lệ: sticker thư viện giữ cỡ in thật; hình tự tải lên / vẽ không vượt khổ A4 và vừa khung
   const fitIn = useCallback(
-    (s, it) =>
-      it?.custom ? clamp(s, 3, maxWidthPctA4(productKey, it.ar ?? 1)) : stickerPct(productKey, it?.shape),
-    [productKey]
+    (s, it) => {
+      if (!it?.custom) return stickerPct(productKey, it?.shape)
+      const area = areaOf(sideOf(it))
+      const ar = it.ar ?? 1
+      return clamp(s, 3, Math.min(maxWidthPctA4(productKey, ar), area.w, area.h / ar))
+    },
+    [productKey, areaOf]
   )
-  // Khung A4 khi vẽ (% khung ảnh), đặt giữa thân áo / túi
-  const a4 = (() => {
-    const w = cmToPct(productKey, landscape ? A4.h : A4.w)
-    const h = cmToPct(productKey, landscape ? A4.w : A4.h)
-    const c = product.drawCenter ?? center
-    return { x: c.x - w / 2, y: Math.max(1, c.y - h / 2), w, h }
-  })()
   const drawingCount = custom.items.filter((c) => c.drawn).length
 
   // Đổi sang combo không cho tự tạo hình thì thoát chế độ vẽ
@@ -176,6 +191,18 @@ export default function DesignStudio({
   useEffect(() => {
     onChange(strip(items))
   }, [items, onChange])
+  useEffect(() => {
+    onFrames?.(frames)
+  }, [frames, onFrames])
+  // Đổi món (áo ↔ túi) hay đổi khung: lớp nào lọt ra ngoài khung A4 thì đưa vào lại
+  useEffect(() => {
+    setHist((h) => ({ ...h, present: h.present.map((it) => keepIn(it)) }))
+  }, [keepIn])
+  useEffect(() => {
+    if (!frameNote) return
+    const t = setTimeout(() => setFrameNote(null), 3200)
+    return () => clearTimeout(t)
+  }, [frameNote])
 
   // ---------- Lịch sử: hoàn tác / làm lại ----------
   const commit = useCallback(
@@ -204,13 +231,25 @@ export default function DesignStudio({
 
   const keepInside = keepIn
 
+  // Đổi khung A4 của một mặt (dọc ↔ ngang): lớp nào lọt ra ngoài khung mới thì đưa vào lại và báo ngắn
+  function setFrame(s, frame) {
+    if (frames[s] === frame) return
+    const area = printArea(productKey, s, frame)
+    const out = items.filter((it) => sideOf(it) === s && !insideArea(it, area))
+    setFrames((f) => ({ ...f, [s]: frame }))
+    if (out.length) {
+      commit((list) => list.map((it) => (sideOf(it) === s ? keepInArea(it, area) : it)))
+      setFrameNote(`Đã đưa ${out.length} lớp vào lại trong khung A4 ${FRAMES[frame].toLowerCase()}.`)
+    }
+  }
+
   function add(base) {
     const it = keepInside({
       id: nextId++,
       ...base,
       side,
-      x: center.x,
-      y: center.y,
+      x: a4c.x,
+      y: a4c.y,
       r: 0,
       s: base.custom ? fitIn(cmToPct(productKey, START_CM), base) : stickerPct(productKey, base.shape),
     })
@@ -394,8 +433,9 @@ export default function DesignStudio({
             const r = stageRef.current.getBoundingClientRect()
             let x = ((e.clientX - r.left) / r.width) * 100 - g.dx
             let y = ((e.clientY - r.top) / r.height) * 100 - g.dy
-            const cx = center.x
-            const cy = center.y
+            // hút vào đường giữa của khung A4
+            const cx = a4c.x
+            const cy = a4c.y
             const v = Math.abs(x - cx) < SNAP
             const h = Math.abs(y - cy) < SNAP
             if (v) x = cx
@@ -409,7 +449,10 @@ export default function DesignStudio({
             const [a, b] = pts
             const k = Math.hypot(a.x - b.x, a.y - b.y) / g.dist
             const ang = ((Math.atan2(b.y - a.y, b.x - a.x) - g.angle) * 180) / Math.PI
-            return keepIn({ ...it, s: it.custom ? fitIn(g.s * k, it) : it.s, r: Math.round(g.r + ang) })
+            return keepIn(
+              { ...it, s: it.custom ? fitIn(g.s * k, it) : it.s, r: Math.round(g.r + ang) },
+              false
+            )
           }
           const c = centerOf(stageRef.current, it)
           if (g.mode === 'resize') {
@@ -420,13 +463,16 @@ export default function DesignStudio({
           let r = g.r + ((Math.atan2(e.clientY - c.y, e.clientX - c.x) - g.angle) * 180) / Math.PI
           const snapTo = Math.round(r / 45) * 45
           if (Math.abs(r - snapTo) < 4) r = snapTo
-          return { ...it, r: Math.round(((r + 540) % 360) - 180) }
+          return keepIn({ ...it, r: Math.round(((r + 540) % 360) - 180) }, false)
         })
       )
     }
     const onUp = (e) => {
       pointers.current.delete(e.pointerId)
       if (pointers.current.size === 0) {
+        // xoay xong mà hình tự tạo lớn hơn khung thì thu nhỏ cho vừa
+        const g = gesture.current
+        if (g) setLive((list) => list.map((it) => (it.id === g.id ? keepIn(it) : it)))
         gesture.current = null
         setGuides({ v: false, h: false })
       }
@@ -439,8 +485,8 @@ export default function DesignStudio({
       window.removeEventListener('pointerup', onUp)
       window.removeEventListener('pointercancel', onUp)
     }
-    // tâm áo / túi và cỡ hợp lệ đổi khi đổi món
-  }, [center, fitIn])
+    // khung A4 và cỡ hợp lệ đổi khi đổi món / đổi khung
+  }, [a4c, keepIn, fitIn])
 
   // ---------- Phím tắt ----------
   function onKeyDown(e) {
@@ -721,8 +767,9 @@ export default function DesignStudio({
                 )}
                 {custom.notice && <p className="field-err">{custom.notice}</p>}
                 <p className="studio-note">
-                  Hình vẽ tối đa khổ A4 (khung nét đứt khi vẽ), in như một hình bạn tự tạo: đã gồm trong giá
-                  combo, tối đa {MAX_CUSTOM_STICKERS} hình mỗi đơn, cần ký cam kết bản quyền ở trang đặt hàng.
+                  Hình vẽ nằm trong khung A4 nét đứt (21 × 29,7 cm), in như một hình bạn tự tạo: đã gồm trong
+                  giá combo, tối đa {MAX_CUSTOM_STICKERS} hình mỗi đơn, cần ký cam kết bản quyền ở trang đặt
+                  hàng.
                 </p>
               </>
             )}
@@ -950,8 +997,8 @@ export default function DesignStudio({
                 side={side}
                 alt=""
               >
-                {guides.v && <div className="studio-guide studio-guide-v" style={{ left: `${center.x}%` }} />}
-                {guides.h && <div className="studio-guide studio-guide-h" style={{ top: `${center.y}%` }} />}
+                {guides.v && <div className="studio-guide studio-guide-v" style={{ left: `${a4c.x}%` }} />}
+                {guides.h && <div className="studio-guide studio-guide-h" style={{ top: `${a4c.y}%` }} />}
                 {here.map((it) =>
                   it.hidden || it.id === draw?.editId ? null : (
                     <div
@@ -992,15 +1039,16 @@ export default function DesignStudio({
                   )
                 )}
               </ProductVisual>
-              {draw && (
-                <span
-                  className="draw-a4-frame"
-                  style={{ left: `${a4.x}%`, top: `${a4.y}%`, width: `${a4.w}%`, height: `${a4.h}%` }}
-                  aria-hidden="true"
-                >
-                  <small>Khổ A4 · 21 × 29,7 cm</small>
-                </span>
-              )}
+              {/* khung in khổ A4 đúng cỡ thật: chỉ hiện trong trình phối, không có trong ảnh mockup */}
+              <span
+                className={`draw-a4-frame${draw ? ' is-drawing' : ''}`}
+                style={{ left: `${a4.x}%`, top: `${a4.y}%`, width: `${a4.w}%`, height: `${a4.h}%` }}
+                aria-hidden="true"
+              >
+                <small>
+                  Khổ A4 · {frames[draw?.side ?? side] === 'ngang' ? '29,7 × 21' : '21 × 29,7'} cm
+                </small>
+              </span>
               {draw && (
                 <DrawingPad
                   productKey={productKey}
@@ -1026,9 +1074,15 @@ export default function DesignStudio({
               onCancel={() => setDraw(null)}
               onDone={finishDraw}
               busy={saving}
-              landscape={landscape}
-              onLandscape={() => setLandscape((l) => !l)}
+              landscape={frames[draw.side] === 'ngang'}
+              onLandscape={() => setFrame(draw.side, frames[draw.side] === 'ngang' ? 'doc' : 'ngang')}
             />
+          )}
+
+          {frameNote && (
+            <p className="a4-note" role="status">
+              {frameNote}
+            </p>
           )}
 
           {sel && !draw && (
@@ -1086,6 +1140,19 @@ export default function DesignStudio({
                   </button>
                 ))}
               </div>
+              <div className="side-switch studio-frame" role="group" aria-label="Khung in khổ A4">
+                <span>Khổ A4</span>
+                {Object.entries(FRAMES).map(([k, label]) => (
+                  <button
+                    key={k}
+                    type="button"
+                    aria-pressed={frames[side] === k}
+                    onClick={() => setFrame(side, k)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
               <label className="studio-zoom">
                 <span>{zoom}%</span>
                 <input
@@ -1099,8 +1166,8 @@ export default function DesignStudio({
                 />
               </label>
               <p className="studio-help">
-                Kéo để di chuyển · nắm chấm trên để xoay · hình tự tạo đổi cỡ ở góc (tối đa A4) · Ctrl+Z hoàn
-                tác
+                Thiết kế trong khung A4 nét đứt · kéo để di chuyển · nắm chấm trên để xoay · hình tự tạo đổi
+                cỡ ở góc · Ctrl+Z hoàn tác
               </p>
             </>
           )}

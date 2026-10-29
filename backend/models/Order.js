@@ -51,6 +51,11 @@ const OrderSchema = new mongoose.Schema(
       userAgent: String,
     },
     design: [DesignItemSchema], // bản phối: toạ độ % trên ảnh, thứ tự = thứ tự lớp (cuối cùng nằm trên)
+    // khung in khổ A4 từng mặt (sticker nằm trong khung này): 'doc' 21 × 29,7 cm, 'ngang' 29,7 × 21 cm
+    printFrame: {
+      front: { type: String, enum: ['doc', 'ngang'] },
+      back: { type: String, enum: ['doc', 'ngang'] },
+    },
     // Combo 1: cách làm sticker khách chọn: 've' (tự vẽ), 'tai-len' (tải hình), 'bo-sticker' (bộ có sẵn)
     choice: { type: String, enum: ['ve', 'tai-len', 'bo-sticker'] },
     // tấm sticker A5 / A4 mua thêm: in lại đúng nội dung đã chọn (Combo 1) theo khổ

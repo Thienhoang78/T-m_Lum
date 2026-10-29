@@ -16,6 +16,37 @@ export function normalizeItem(it, productKey) {
 }
 export const normalizeDesign = (list, productKey) => list.map((it) => normalizeItem(it, productKey))
 
+// Giữ lớp nằm gọn trong khung in A4 (area: % khung ảnh). Bề ngang / cao tính cả góc xoay; sticker thư viện vuông.
+// shrink: hình tự tạo lớn hơn khung (vd. đổi khung ngang → dọc, xoay nghiêng) thì thu nhỏ cho vừa.
+function extent(it) {
+  const h = it.s * (it.custom ? (it.ar ?? 1) : 1)
+  const a = ((it.r ?? 0) * Math.PI) / 180
+  const c = Math.abs(Math.cos(a))
+  const s = Math.abs(Math.sin(a))
+  return { w: it.s * c + h * s, h: it.s * s + h * c }
+}
+const fitAxis = (v, lo, size, ext) =>
+  ext >= size ? lo + size / 2 : Math.min(lo + size - ext / 2, Math.max(lo + ext / 2, v))
+export function keepInArea(it, area, shrink = true) {
+  let next = it
+  const e = extent(it)
+  const k = Math.min(1, area.w / e.w, area.h / e.h)
+  if (shrink && it.custom && k < 1) next = { ...it, s: it.s * k * 0.999 }
+  const f = next === it ? e : extent(next)
+  return { ...next, x: fitAxis(next.x, area.x, area.w, f.w), y: fitAxis(next.y, area.y, area.h, f.h) }
+}
+// Lớp có nằm trọn trong khung không (sai số nhỏ do làm tròn)
+export function insideArea(it, area) {
+  const e = extent(it)
+  const d = 0.05
+  return (
+    it.x - e.w / 2 >= area.x - d &&
+    it.x + e.w / 2 <= area.x + area.w + d &&
+    it.y - e.h / 2 >= area.y - d &&
+    it.y + e.h / 2 <= area.y + area.h + d
+  )
+}
+
 // Ảnh mặt sau của món nền: túi dùng lại ảnh mặt trước; áo dựng từ ảnh mặt trước, che phần khoét cổ phía trước
 // bằng màu vải rồi vẽ cổ bo phía sau cao hơn (ảnh áo thật chụp mặt trước nên không có sẵn mặt sau).
 const backCache = new Map()
