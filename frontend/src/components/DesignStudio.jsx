@@ -13,7 +13,6 @@ import { priceOf, vnd } from '../data/pricing.js'
 import { MAX_CUSTOM_STICKERS } from '../data/consent.js'
 import { renderMockup } from '../data/mockup.js'
 import ProductVisual from './ProductVisual.jsx'
-import LiveTryOn from './LiveTryOn.jsx'
 import Sticker from './Sticker.jsx'
 import { DrawTray, DrawingPad } from './DrawingTools.jsx'
 import { exportDrawing, initialBrush, loadMask, placeStrokes } from '../data/drawing.js'
@@ -105,6 +104,10 @@ export default function DesignStudio({
   onFrames,
   total,
   onOrder,
+  // Live mặc thử áo do trang đặt hàng lo (useAnywearTryOn): mở Anywear thì trình phối được đóng lại
+  onLive,
+  liveBusy = false,
+  liveNotice = null,
   onClose,
 }) {
   const dialogRef = useRef(null)
@@ -131,7 +134,6 @@ export default function DesignStudio({
   const [zoom, setZoom] = useState(100)
   const [dragLayer, setDragLayer] = useState(null)
   const [busy, setBusy] = useState(false)
-  const [liveOpen, setLiveOpen] = useState(false) // live mặc thử áo bằng camera
   // Đang vẽ: { editId (lớp hình vẽ đang sửa, hoặc null), strokes, past, future }
   const [draw, setDraw] = useState(null)
   const [brush, setBrush] = useState(initialBrush)
@@ -629,9 +631,15 @@ export default function DesignStudio({
           </button>
         </div>
         {productKey === 'ao' && (
-          <button type="button" className="studio-live" onClick={() => setLiveOpen(true)}>
+          <button
+            type="button"
+            className="studio-live"
+            onClick={onLive}
+            disabled={liveBusy}
+            aria-busy={liveBusy}
+          >
             <Icon d="M4 8h3l2-3h6l2 3h3v11H4zM12 17a4 4 0 100-8 4 4 0 000 8z" size={18} />
-            <span>Live mặc thử áo</span>
+            <span>{liveBusy ? 'Đang mở…' : 'Live mặc thử áo'}</span>
           </button>
         )}
         <p className="studio-total">
@@ -1079,9 +1087,9 @@ export default function DesignStudio({
             />
           )}
 
-          {frameNote && (
+          {(liveNotice || frameNote) && (
             <p className="a4-note" role="status">
-              {frameNote}
+              {liveNotice || frameNote}
             </p>
           )}
 
@@ -1173,25 +1181,6 @@ export default function DesignStudio({
           )}
         </main>
       </div>
-
-      {liveOpen && (
-        <LiveTryOn
-          makeTexture={(opts) =>
-            renderMockup(
-              exportRef.current.querySelector('.studio-export-front .tee-visual'),
-              exportSide('front'),
-              800,
-              {
-                transparent: true,
-                baseSrc: PRODUCTS.ao.cutout,
-                ...opts,
-              }
-            )
-          }
-          color={color?.fill}
-          onClose={() => setLiveOpen(false)}
-        />
-      )}
 
       {/* Bản ẩn để xuất mockup PNG (không có tay nắm, đường căn) */}
       <div className="studio-export" aria-hidden="true" ref={exportRef}>

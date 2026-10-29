@@ -3,7 +3,8 @@ const nextConfig = {
   async headers() {
     return [
       {
-        source: '/api/:path*',
+        // trừ ảnh live mặc thử /api/tryon/<mã>: widget Anywear ở tên miền khác cần đọc được (route tự đặt CORS "*")
+        source: '/api/:path((?!tryon/).*)',
         headers: [
           {
             key: 'Access-Control-Allow-Origin',

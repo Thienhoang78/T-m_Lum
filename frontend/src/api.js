@@ -62,6 +62,16 @@ export async function createOrder(order) {
   return data
 }
 
+// Lưu tạm ảnh áo cho live mặc thử Anywear, trả về link công khai đầy đủ (widget chỉ nhận link http/https)
+export async function uploadTryOnImage(blob) {
+  const body = new FormData()
+  body.append('file', blob, 'tryon.jpg')
+  const res = await fetch(`${API}/api/tryon`, { method: 'POST', body })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok || !data.path) throw new Error(data.error || 'Chưa tải được ảnh áo, thử lại sau.')
+  return new URL(data.path, API || location.origin).href
+}
+
 // Tải 1 sticker khách tự làm lên server, trả về { id, name, size, type }
 export async function uploadSticker(file) {
   const body = new FormData()

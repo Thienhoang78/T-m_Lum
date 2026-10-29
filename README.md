@@ -96,8 +96,19 @@ xoá). Trên áo đặt sticker ở đâu cũng được, có đường căn gi�
 làm lại (Ctrl+Z / Ctrl+Y), tải mockup PNG. Bản phối lưu trong sessionStorage; khi đặt hàng, đơn lưu bản phối (thứ tự lớp,
 vị trí, cỡ, góc xoay, nguồn sticker) và ảnh mockup PNG để studio biết vị trí ép.
 
-**Live mặc thử áo** (nút trên trang đặt áo và trong trình phối, chỉ với áo): mở camera, nhận dạng dáng người bằng
-MediaPipe Pose Landmarker lite (`frontend/public/models/pose_landmarker_lite.task`, Apache-2.0, ~5,5 MB) chạy bằng
+**Live mặc thử áo** (nút trên trang đặt áo và trong trình phối, chỉ với áo) dùng widget **Anywear** của Decart
+(`frontend/src/data/anywear.js`): AI của Decart dựng lại hình khách đang mặc đúng chiếc áo theo thời gian thực. Bấm nút
+thì trình phối đóng lại, widget mở camera; ảnh mặt trước áo kèm bản phối (JPEG 1000 px, nền trắng) được lưu tạm qua
+`POST /api/tryon` (tự xoá sau 1 giờ, link công khai khó đoán) rồi gửi link vào widget. Mặt trước chưa có hình / chữ thì
+nhắc thêm trước. **Hình camera của khách được gửi lên máy chủ Decart** (xem chính sách riêng tư của Decart). Nút nổi
+mặc định của widget bị ẩn (`products.css`), chỉ mở bằng nút của trang. Cần đăng ký tên miền tại
+https://anywear.decart.ai/business (gói miễn phí chỉ để dùng thử; mở cho mọi khách thì liên hệ Decart). Cách gửi ảnh vào
+widget theo giao thức nội bộ của widget (không có tài liệu), Decart đổi widget thì có thể phải sửa `anywear.js`. Ở
+localhost máy chủ Decart có thể không tải được ảnh áo, nên thử trên tên miền thật. Biến `VITE_ANYWEAR_DOMAIN` (frontend): tên
+miền đã đăng ký (trống = tên miền đang chạy), `off` = tắt Anywear.
+
+Không tải được widget (bị chặn, mất mạng) hoặc `VITE_ANYWEAR_DOMAIN=off` thì nút Live dùng **áo 3D tự làm** (`LiveTryOn.jsx`,
+chạy hẳn trên máy khách): mở camera, nhận dạng dáng người bằng MediaPipe Pose Landmarker lite (`frontend/public/models/pose_landmarker_lite.task`, Apache-2.0, ~5,5 MB) chạy bằng
 `@mediapipe/tasks-vision` (Apache-2.0) ngay trên trình duyệt; hình camera không gửi đi đâu. Khung người hướng dẫn nhắc lùi
 xa / lại gần / đứng giữa; đứng đủ đầu, vai, hông trong khung khoảng nửa giây thì áo (ảnh `ao-trang-cat.webp` đã cắt nền +
 bản phối) được bẻ lưới theo vai và hông (`frontend/src/data/garmentFit.js`) để ướm lên người, có chụp ảnh và đổi camera.
@@ -143,6 +154,8 @@ VS Code: mở thư mục gốc, cài các extension được gợi ý (ESLint, P
 | POST        | /api/orders        | Đặt áo / túi: kiểm tra, tính lại giá, lưu đơn     |
 | POST        | /api/uploads       | Tải 1 sticker khách tự làm (PNG/JPG/WebP ≤ 4 MB)  |
 | GET         | /api/uploads/:id   | Xem sticker khách gửi (cần `x-admin-token`)       |
+| POST        | /api/tryon         | Lưu tạm ảnh áo cho live mặc thử Anywear (1 giờ)   |
+| GET         | /api/tryon/:token  | Ảnh áo đó, công khai cho widget (CORS `*`)        |
 | POST        | /api/auth/register | Đăng ký (họ tên, email, SĐT, mật khẩu ≥ 8 ký tự)  |
 | POST        | /api/auth/login    | Đăng nhập, đặt cookie phiên `tl_session` (7 ngày) |
 | POST        | /api/auth/logout   | Đăng xuất                                         |
