@@ -24,6 +24,7 @@ import ProductVisual from '../components/ProductVisual.jsx'
 import DesignStudio from '../components/DesignStudio.jsx'
 import LiveTryOn from '../components/LiveTryOn.jsx'
 import { renderMockup } from '../data/mockup.js'
+import { useAnywearTryOn } from '../data/anywear.js'
 import CustomStickers from '../components/CustomStickers.jsx'
 
 // Trang đặt hàng áo hoặc túi (trắng) trong bộ kit cơ bản – in chuyển nhiệt (Combo 1 / Combo 2).
@@ -207,6 +208,19 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
     .map((it) => (it.custom ? { ...it, src: customOf(it.custom).url } : it))
   const visibleDesign = shownDesign.filter((it) => !it.hidden)
   const sideItems = (s) => onSide(visibleDesign, s)
+  // Live mặc thử áo: Anywear (AI của Decart) nếu nạp được widget, không thì áo 3D tự làm
+  const tryOn = useAnywearTryOn({
+    enabled: productKey === 'ao',
+    hasDesign: sideItems('front').length > 0,
+    makeImage: () =>
+      renderMockup(exportRefs.front.current.querySelector('.tee-visual'), sideItems('front'), 1000, {
+        baseSrc: product.cutout,
+        type: 'image/jpeg',
+        quality: 0.9,
+      }),
+    onOpen: () => setStudio(false), // trình phối là hộp thoại modal, che và khoá mất widget
+    onFallback: () => setLive(true),
+  })
   const v = findVoucher(voucher)
   const visual = { productKey, color, pattern: combo.patterned }
 
@@ -856,22 +870,31 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
 
               {/* Live mặc thử áo bằng camera (chỉ áo, mặt trước) */}
               {productKey === 'ao' && (
-                <button
-                  type="button"
-                  className="btn btn-glass btn-block tee-live"
-                  onClick={() => setLive(true)}
-                >
-                  <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
-                    <path
-                      d="M4 8h3l2-3h6l2 3h3v11H4zM12 17a4 4 0 100-8 4 4 0 000 8z"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                  Live mặc thử áo
-                </button>
+                <>
+                  <button
+                    type="button"
+                    className="btn btn-glass btn-block tee-live"
+                    onClick={tryOn.start}
+                    disabled={tryOn.busy}
+                    aria-busy={tryOn.busy}
+                  >
+                    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                      <path
+                        d="M4 8h3l2-3h6l2 3h3v11H4zM12 17a4 4 0 100-8 4 4 0 000 8z"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                    {tryOn.busy ? 'Đang mở phòng thử…' : 'Live mặc thử áo'}
+                  </button>
+                  {tryOn.notice && (
+                    <p className="auth-status error" role="alert">
+                      {tryOn.notice}
+                    </p>
+                  )}
+                </>
               )}
 
               {/* 7. Phối thử + Đặt hàng */}
@@ -990,6 +1013,9 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
           initialFrames={printFrame}
           onFrames={setPrintFrame}
           total={q.total}
+          onLive={tryOn.start}
+          liveBusy={tryOn.busy}
+          liveNotice={tryOn.notice}
           onOrder={() => {
             setStudio(false)
             setTimeout(

@@ -46,11 +46,12 @@ const elementImage = (el) => {
 // visualEl: phần tử .tee-visual; design: danh sách sticker đang hiện (cùng thứ tự với DOM)
 // transparent: bỏ nền trắng; baseSrc: dùng ảnh nền khác (vd. áo đã cắt nền cho live mặc thử);
 // base: false: chỉ xuất lớp sticker (áo 3D tự vẽ thân áo, chỉ cần bản phối để in lên ngực)
+// type / quality: định dạng ảnh xuất (vd. 'image/jpeg', 0.9 cho ảnh gửi live mặc thử Anywear)
 export async function renderMockup(
   visualEl,
   design,
   size = 1000,
-  { transparent = false, baseSrc, base: withBase = true } = {}
+  { transparent = false, baseSrc, base: withBase = true, type = 'image/png', quality } = {}
 ) {
   const canvas = document.createElement('canvas')
   canvas.width = size
@@ -84,5 +85,5 @@ export async function renderMockup(
     g.drawImage(im, -w / 2, -h / 2, w, h)
     g.restore()
   }
-  return new Promise((resolve) => canvas.toBlob(resolve, 'image/png'))
+  return new Promise((resolve) => canvas.toBlob(resolve, type, quality))
 }

@@ -2294,6 +2294,18 @@
   background: var(--brand);
   color: var(--navy);
 }
+.studio-live:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+/* Widget Anywear (data/anywear.js): ẩn nút nổi và nút "Try-On" trên ảnh mà widget tự chèn vào trang,
+   chỉ mở bằng nút Live của trang. Khung widget hiện khi đang mở hoặc đã có iframe phòng thử. */
+html:not(.anywear-opening) #__decart-tryon-widget:not(:has(iframe)) {
+  display: none !important;
+}
+.vton-btn {
+  display: none !important;
+}
 .live {
   position: fixed;
   inset: 0;
