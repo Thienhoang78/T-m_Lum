@@ -218,7 +218,6 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
         type: 'image/jpeg',
         quality: 0.9,
       }),
-    onOpen: () => setStudio(false), // trình phối là hộp thoại modal, che và khoá mất widget
     onFallback: () => setLive(true),
   })
   const v = findVoucher(voucher)
@@ -874,7 +873,7 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
                   <button
                     type="button"
                     className="btn btn-glass btn-block tee-live"
-                    onClick={tryOn.start}
+                    onClick={() => tryOn.start()}
                     disabled={tryOn.busy}
                     aria-busy={tryOn.busy}
                   >

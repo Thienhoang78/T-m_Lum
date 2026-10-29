@@ -121,10 +121,24 @@ function deliver(url) {
   })
 }
 
+// Đặt khung widget vào host. Mở từ trình phối thì host là hộp thoại của trình phối: hộp thoại modal che và khoá
+// mọi thứ nằm ngoài nó, nên widget phải nằm bên trong. Chuyển iframe đi chỗ khác thì iframe tải lại (widget tự nối lại).
+function placeWidget(host) {
+  const root = document.getElementById(ROOT_ID)
+  if (root && root.parentElement !== host) host.appendChild(root)
+}
+
+// Trả widget về body trước khi host bị gỡ khỏi trang (đóng trình phối). Widget không có hàm đóng:
+// để nó bị gỡ theo thì widget kẹt ở trạng thái đang mở, không mở lại được tới khi tải lại trang.
+export function releaseAnywear(host) {
+  const root = document.getElementById(ROOT_ID)
+  if (root && host?.contains(root)) document.body.appendChild(root)
+}
+
 // Nút "Live mặc thử áo": dùng Anywear nếu nạp được widget, không thì mở áo 3D tự làm (onFallback).
 // enabled: món đang xem có live (áo). hasDesign: mặt trước đã có hình / chữ. makeImage(): Blob ảnh mặt trước áo.
-// onOpen(): gọi ngay trước khi mở widget (vd. đóng trình phối: hộp thoại modal che và khoá mất widget).
-export function useAnywearTryOn({ enabled, hasDesign, makeImage, onOpen, onFallback }) {
+// start(host): host = phần tử chứa widget (mặc định body; trình phối truyền hộp thoại của nó).
+export function useAnywearTryOn({ enabled, hasDesign, makeImage, onFallback }) {
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState(null)
 
@@ -139,7 +153,7 @@ export function useAnywearTryOn({ enabled, hasDesign, makeImage, onOpen, onFallb
     return () => clearTimeout(t)
   }, [notice])
 
-  async function start() {
+  async function start(host = document.body) {
     if (busy) return
     setNotice(null)
     const widget = ready ?? (await loadAnywear().catch(() => null))
@@ -150,8 +164,10 @@ export function useAnywearTryOn({ enabled, hasDesign, makeImage, onOpen, onFallb
     const html = document.documentElement
     html.classList.add('anywear-opening')
     try {
-      onOpen?.()
+      placeWidget(host) // khung có sẵn từ lúc widget init
       widget.open({ mobileCamera: 'user' })
+      // chưa có khung thì open() tự tạo trong body; iframe được tạo sau vài bước chờ (await) nên chuyển lúc này vẫn kịp
+      placeWidget(host)
       const blob = await makeImage()
       if (!blob) throw new Error('Không xuất được ảnh áo')
       await deliver(await uploadTryOnImage(blob))
