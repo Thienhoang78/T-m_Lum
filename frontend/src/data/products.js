@@ -18,7 +18,8 @@ export const PRODUCTS = {
     bodyFrac: 0.539,
     // Mặt sau dựng từ ảnh mặt trước (xem data/design.js): vùng cổ theo toạ độ 0..1 của ảnh
     backNeck: { cx: 0.5, rx: 0.118, top: 0.025, band: 0.03, bottom: 0.165, fabric: [0.5, 0.32] },
-    drawCenter: { x: 50, y: 40 }, // tâm khung A4 khi vẽ (giữa ngực)
+    // Vùng in khổ A4: mép trên cách đáy cổ trước ~7,5 cm; mặt sau đặt cao hơn (cổ sau cao hơn cổ trước)
+    printArea: { cx: 49.5, top: { front: 24, back: 18 } },
     colors: [{ key: 'trang', name: 'Trắng', fill: '#f7f4ee', seam: '#cfc7b8' }],
     sizes: ['S', 'M', 'L', 'XL', 'XXL'],
     extras: ['Tay trái', 'Tay phải', 'Nhãn áo tùy chỉnh'],
@@ -42,7 +43,7 @@ export const PRODUCTS = {
     photo: '/images/tui-trang.webp', // ảnh túi thật của studio, đã cắt nền
     cutout: '/images/tui-trang.webp', // vùng được vẽ: theo ảnh túi
     center: { x: 50, y: 70 }, // tâm thân túi (dưới quai)
-    drawCenter: { x: 50, y: 70 },
+    printArea: { cx: 50, cy: 69 }, // vùng in khổ A4: giữa thân túi
     blurb: 'Túi tote vải canvas trắng, quai đeo vai, mặt túi phẳng để trang trí thoải mái.',
     widthCm: 35,
     bodyFrac: 0.4525,
@@ -99,6 +100,18 @@ export function maxWidthPctA4(productKey, ar = 1) {
   const a = Math.max(0.05, ar)
   const cm = Math.max(Math.min(A4.w, A4.h / a), Math.min(A4.h, A4.w / a))
   return cmToPct(productKey, cm)
+}
+
+// Khung in khổ A4 trên áo / túi (% khung ảnh, đúng cỡ thật): mọi sticker, hình tải lên, hình vẽ nằm trong khung này.
+// frame: 'doc' (21 × 29,7 cm) hoặc 'ngang' (29,7 × 21 cm)
+export const FRAMES = { doc: 'Dọc', ngang: 'Ngang' }
+export function printArea(productKey, side = 'front', frame = 'doc') {
+  const a = (PRODUCTS[productKey] ?? PRODUCTS.ao).printArea ?? {}
+  const land = frame === 'ngang'
+  const w = cmToPct(productKey, land ? A4.h : A4.w)
+  const h = cmToPct(productKey, land ? A4.w : A4.h)
+  const y = a.top ? (a.top[side] ?? a.top.front) : (a.cy ?? 50) - h / 2
+  return { x: (a.cx ?? 50) - w / 2, y, w, h }
 }
 
 // Cỡ in thật của sticker thư viện (bề ngang, cm): sticker có cỡ cố định, chỉ đổi vị trí / góc xoay

@@ -54,6 +54,16 @@ function loadDesigns(tier) {
   }
 }
 
+// Khung in A4 (dọc / ngang) từng mặt của từng món, lưu cùng chỗ với bản phối
+const framesKey = (tier) => `tl-frames:${tier}`
+function loadFrames(tier) {
+  try {
+    return JSON.parse(sessionStorage.getItem(framesKey(tier))) ?? {}
+  } catch {
+    return {}
+  }
+}
+
 function validate({ size, customer, delivery, province }) {
   const e = {}
   if (!size) e.size = 'Chọn size.'
@@ -110,6 +120,7 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
   const [voucherMsg, setVoucherMsg] = useState(null) // { type: 'ok' | 'error', text }
   const [errors, setErrors] = useState({})
   const [designs, setDesigns] = useState(() => loadDesigns(tier.key))
+  const [frames, setFramesAll] = useState(() => loadFrames(tier.key))
   const [studio, setStudio] = useState(false)
   const [live, setLive] = useState(false) // live mặc thử áo bằng camera
   const visualRef = useRef(null)
@@ -148,6 +159,16 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
       // trình duyệt chặn lưu trữ: bỏ qua
     }
   }, [designs, tier.key])
+
+  const printFrame = frames[productKey]
+  const setPrintFrame = useCallback((f) => setFramesAll((m) => ({ ...m, [productKey]: f })), [productKey])
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(framesKey(tier.key), JSON.stringify(frames))
+    } catch {
+      // trình duyệt chặn lưu trữ: bỏ qua
+    }
+  }, [frames, tier.key])
 
   // Combo 1: chọn 1 trong 3 (đổi cách thì các lớp của cách khác bị ẩn, không mất; đổi lại thì hiện lại)
   const choice = choices.includes(choiceKey) ? choiceKey : null
@@ -283,6 +304,7 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
           ? { accepted: true, signedName: waiver.signedName.trim(), version: WAIVER_VERSION }
           : undefined,
         design: sent,
+        printFrame: { front: printFrame?.front ?? 'doc', back: printFrame?.back ?? 'doc' },
         preview,
         previewBack,
       })
@@ -965,6 +987,8 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
           librarySets={pickSet && setKey ? [setKey] : null}
           initial={design}
           onChange={setDesign}
+          initialFrames={printFrame}
+          onFrames={setPrintFrame}
           total={q.total}
           onOrder={() => {
             setStudio(false)

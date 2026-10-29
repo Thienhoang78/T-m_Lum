@@ -189,6 +189,10 @@ export async function POST(req) {
       s: num(it.s, 4, 90),
     }))
 
+  // Khung in khổ A4 từng mặt khách đã chọn khi phối: 'doc' (21 × 29,7 cm) hoặc 'ngang'
+  const frameOf = (v) => (v === 'ngang' ? 'ngang' : 'doc')
+  const printFrame = { front: frameOf(b.printFrame?.front), back: frameOf(b.printFrame?.back) }
+
   // Ảnh mockup mặt trước / mặt sau kèm sticker (đã tải lên qua /api/uploads) để studio biết vị trí ép
   const previews = {}
   for (const key of ['preview', 'previewBack']) {
@@ -225,6 +229,7 @@ export async function POST(req) {
     sheets,
     sheetSets: Object.keys(sheetSets).length ? sheetSets : undefined,
     design,
+    printFrame,
     ...previews,
     customer: {
       name,
