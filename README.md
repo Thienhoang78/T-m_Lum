@@ -22,6 +22,15 @@ npm run dev                                  # chạy cả 2: web :5173, API :30
 Mở http://localhost:5173. Frontend tự chuyển `/api/*` sang backend nên cookie đăng nhập hoạt động khi dev.
 Nếu backend chưa chạy, trang vẫn hiện combo mẫu trong `frontend/src/data/combos.js`.
 
+## Ảnh sản phẩm và logo
+
+Ảnh áo và túi thật của studio (gốc 736 px, đã cắt nền bằng Python + Pillow / NumPy / SciPy, lưu WebP có nền trong suốt) nằm ở
+`frontend/public/images/`: `ao-trang.webp` (ảnh sản phẩm, đã lấp phần cổ), `ao-trang-cat.webp` (khoét vùng cổ, dùng cho
+live mặc thử), `tui-trang.webp`, `tui-trang-treo.webp` (cắt sát, dùng ở thanh treo trang chủ). Điểm neo áo
+(`TEE_ANCHORS`), tỉ lệ thân / khung (`bodyFrac`), tâm, vùng cổ mặt sau (`backNeck`) theo ảnh mới, xem `products.js`.
+Logo ở `frontend/public/brand/`: `logo-128/320/640.webp`, `favicon-32/48.png` (đám mây trong logo), `apple-touch-icon.png`,
+`og-image.jpg` (ảnh chia sẻ 1200×630). File logo gốc 4725 px không đưa vào repo.
+
 ## Trang chủ sinh động
 
 Trang chủ (`frontend/src/pages/Landing.jsx`, kiểu ở `frontend/src/landing.css`) chỉ dùng CSS, Pointer Events và
@@ -86,7 +95,7 @@ vị trí, cỡ, góc xoay, nguồn sticker) và ảnh mockup PNG để studio b
 **Live mặc thử áo** (nút trên trang đặt áo và trong trình phối, chỉ với áo): mở camera, nhận dạng dáng người bằng
 MediaPipe Pose Landmarker lite (`frontend/public/models/pose_landmarker_lite.task`, Apache-2.0, ~5,5 MB) chạy bằng
 `@mediapipe/tasks-vision` (Apache-2.0) ngay trên trình duyệt; hình camera không gửi đi đâu. Khung người hướng dẫn nhắc lùi
-xa / lại gần / đứng giữa; đứng đủ đầu, vai, hông trong khung khoảng nửa giây thì áo (ảnh `ao-trang-cat.png` đã cắt nền +
+xa / lại gần / đứng giữa; đứng đủ đầu, vai, hông trong khung khoảng nửa giây thì áo (ảnh `ao-trang-cat.webp` đã cắt nền +
 bản phối) được bẻ lưới theo vai và hông (`frontend/src/data/garmentFit.js`) để ướm lên người, có chụp ảnh và đổi camera.
 Hiệu ứng "2.5D": áo uốn theo thân hình trụ và xoay theo độ sâu hai vai (bên xa co lại), có nếp vải và bóng hai bên sườn;
 tay đưa ra trước người được vẽ lại từ camera lên trên áo, giới hạn bằng mặt nạ tách người của MediaPipe.

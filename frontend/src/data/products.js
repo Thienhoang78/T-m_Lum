@@ -10,14 +10,14 @@ export const PRODUCTS = {
     title: 'Áo thun cotton trắng',
     blurb:
       'Áo thun cotton trắng trơn, form oversize vai rơi, cổ bo gân; mặt trước và mặt sau đủ rộng để trang trí theo ý bạn.',
-    photo: '/images/ao-trang.png', // áo trắng trơn oversize, cổ bo gân
-    cutout: '/images/ao-trang-cat.png', // cùng ảnh, nền trong suốt, hở cổ: dùng cho live mặc thử
+    photo: '/images/ao-trang.webp', // ảnh áo thật của studio, đã cắt nền (áo trắng, cổ tròn bo gân, form suông)
+    cutout: '/images/ao-trang-cat.webp', // cùng ảnh, khoét hẳn vùng cổ: dùng cho live mặc thử
     // Tâm thân áo theo % khung ảnh vuông: đường căn giữa và chỗ đặt sticker mới khi phối
-    center: { x: 50, y: 50 },
+    center: { x: 50, y: 55 },
     widthCm: 54,
-    bodyFrac: 0.51,
+    bodyFrac: 0.539,
     // Mặt sau dựng từ ảnh mặt trước (xem data/design.js): vùng cổ theo toạ độ 0..1 của ảnh
-    backNeck: { cx: 0.5, rx: 0.115, top: 0.07, band: 0.022, bottom: 0.158, fabric: [0.5, 0.32] },
+    backNeck: { cx: 0.5, rx: 0.118, top: 0.025, band: 0.03, bottom: 0.165, fabric: [0.5, 0.32] },
     drawCenter: { x: 50, y: 40 }, // tâm khung A4 khi vẽ (giữa ngực)
     colors: [{ key: 'trang', name: 'Trắng', fill: '#f7f4ee', seam: '#cfc7b8' }],
     sizes: ['S', 'M', 'L', 'XL', 'XXL'],
@@ -39,10 +39,13 @@ export const PRODUCTS = {
     name: 'Túi tote',
     unit: 'túi',
     title: 'Túi tote canvas',
-    center: { x: 50, y: 64 }, // tâm thân túi (dưới quai)
+    photo: '/images/tui-trang.webp', // ảnh túi thật của studio, đã cắt nền
+    cutout: '/images/tui-trang.webp', // vùng được vẽ: theo ảnh túi
+    center: { x: 50, y: 70 }, // tâm thân túi (dưới quai)
+    drawCenter: { x: 50, y: 70 },
     blurb: 'Túi tote vải canvas trắng, quai đeo vai, mặt túi phẳng để trang trí thoải mái.',
     widthCm: 35,
-    bodyFrac: 0.612,
+    bodyFrac: 0.4525,
     colors: [{ key: 'trang', name: 'Trắng', fill: '#f7f4ee', seam: '#cfc7b8' }],
     sizes: ['Một size'],
     extras: [],

@@ -555,7 +555,7 @@ export default function DesignStudio({
         <button type="button" className="studio-back" onClick={close} aria-label="Quay lại trang đặt hàng">
           <Icon d="M15 5l-7 7 7 7" />
           <span className="brand">
-            <span className="brand-dot" aria-hidden="true" />
+            <img className="brand-logo" src="/brand/logo-128.webp" alt="" width="44" height="44" />
             Tùm Lum <em>Studio</em>
           </span>
         </button>

@@ -163,8 +163,8 @@
   --depth: 1;
 }
 .hang-tote {
-  right: 5%;
-  width: 34%;
+  right: 7%;
+  width: 26%;
   animation-duration: 3.8s;
   animation-name: swing-wide;
   --depth: -0.7;
@@ -195,7 +195,7 @@
   margin-top: -9%;
 }
 .scene-garment.is-tote {
-  margin-top: -14%;
+  margin-top: -6%;
 }
 .scene-garment img,
 .scene-tote-art {

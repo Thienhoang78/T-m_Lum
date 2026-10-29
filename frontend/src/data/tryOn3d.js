@@ -2,7 +2,7 @@
 // Mỗi khung hình, lưới được "gắn xương" (skinning trên CPU) theo 5 khớp: thân trên, thân dưới (hông), hai vai,
 // hai bắp tay, lấy từ điểm mốc MediaPipe. Vẽ bằng Three.js (MIT) với camera trực giao trùng khung hình camera:
 // x, y theo pixel, z là độ sâu (pixel, dương = gần camera) suy từ worldLandmarks.
-// Bản phối in lên ngực theo đúng toạ độ ảnh áo phẳng (ao-trang.png), nếp vải bằng normal map vẽ bằng code,
+// Bản phối in lên ngực theo đúng toạ độ ảnh áo phẳng (ao-trang.webp), nếp vải bằng normal map vẽ bằng code,
 // cẳng tay / bàn tay / cổ thật được vẽ đè lên áo nhờ các khối chỉ ghi độ sâu (không ghi màu).
 import {
   CanvasTexture,
@@ -69,9 +69,9 @@ function dropDir(a, g, out) {
   return len < 1e-4 ? out.set(0, 0, 0) : out.multiplyScalar(Math.min(1, len / 0.35) / len)
 }
 
-// Ánh xạ toạ độ mô hình (x theo S, y theo T) → toạ độ ảnh áo phẳng (0..1): vai rơi ở (0.25 / 0.75, 0.2), gấu ở 0.92
-const photoU = (x) => 0.5 + x * (0.25 / SHAPE.bodyA)
-const photoV = (y) => 0.2 + (0.05 - y) * (0.72 / 1.29)
+// Ánh xạ toạ độ mô hình (x theo S, y theo T) → toạ độ ảnh áo phẳng (0..1): vai rơi ở (0.213 / 0.788, 0.163), gấu ở 0.952
+const photoU = (x) => 0.5 + x * (0.2875 / SHAPE.bodyA)
+const photoV = (y) => 0.163 + (0.05 - y) * (0.789 / 1.29)
 
 const smooth = (a, b, x) => {
   const t = Math.min(1, Math.max(0, (x - a) / (b - a)))

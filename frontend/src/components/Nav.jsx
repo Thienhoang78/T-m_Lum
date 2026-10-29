@@ -6,7 +6,7 @@ export default function Nav({ user, onLogin, onRegister, onLogout }) {
     <header className="nav-wrap">
       <nav className="nav glass" aria-label="Chính">
         <Link to="/" className="brand">
-          <span className="brand-dot" aria-hidden="true" />
+          <img className="brand-logo" src="/brand/logo-128.webp" alt="" width="44" height="44" />
           Tùm Lum <em>Studio</em>
         </Link>
         <ul className="nav-links">

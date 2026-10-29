@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import { PRODUCTS } from '../../data/products.js'
-import { ToteArt } from '../GarmentArt.jsx'
 import Sticker from '../Sticker.jsx'
 import { useReducedMotion } from './useReducedMotion.js'
 
@@ -42,6 +41,18 @@ const DESIGNS = [
     ],
   },
 ]
+// Vị trí sticker trên túi được viết theo khung hình vẽ túi cũ (thân túi 9–91% ngang, 31–97% dọc);
+// đổi sang ảnh túi thật đã cắt sát (thân túi 1–99% ngang, 45–100% dọc)
+for (const d of DESIGNS)
+  d.tote = d.tote.map(([shape, color, label, x, y, s, r]) => [
+    shape,
+    color,
+    label,
+    1 + ((x - 9) / 82) * 98,
+    45 + ((y - 31) / 66) * 54.5,
+    s * 1.2,
+    r,
+  ])
 const CYCLE_MS = 4600
 
 function Prints({ items, cycle, leaving }) {
@@ -78,7 +89,6 @@ function Steam({ cycle, count }) {
 export default function HeroScene() {
   const reduced = useReducedMotion()
   const [cycle, setCycle] = useState(0)
-  const toteColor = PRODUCTS.tui.colors[0]
   const sceneRef = useRef(null)
 
   useEffect(() => {
@@ -145,7 +155,7 @@ export default function HeroScene() {
       <div className="scene-hang hang-tote" aria-hidden="true">
         <span className="scene-hook" />
         <div className="scene-garment is-tote">
-          <ToteArt fill={toteColor.fill} seam={toteColor.seam} className="scene-tote-art" />
+          <img className="scene-tote-art" src="/images/tui-trang-treo.webp" alt="" width="339" height="677" />
           <div className="scene-prints is-tote">
             {prev && <Prints items={prev.tote} cycle={cycle - 1} leaving />}
             <Prints items={design.tote} cycle={cycle} />

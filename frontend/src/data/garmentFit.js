@@ -3,12 +3,13 @@
 // Cả ảnh được chia lưới, mỗi ô vẽ bằng 2 tam giác với phép biến đổi affine riêng (nội suy song tuyến từ 4 điểm neo,
 // ngoại suy cho cổ áo và tay áo), nên áo nghiêng / xoay / co giãn theo dáng người chứ không chỉ phóng to thu nhỏ.
 
-// Điểm neo trên ảnh áo trắng (ao-trang.png / ao-trang-cat.png), theo tỉ lệ 0..1 của khung ảnh vuông
+// Điểm neo trên ảnh áo thật (ao-trang.webp / ao-trang-cat.webp): đường may vai rơi và hai góc gấu áo,
+// theo tỉ lệ 0..1 của khung ảnh vuông
 export const TEE_ANCHORS = {
-  shoulderL: { x: 0.245, y: 0.155 },
-  shoulderR: { x: 0.755, y: 0.155 },
-  hemL: { x: 0.2, y: 0.92 },
-  hemR: { x: 0.8, y: 0.92 },
+  shoulderL: { x: 0.213, y: 0.163 },
+  shoulderR: { x: 0.788, y: 0.163 },
+  hemL: { x: 0.205, y: 0.952 },
+  hemR: { x: 0.777, y: 0.952 },
 }
 
 // Chỉ số điểm mốc của MediaPipe Pose
