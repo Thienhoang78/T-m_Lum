@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import {
   FRAMES,
   PRODUCTS,
@@ -12,6 +12,7 @@ import { insideArea, keepInArea, normalizeDesign, onSide, sideOf } from '../data
 import { priceOf, vnd } from '../data/pricing.js'
 import { MAX_CUSTOM_STICKERS } from '../data/consent.js'
 import { renderMockup } from '../data/mockup.js'
+import { releaseAnywear } from '../data/anywear.js'
 import ProductVisual from './ProductVisual.jsx'
 import Sticker from './Sticker.jsx'
 import { DrawTray, DrawingPad } from './DrawingTools.jsx'
@@ -104,7 +105,7 @@ export default function DesignStudio({
   onFrames,
   total,
   onOrder,
-  // Live mặc thử áo do trang đặt hàng lo (useAnywearTryOn): mở Anywear thì trình phối được đóng lại
+  // Live mặc thử áo do trang đặt hàng lo (useAnywearTryOn): onLive(hộp thoại) mở widget Anywear ngay trong trình phối
   onLive,
   liveBusy = false,
   liveNotice = null,
@@ -178,6 +179,13 @@ export default function DesignStudio({
   useEffect(() => {
     const d = dialogRef.current
     if (d && !d.open) d.showModal()
+  }, [])
+
+  // Widget Anywear đang nằm trong trình phối thì trả về body trước khi hộp thoại bị gỡ
+  // (layout effect: dọn trước khi React gỡ DOM, useEffect thì đã muộn)
+  useLayoutEffect(() => {
+    const d = dialogRef.current
+    return () => releaseAnywear(d)
   }, [])
 
   // Combo 1 chọn "Tự vẽ": mở trình phối là vào luôn chế độ vẽ
@@ -634,7 +642,7 @@ export default function DesignStudio({
           <button
             type="button"
             className="studio-live"
-            onClick={onLive}
+            onClick={() => onLive(dialogRef.current)}
             disabled={liveBusy}
             aria-busy={liveBusy}
           >

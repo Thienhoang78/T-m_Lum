@@ -98,7 +98,8 @@ vị trí, cỡ, góc xoay, nguồn sticker) và ảnh mockup PNG để studio b
 
 **Live mặc thử áo** (nút trên trang đặt áo và trong trình phối, chỉ với áo) dùng widget **Anywear** của Decart
 (`frontend/src/data/anywear.js`): AI của Decart dựng lại hình khách đang mặc đúng chiếc áo theo thời gian thực. Bấm nút
-thì trình phối đóng lại, widget mở camera; ảnh mặt trước áo kèm bản phối (JPEG 1000 px, nền trắng) được lưu tạm qua
+thì widget mở camera ngay tại chỗ (trong trình phối thì widget nằm trong hộp thoại trình phối, trình phối vẫn mở; đóng
+trình phối thì widget được trả về trang); ảnh mặt trước áo kèm bản phối (JPEG 1000 px, nền trắng) được lưu tạm qua
 `POST /api/tryon` (tự xoá sau 1 giờ, link công khai khó đoán) rồi gửi link vào widget. Mặt trước chưa có hình / chữ thì
 nhắc thêm trước. **Hình camera của khách được gửi lên máy chủ Decart** (xem chính sách riêng tư của Decart). Nút nổi
 mặc định của widget bị ẩn (`products.css`), chỉ mở bằng nút của trang. Cần đăng ký tên miền tại
