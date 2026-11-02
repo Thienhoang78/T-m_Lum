@@ -29,7 +29,7 @@ export default function Landing() {
   }, [])
 
   return (
-    <div className="landing" ref={rootRef}>
+    <div className="landing is-home" ref={rootRef}>
       <KitHero />
       <KitBoard />
       <Marquee />

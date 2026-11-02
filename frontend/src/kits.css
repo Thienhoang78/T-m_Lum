@@ -70,32 +70,6 @@
 .kit-title .t-yellow {
   color: var(--kit-yellow);
 }
-.kit-tagline {
-  margin: 4px 0 0;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  width: min(100%, 640px);
-}
-.kit-tagline::before,
-.kit-tagline::after {
-  content: '';
-  flex: 1;
-  height: 2px;
-  background: var(--brand-light);
-  border-radius: 2px;
-}
-.kit-tagline span {
-  padding: 6px 22px;
-  border-radius: 999px;
-  background: var(--kit-panel-blue);
-  color: var(--kit-ink);
-  font-weight: 700;
-  font-size: clamp(0.78rem, 0.7rem + 0.4vw, 1rem);
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
 .kit-lede {
   margin: 6px 0 0;
   max-width: 560px;
@@ -308,47 +282,6 @@
   text-align: center;
 }
 
-/* ---------- Tự tạo hình ---------- */
-.kit-upload .display-sm em,
-.kit-upload-only strong {
-  color: var(--kit-pink);
-}
-.kit-upload-only {
-  margin: 0;
-  color: var(--muted);
-}
-.kit-upload-points {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-}
-.kit-upload-points li {
-  padding: 22px;
-  border-radius: 22px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  display: grid;
-  gap: 8px;
-  align-content: start;
-}
-.kit-upload-points h3 {
-  margin: 0;
-  font-family: var(--font-kit);
-  font-weight: 700;
-  font-size: 1.3rem;
-  line-height: 1.2;
-}
-.kit-upload-points p {
-  margin: 0;
-  color: var(--muted);
-}
-.kit-upload .kit-hero-ctas {
-  justify-content: flex-start;
-}
-
 /* ---------- Nhãn bộ kit trên trang đặt hàng ---------- */
 .kit-label {
   display: inline-flex;
@@ -457,8 +390,7 @@
   }
 }
 @media (max-width: 720px) {
-  .kit-cards,
-  .kit-upload-points {
+  .kit-cards {
     grid-template-columns: 1fr;
   }
   .kit-panel {
@@ -476,10 +408,6 @@
   .kit-card-body .kit-art {
     max-width: 220px;
     justify-self: center;
-  }
-  .kit-tagline span {
-    letter-spacing: 0.12em;
-    padding: 6px 14px;
   }
   .kit-method {
     white-space: normal;

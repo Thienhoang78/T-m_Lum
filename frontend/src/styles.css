@@ -956,13 +956,6 @@ button.btn-glass {
   min-width: 0;
   flex: 1 1 320px;
 }
-.footer-cta-sticker {
-  position: absolute;
-  top: -30px;
-  right: 28px;
-  transform: rotate(14deg);
-  animation: bob 5s ease-in-out infinite;
-}
 .footer-grid {
   display: grid;
   grid-template-columns: 1.6fr repeat(3, 1fr);

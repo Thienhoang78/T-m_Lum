@@ -7,6 +7,8 @@ import './styles.css'
 import './products.css'
 import './kits.css'
 import './landing.css'
+import './fx.css'
+import './sections.css'
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
