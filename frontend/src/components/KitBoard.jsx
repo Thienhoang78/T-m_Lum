@@ -7,6 +7,7 @@ import { tilt } from './landing/tilt.js'
 // Bảng giá bộ kit theo ảnh của studio:
 //   1. Bộ kit cơ bản – in chuyển nhiệt (nền xanh nhạt): thẻ Áo thun (hồng) và Túi tote (vàng), mỗi thẻ Combo 1 / Combo 2
 //   2. Mua thêm tấm sticker (nền xanh bạc hà): tấm A5, tấm A4 (bộ kit cao cấp in lụa đã ngừng bán)
+// Rê chuột lên thẻ: thẻ nghiêng, vệt sáng chạy theo, viền sáng xoay quanh (fx.css).
 // Nội dung lấy từ COMBO_COPY, giá lấy từ bảng giá (cùng số liệu với trang đặt hàng và backend).
 const BASIC_CARDS = [
   { product: 'ao', title: 'Áo thun', tone: 'pink', art: '/images/kits/kit-ao.webp' },
@@ -73,9 +74,12 @@ function BasicCard({ product, title, tone, art, i }) {
 export default function KitBoard() {
   return (
     <section className="kit-board-wrap" id="combo" aria-labelledby="kit-board-title">
-      <h2 className="sr-only" id="kit-board-title">
-        Bảng giá bộ kit
-      </h2>
+      <div className="section-head board-head" data-reveal>
+        <p className="eyebrow">Bảng giá bộ kit</p>
+        <h2 className="display-sm" id="kit-board-title">
+          Chọn một bộ kit, <em>bắt đầu tùm lum</em>.
+        </h2>
+      </div>
       <div className="kit-board">
         <div className="kit-panel panel-blue" data-reveal>
           <KitHead tier={TIERS.basic} />

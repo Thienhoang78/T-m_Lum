@@ -5,6 +5,7 @@ import Landing from './pages/Landing.jsx'
 import AboutPage from './components/About.jsx'
 import { BasicOrder, LegacyComboRedirect, PremiumOrder } from './pages/OrderRoutes.jsx'
 import Footer from './components/Footer.jsx'
+import ScrollFx from './components/ScrollFx.jsx'
 import AuthModal from './components/AuthModal.jsx'
 import { getMe, logout } from './api.js'
 
@@ -44,6 +45,7 @@ export default function App() {
         onLogout={handleLogout}
       />
       <ScrollManager />
+      <ScrollFx />
       <main>
         <Routes>
           <Route path="/" element={<Landing />} />

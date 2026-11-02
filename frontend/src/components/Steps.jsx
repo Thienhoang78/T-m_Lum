@@ -1,62 +1,87 @@
-import { TeeArt } from './GarmentArt.jsx'
-import Sticker from './Sticker.jsx'
+import { PRODUCTS } from '../data/products.js'
+import { priceOf } from '../data/pricing.js'
+import Icon from './Icon.jsx'
+import PrintArt from './landing/PrintArt.jsx'
 
-// Ba bước, mỗi bước một cảnh nhỏ chạy lặp khi cuộn tới:
-// 1. hộp kit mở ra, áo và tờ sticker bật lên; 2. sticker bay vào đúng chỗ trên áo; 3. bàn ủi lướt qua, hơi nước bốc lên.
-function SceneChoose() {
+// Ba bước, mỗi bước một minh hoạ kiểu giao diện sản phẩm (ảnh áo / túi thật), chạy lặp khi cuộn tới:
+// 01. hai thẻ áo / túi kèm giá thật, khung chọn chuyển qua lại; 02. thanh chọn cách tạo hình + hình in có khung chọn;
+// 03. sóng nhiệt bốc lên trên hình in, vòng tiến độ ép nhiệt chạy đầy rồi báo xong.
+const vnd = (n) => `${new Intl.NumberFormat('vi-VN').format(n)}₫`
+
+function VisualKit() {
   return (
-    <div className="step-scene scene-choose" aria-hidden="true">
-      <span className="kitbox">
-        <span className="kitbox-lid" />
-        <span className="kitbox-label">DIY KIT</span>
+    <div className="fv fv-kit">
+      {['ao', 'tui'].map((k) => (
+        <span key={k} className={`fv-tile tile-${k}`}>
+          <span className="fv-check">
+            <Icon name="check" size={12} />
+          </span>
+          <img src={PRODUCTS[k].photo} alt="" width="240" height="240" loading="lazy" />
+          <b>{PRODUCTS[k].name}</b>
+          <small>{vnd(priceOf(k, 'combo-1'))}</small>
+        </span>
+      ))}
+    </div>
+  )
+}
+
+function VisualDesign() {
+  return (
+    <div className="fv fv-design">
+      <span className="fv-seg">
+        <span className="fv-seg-pill" />
+        <span>Bộ sticker</span>
+        <span>Tải hình</span>
+        <span>Vẽ tay</span>
       </span>
-      <span className="pop pop-tee">
-        <TeeArt className="step-tee" />
-      </span>
-      <span className="pop pop-sheet">
-        <Sticker shape="smile" color="var(--sun)" style={{ width: 22 }} />
-        <Sticker shape="heart" color="var(--pink)" style={{ width: 18 }} />
-        <Sticker shape="flower" color="var(--mint)" style={{ width: 20 }} />
+      <span className="fv-tee">
+        <img src={PRODUCTS.ao.photo} alt="" width="300" height="300" loading="lazy" />
+        <span className="fv-art">
+          <PrintArt />
+          <span className="ed-sel">
+            <i />
+            <i />
+            <i />
+            <i />
+          </span>
+        </span>
+        <span className="fv-cursor">
+          <Icon name="cursor" size={18} />
+        </span>
       </span>
     </div>
   )
 }
 
-function ScenePlace() {
+function VisualPress() {
   return (
-    <div className="step-scene scene-place" aria-hidden="true">
-      <TeeArt className="step-tee big" />
-      <span className="place-target" />
-      <span className="place-sticker">
-        <Sticker shape="flower" color="var(--pink)" />
+    <div className="fv fv-press">
+      <span className="fv-tee">
+        <img src={PRODUCTS.ao.photo} alt="" width="300" height="300" loading="lazy" />
+        <span className="fv-art">
+          <PrintArt />
+          <span className="fv-waves">
+            {[0, 1, 2].map((i) => (
+              <svg key={i} viewBox="0 0 12 28" style={{ '--i': i }}>
+                <path d="M6 26c-3-3.5 3-6.5 0-10s3-6.5 0-10" />
+              </svg>
+            ))}
+          </span>
+        </span>
       </span>
-      <span className="place-cursor" />
-    </div>
-  )
-}
-
-function SceneIron() {
-  return (
-    <div className="step-scene scene-iron" aria-hidden="true">
-      <TeeArt className="step-tee big" />
-      <span className="iron-sticker">
-        <Sticker shape="star" color="var(--sun)" />
+      <span className="fv-gauge">
+        <svg className="fv-ring" viewBox="0 0 44 44">
+          <circle cx="22" cy="22" r="18" className="track" />
+          <circle cx="22" cy="22" r="18" className="bar" pathLength="100" />
+        </svg>
+        <Icon name="flame" size={18} />
       </span>
-      <svg className="iron" viewBox="0 0 120 70">
-        <path d="M14 58h96c0-26-20-42-50-42H38C26 16 14 30 14 58z" fill="var(--brand-strong)" />
-        <path d="M10 58h104v8H10z" fill="#cfd8e3" />
-        <path
-          d="M44 16c0-8 6-12 14-12h26c6 0 9 4 9 9"
-          fill="none"
-          stroke="var(--navy)"
-          strokeWidth="7"
-          strokeLinecap="round"
-        />
-        <circle cx="86" cy="40" r="5" fill="var(--sun)" />
-      </svg>
-      <span className="puff p1" />
-      <span className="puff p2" />
-      <span className="puff p3" />
+      <span className="fv-status">
+        <span className="s-run">Đang ép nhiệt…</span>
+        <span className="s-done">
+          <Icon name="check" size={14} /> Hình bám chắc
+        </span>
+      </span>
     </div>
   )
 }
@@ -65,17 +90,17 @@ const STEPS = [
   {
     title: 'Chọn bộ kit',
     body: 'Bộ kit in chuyển nhiệt với áo thun hoặc túi tote trắng, Combo 1 hoặc Combo 2, thêm tấm sticker A5 / A4 nếu thích.',
-    Scene: SceneChoose,
+    Visual: VisualKit,
   },
   {
     title: 'Chọn sticker hoặc tự tạo hình',
     body: 'Chọn bộ sticker đi kèm, xếp thử lên áo trong trình phối; Combo 1 còn cho tải hình hoặc vẽ tay của bạn.',
-    Scene: ScenePlace,
+    Visual: VisualDesign,
   },
   {
     title: 'In chuyển nhiệt',
     body: 'Ủi sticker lên vải theo hướng dẫn trong bộ kit: hình bám chắc, giặt đúng cách không bong.',
-    Scene: SceneIron,
+    Visual: VisualPress,
   },
 ]
 
@@ -88,11 +113,16 @@ export default function Steps() {
           Ba bước, một món đồ <em>của riêng bạn</em>.
         </h2>
       </div>
-      <ol className="steps steps-live">
-        {STEPS.map(({ title, body, Scene }, i) => (
-          <li key={title} className="step" data-reveal style={{ '--d': `${i * 0.12}s` }}>
-            <Scene />
-            <span className="step-no">{i + 1}</span>
+      <ol className="flow">
+        {STEPS.map(({ title, body, Visual }, i) => (
+          <li key={title} className="flow-step fx-spot" data-reveal style={{ '--d': `${i * 0.12}s` }}>
+            <div className="flow-visual" aria-hidden="true">
+              <Visual />
+            </div>
+            <div className="flow-meta" aria-hidden="true">
+              <span className="flow-no">Bước {String(i + 1).padStart(2, '0')}</span>
+              <span className="flow-line" />
+            </div>
             <h3>{title}</h3>
             <p>{body}</p>
           </li>
