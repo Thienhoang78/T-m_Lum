@@ -59,6 +59,12 @@ const PATHS = {
       <path d="M13 6l6 6-6 6" />
     </>
   ),
+  rotate: (
+    <>
+      <path d="M20 12a8 8 0 11-2.34-5.66" />
+      <path d="M20 4v4.5h-4.5" />
+    </>
+  ),
   image: (
     <>
       <rect x="3.5" y="4.5" width="17" height="15" rx="2.5" />

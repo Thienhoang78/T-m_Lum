@@ -430,16 +430,13 @@
   color: var(--mint);
 }
 
-/* cảnh áo + túi trên nền tối */
+/* cụm ảnh người mẫu trên nền tối */
 .hero-stage {
   position: relative;
   z-index: 1;
   width: 100%;
   max-width: 580px;
   justify-self: center;
-}
-.hero-stage .scene {
-  max-width: none;
 }
 .hero-halo {
   position: absolute;
@@ -475,28 +472,246 @@
   animation-duration: 34s;
   animation-direction: reverse;
 }
-.hero-night .scene-glow {
-  background: radial-gradient(closest-side, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0));
+/* cụm ảnh người mẫu mặc áo + cầm túi tote in logo (HeroLookbook) */
+.look {
+  --px: 0;
+  --py: 0;
+  position: relative;
+  aspect-ratio: 1 / 0.95;
 }
-.hero-night .scene::after {
+.look-card {
+  position: absolute;
+  margin: 0;
+  overflow: hidden;
+  border-radius: 24px;
+  background: var(--night-2);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow:
+    0 34px 70px -24px rgba(0, 0, 0, 0.7),
+    0 0 0 6px rgba(255, 255, 255, 0.04);
+  transition:
+    rotate 0.5s cubic-bezier(0.2, 0.8, 0.2, 1),
+    scale 0.5s cubic-bezier(0.2, 0.8, 0.2, 1),
+    transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 0.4s ease;
+  animation:
+    look-in 0.9s cubic-bezier(0.2, 0.9, 0.3, 1.2) backwards,
+    look-float 7s ease-in-out infinite alternate;
+}
+.look-card img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.look-tee {
+  z-index: 2;
+  left: 2%;
+  top: 2%;
+  width: 58%;
+  aspect-ratio: 864 / 1201;
+  rotate: -4deg;
+  transform: translate(calc(var(--px) * -10px), calc(var(--py) * -8px));
+  animation-delay: 0.2s, 0s;
+}
+.look-tote {
+  z-index: 1;
+  right: 2%;
+  top: 12%;
+  width: 46%;
+  aspect-ratio: 760 / 1249;
+  rotate: 5deg;
+  transform: translate(calc(var(--px) * 12px), calc(var(--py) * 10px));
+  animation-delay:
+    0.4s,
+    -3.5s;
+}
+.look-card:hover {
+  z-index: 3;
+  rotate: 0deg;
+  scale: 1.03;
+  box-shadow:
+    0 40px 80px -24px rgba(0, 0, 0, 0.75),
+    0 0 44px -10px rgba(100, 181, 246, 0.65);
+}
+/* khu trưng bày 3D (Hero3D): khung 3D + mũi tên, thẻ thông tin mẫu, chấm chỉ vị trí */
+.sc {
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+}
+.sc-stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 0.86;
+}
+.m3d-canvas {
+  position: absolute;
+  inset: -4% -10% 0;
+  cursor: grab;
+  touch-action: pan-y;
+  border-radius: 24px;
+}
+.m3d-canvas.is-dragging {
+  cursor: grabbing;
+}
+.m3d-canvas:focus-visible {
+  outline: 2px dashed rgba(124, 196, 255, 0.5);
+  outline-offset: -6px;
+}
+.m3d-canvas canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  animation: look-in 0.9s cubic-bezier(0.2, 0.9, 0.3, 1.2) backwards;
+}
+/* trong lúc tải: quầng sáng nhịp thở ở giữa khung */
+.m3d.is-loading .m3d-canvas::after {
   content: '';
   position: absolute;
-  left: 6%;
-  right: 6%;
-  bottom: -3%;
-  height: 14%;
+  left: 50%;
+  top: 50%;
+  width: 46%;
+  aspect-ratio: 1;
+  translate: -50% -50%;
   border-radius: 50%;
-  background: radial-gradient(closest-side, rgba(100, 181, 246, 0.32), transparent);
+  background: radial-gradient(closest-side, rgba(124, 196, 255, 0.35), transparent);
+  animation: halo 1.4s ease-in-out infinite alternate;
+}
+.m3d-hint {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  translate: -50% 0;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(12, 36, 64, 0.6);
+  border: 1px solid var(--night-line);
+  color: var(--night-muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
   pointer-events: none;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition:
+    opacity 0.4s ease,
+    translate 0.4s ease;
 }
-.hero-night .scene-garment {
-  filter: drop-shadow(0 24px 26px rgba(0, 0, 0, 0.45)) drop-shadow(0 0 28px rgba(140, 200, 255, 0.16));
+.m3d-hint .icon {
+  color: var(--sun);
+  animation: spin 3s linear infinite;
 }
-.hero-night .scene-hanger {
-  color: #c99d70;
+.m3d-hint.is-hidden {
+  opacity: 0;
+  translate: -50% -8px;
 }
-.hero-night .scene-hook {
-  border-color: #c99d70;
+.sc-arrow {
+  position: absolute;
+  top: 46%;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(124, 196, 255, 0.3);
+  background: rgba(12, 36, 64, 0.62);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  translate: 0 -50%;
+  transition:
+    background 0.25s ease,
+    border-color 0.25s ease,
+    box-shadow 0.25s ease,
+    scale 0.25s ease;
+}
+.sc-arrow.is-prev {
+  left: -2%;
+}
+.sc-arrow.is-prev .icon {
+  rotate: 180deg;
+}
+.sc-arrow.is-next {
+  right: -2%;
+}
+.sc-arrow:hover {
+  scale: 1.08;
+  background: rgba(30, 136, 229, 0.45);
+  border-color: rgba(124, 196, 255, 0.7);
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.35),
+    0 0 22px -4px rgba(100, 181, 246, 0.8);
+}
+.sc-arrow:active {
+  scale: 0.96;
+}
+.sc-info {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 10px 10px 18px;
+  border-radius: 18px;
+  background: rgba(12, 36, 64, 0.6);
+  border: 1px solid var(--night-line);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.sc-text {
+  display: grid;
+  line-height: 1.25;
+}
+.sc-text b {
+  color: #fff;
+  font-size: 1rem;
+}
+.sc-text small {
+  color: var(--night-muted);
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+.sc-price {
+  font-family: var(--font-kit);
+  font-weight: 800;
+  font-size: 1.25rem;
+  color: var(--sun);
+  text-shadow: 0 0 18px rgba(255, 201, 60, 0.4);
+  white-space: nowrap;
+}
+.sc-cta {
+  white-space: nowrap;
+}
+.sc-dots {
+  display: flex;
+  gap: 8px;
+}
+.sc-dots button {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.28);
+  cursor: pointer;
+  transition:
+    width 0.3s ease,
+    background 0.3s ease;
+}
+.sc-dots button.is-on {
+  width: 26px;
+  background: linear-gradient(90deg, var(--brand), var(--pink));
 }
 /* sticker trang trí nằm dưới nav, không bị nav kính che */
 .hero-night .confetti {
@@ -569,45 +784,17 @@
   height: auto;
 }
 .hero-float-chip.c1 {
-  left: -3%;
-  top: 60%;
+  left: -6%;
+  top: 3%;
   animation-delay: 0.9s, 0s;
 }
 .hero-float-chip.c2 {
-  left: 8%;
-  bottom: 1%;
+  right: -6%;
+  top: 3%;
   animation-delay:
     1.2s,
     -2s;
 }
-.hero-float-chip.c3 {
-  right: -3%;
-  bottom: 9%;
-  padding: 9px 16px;
-  animation-delay:
-    1.5s,
-    -4s;
-}
-.press-bar {
-  display: block;
-  width: 116px;
-  height: 5px;
-  margin-top: 6px;
-  border-radius: 5px;
-  background: rgba(255, 255, 255, 0.12);
-  overflow: hidden;
-}
-.press-bar i {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, var(--pink), var(--sun));
-  box-shadow: 0 0 10px rgba(255, 201, 60, 0.7);
-  transform-origin: 0 50%;
-  /* cùng nhịp 4,6 giây với lượt sticker mới của HeroScene */
-  animation: press 4.6s linear infinite;
-}
-
 /* ---------- Tiêu đề mục ---------- */
 .landing .eyebrow {
   justify-self: start;
@@ -883,19 +1070,15 @@
     translate: 0 -9px;
   }
 }
-@keyframes press {
-  0%,
-  10% {
-    transform: scaleX(0);
-  }
-  34%,
-  90% {
-    transform: scaleX(1);
-    opacity: 1;
-  }
-  100% {
-    transform: scaleX(1);
+@keyframes look-in {
+  from {
     opacity: 0;
+    scale: 0.92;
+  }
+}
+@keyframes look-float {
+  to {
+    translate: 0 -8px;
   }
 }
 @keyframes wordmark-shine {
@@ -910,10 +1093,10 @@
 /* ---------- Responsive ---------- */
 @media (max-width: 1100px) {
   .hero-float-chip.c1 {
-    left: -2%;
+    left: -3%;
   }
-  .hero-float-chip.c3 {
-    right: 0;
+  .hero-float-chip.c2 {
+    right: -1%;
   }
 }
 @media (max-width: 880px) {
@@ -926,6 +1109,22 @@
   .hero-stage {
     max-width: 500px;
     margin-top: 12px;
+  }
+}
+@media (max-width: 480px) {
+  .sc-info {
+    gap: 10px;
+    padding: 8px 8px 8px 14px;
+  }
+  .sc-text small {
+    font-size: 0.7rem;
+  }
+  .sc-price {
+    font-size: 1.05rem;
+  }
+  .sc-arrow {
+    width: 40px;
+    height: 40px;
   }
 }
 /* màn hình rất hẹp: chỉ còn logo (logo đã có chữ Tùm Lum Studio), tên vẫn đọc được cho trình đọc màn hình */
@@ -943,10 +1142,6 @@
   .hero-float-chip.c1,
   .hero-float-chip.c2 {
     display: none;
-  }
-  .hero-float-chip.c3 {
-    bottom: 0;
-    right: 2%;
   }
   .hero-proof {
     font-size: 0.82rem;
@@ -972,7 +1167,6 @@
   .hero-halo::before,
   .hero-halo::after,
   .hero-float-chip,
-  .press-bar i,
   .fx-glow::before,
   .landing .kit-card::before,
   .footer::before,

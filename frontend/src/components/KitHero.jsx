@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import HeroScene from './landing/HeroScene.jsx'
+import Hero3D from './landing/Hero3D.jsx'
 import StickerConfetti from './landing/StickerConfetti.jsx'
 import Sparkles from './landing/Sparkles.jsx'
 import RotatingWords from './landing/RotatingWords.jsx'
@@ -8,15 +8,15 @@ import { PRICING, allowsUploads } from '../data/pricing.js'
 
 // Đầu trang "studio về đêm": nền navy tràn viền với cực quang xanh / hồng / vàng / bạc hà trôi, lưới phối cảnh,
 // hạt lấp lánh (Sparkles). Bên trái: chip khẩu hiệu, tên "TÙM LUM STUDIO DIY KITS" ba màu (chữ bật lên lần lượt,
-// "DIY Kits" lượn sóng), dòng cách làm đổi luân phiên, nút, ba cam kết. Bên phải: cảnh áo + túi tote đang được
-// ép sticker (HeroScene) với các thẻ kính nổi quanh. Khi nav còn nằm trên nền tối thì nav chuyển kính tối.
+// "DIY Kits" lượn sóng), dòng cách làm đổi luân phiên, nút, ba cam kết. Bên phải: khu trưng bày 3D (Hero3D):
+// 3 mẫu áo thun + 3 mẫu túi tote, mũi tên để chuyển mẫu, kéo để xoay 360°; hai thẻ kính nổi ở góc trên.
+// Khi nav còn nằm trên nền tối thì nav chuyển kính tối.
 const word = (text, cls, i) => (
   <span className={`kit-word ${cls}`} style={{ '--i': i }}>
     {text}
   </span>
 )
 const vnd = (n) => `${new Intl.NumberFormat('vi-VN').format(n)} VND`
-const fromPrice = Math.min(...Object.values(PRICING.items).flatMap((p) => Object.values(p)))
 const uploadCombo = Object.keys(PRICING.items.ao).findIndex(allowsUploads) + 1
 
 const Check = () => (
@@ -121,7 +121,7 @@ export default function KitHero() {
 
       <div className="hero-stage">
         <span className="hero-halo" aria-hidden="true" />
-        <HeroScene />
+        <Hero3D />
         <div className="hero-chips" aria-hidden="true">
           <span className="hero-float-chip c1">
             <span className="ic">
@@ -137,16 +137,8 @@ export default function KitHero() {
               <Sticker shape="heart" color="var(--pink)" style={{ width: 20 }} />
             </span>
             <span>
-              Đang ép sticker…
-              <span className="press-bar">
-                <i />
-              </span>
-            </span>
-          </span>
-          <span className="hero-float-chip c3">
-            <span>
-              <small>Bộ kit chỉ từ</small>
-              <b>{vnd(fromPrice)}</b>
+              Mặc thử live
+              <small>Ngay trong trình phối</small>
             </span>
           </span>
         </div>
