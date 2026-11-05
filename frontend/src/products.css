@@ -2275,6 +2275,16 @@
   justify-content: center;
   gap: 8px;
 }
+.tee-live-note {
+  margin: 6px 2px 0;
+  font-size: 0.76rem;
+  line-height: 1.45;
+  color: var(--muted);
+}
+.tee-live-note a {
+  color: inherit;
+  text-decoration: underline;
+}
 .studio-live {
   display: inline-flex;
   align-items: center;

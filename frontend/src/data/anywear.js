@@ -14,7 +14,11 @@ const SCRIPT = 'https://anywear.decart.ai/widget/latest/anywear.js'
 const ORIGIN = new URL(SCRIPT).origin
 const ROOT_ID = '__decart-tryon-widget'
 const SETTING = (import.meta.env.VITE_ANYWEAR_DOMAIN ?? '').trim()
-const anywearEnabled = SETTING !== 'off'
+export const anywearEnabled = SETTING !== 'off'
+// Ghi chú quyền riêng tư hiện cạnh nút Live khi dùng Anywear (khác áo 3D tự làm: hình camera chỉ xử lý trên máy)
+export const ANYWEAR_PRIVACY_URL = 'https://docs.platform.decart.ai/resources/privacy-policy'
+export const ANYWEAR_NOTE =
+  'Live mặc thử do Anywear của Decart cung cấp: hình camera được xử lý trên máy chủ Decart trong lúc thử, theo chính sách riêng tư của Decart.'
 
 const IMAGE_SIZE = 1000 // cạnh ảnh áo gửi widget (px)
 const LOAD_MS = 15000
