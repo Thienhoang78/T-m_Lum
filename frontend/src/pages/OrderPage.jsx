@@ -24,7 +24,7 @@ import ProductVisual from '../components/ProductVisual.jsx'
 import DesignStudio from '../components/DesignStudio.jsx'
 import LiveTryOn from '../components/LiveTryOn.jsx'
 import { renderMockup } from '../data/mockup.js'
-import { useAnywearTryOn } from '../data/anywear.js'
+import { ANYWEAR_PRIVACY_URL, anywearEnabled, useAnywearTryOn } from '../data/anywear.js'
 import CustomStickers from '../components/CustomStickers.jsx'
 
 // Trang đặt hàng áo hoặc túi (trắng) trong bộ kit cơ bản – in chuyển nhiệt (Combo 1 / Combo 2).
@@ -888,6 +888,15 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
                     </svg>
                     {tryOn.busy ? 'Đang mở phòng thử…' : 'Live mặc thử áo'}
                   </button>
+                  {anywearEnabled && (
+                    <p className="tee-live-note">
+                      Live mặc thử do Anywear của Decart cung cấp: hình camera được xử lý trên máy chủ Decart
+                      trong lúc thử.{' '}
+                      <a href={ANYWEAR_PRIVACY_URL} target="_blank" rel="noopener noreferrer">
+                        Chính sách riêng tư của Decart
+                      </a>
+                    </p>
+                  )}
                   {tryOn.notice && (
                     <p className="auth-status error" role="alert">
                       {tryOn.notice}

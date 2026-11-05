@@ -12,7 +12,7 @@ import { insideArea, keepInArea, normalizeDesign, onSide, sideOf } from '../data
 import { priceOf, vnd } from '../data/pricing.js'
 import { MAX_CUSTOM_STICKERS } from '../data/consent.js'
 import { renderMockup } from '../data/mockup.js'
-import { releaseAnywear } from '../data/anywear.js'
+import { ANYWEAR_NOTE, anywearEnabled, releaseAnywear } from '../data/anywear.js'
 import ProductVisual from './ProductVisual.jsx'
 import Sticker from './Sticker.jsx'
 import { DrawTray, DrawingPad } from './DrawingTools.jsx'
@@ -642,6 +642,7 @@ export default function DesignStudio({
           <button
             type="button"
             className="studio-live"
+            title={anywearEnabled ? ANYWEAR_NOTE : undefined}
             onClick={() => onLive(dialogRef.current)}
             disabled={liveBusy}
             aria-busy={liveBusy}
