@@ -51,13 +51,20 @@ Theo bảng giá của studio (`docs/screenshots/trang-chu-bang-gia.png`):
 Áo và túi đều màu trắng. Bộ kit cao cấp in lụa đã ngừng bán: `/premium` chuyển về trang chủ, API không trả về và từ chối
 đơn mới (đơn cũ giữ nguyên). **Combo 1: khách chọn đúng 1 trong 3 cách làm sticker**: tự vẽ, tải hình của mình (ký cam kết bản quyền) hoặc 1 bộ
 sticker có sẵn của shop (`PRICING.choices`); trình phối chỉ hiện công cụ của cách đã chọn, server kiểm tra đúng 1 cách.
-Combo 2 có sẵn bộ sticker đi kèm. **Sticker không tính tiền riêng** (bộ đi kèm, hình tự tải lên, hình vẽ
+Combo 2 kèm 1 bộ sticker của shop, khách chọn bộ (mặc định bộ đầu tiên). **Sticker không tính tiền riêng** (bộ đi kèm, hình tự tải lên, hình vẽ
 tay đã gồm trong giá combo). Mua thêm **tấm sticker A5 20.000₫ / A4 30.000₫** ở mọi combo: Combo 1 in lại đúng nội dung đã chọn theo khổ;
 Combo 2 mặc định in bộ đi kèm, đổi sang bộ khác của shop cho từng khổ được (đơn lưu `choice`, `sheets`, `sheetSets`). **Phí giao** theo tỉnh
 (34 tỉnh, thành sau sắp xếp 2025, bảng `PROVINCES`): Đà Nẵng 15.000₫, miền Trung 20.000₫, tỉnh khác 25.000₫, miễn phí
 cho đơn từ 500.000₫; nhận tại studio không tính phí. Sticker thư viện có **cỡ in cố định** (chỉ đổi vị trí, góc xoay);
 hình tự tải lên / hình vẽ đổi cỡ được, tối đa **khổ A4** (thang cỡ: ngang ngực áo tính 44 cm cho khung A4 cân đối, `widthCm` trong
 `frontend/src/data/products.js`; mặt túi 35 cm).
+
+**Bộ sticker của shop**: Bộ Ăn vặt (25 sticker) và Bộ Giáng sinh (21 sticker), cắt từ tấm A4 gốc
+`print/sticker-sets/<bộ>/sheet.png` (giữ nguyên để in; từng sticker đủ độ phân giải nền trong suốt nằm cạnh tấm). Chạy
+`python scripts/stickers/build_sets.py` (Pillow, numpy, scipy) để cắt lại và tạo ảnh WebP cho web
+(`frontend/public/stickers/`), `frontend/src/data/stickerCatalog.json` và `backend/lib/stickerCatalog.json`. Cỡ in của
+mỗi sticker lấy theo cỡ thật trên tấm A4 (21 × 29,7 cm). Thêm bộ mới: đặt tấm vào `print/sticker-sets/<khoá>/sheet.png`,
+thêm tên bộ và tên từng sticker vào `SETS` trong script rồi chạy lại; không cần nạp lại database.
 Trình phối luôn hiện **khung in khổ A4 nét đứt** (theo thang cỡ `widthCm`) trên từng mặt (dọc 21 × 29,7 cm hoặc ngang): sticker, hình
 tải lên, hình vẽ chỉ nằm trong khung; vị trí khung ở `printArea` (`frontend/src/data/products.js`), khung từng mặt gửi
 kèm đơn (`printFrame`). Khung không có trong ảnh mockup.

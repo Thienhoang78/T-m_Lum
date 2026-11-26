@@ -1,3 +1,5 @@
+import { stickerArt } from './stickerSets.js'
+
 // Cấu hình 2 món nền khách chọn trong mỗi combo. Áo và túi đều màu trắng. Áo: bảng size thật.
 // Túi: số đo vẫn là NỘI DUNG MẪU, thay khi có số liệu thật.
 // Cỡ thật trên ảnh (để giới hạn hình vẽ / hình tải lên tối đa A4 và đặt sticker đúng cỡ in):
@@ -130,3 +132,9 @@ export function printArea(productKey, side = 'front', frame = 'doc') {
 // Cỡ in thật của sticker thư viện (bề ngang, cm): sticker có cỡ cố định, chỉ đổi vị trí / góc xoay
 export const STICKER_CM = { star: 7, heart: 7, bolt: 6, flower: 7, smile: 7, blob: 9 }
 export const stickerPct = (productKey, shape) => cmToPct(productKey, STICKER_CM[shape] ?? 7)
+// Bề ngang in thật (% khung) của một lớp sticker thư viện: sticker cắt từ tấm (art) theo cỡ trên tấm A4,
+// sticker vẽ bằng hình (shape) theo STICKER_CM
+export const libraryPct = (productKey, it) => {
+  const art = it?.art && stickerArt(it.art)
+  return art ? cmToPct(productKey, art.w) : stickerPct(productKey, it?.shape)
+}

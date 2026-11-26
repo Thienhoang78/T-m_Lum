@@ -33,8 +33,14 @@ export const COMBO_COPY = {
   'combo-2': {
     tagline: 'Nền / hoạ tiết đen trắng + 1 bộ sticker',
     items: {
-      ao: ['1 áo thun có nền/hoạ tiết đen trắng thiết kế sẵn', '1 bộ sticker in chuyển nhiệt'],
-      tui: ['1 túi tote có nền/hoạ tiết đen trắng thiết kế sẵn', '1 bộ sticker in chuyển nhiệt'],
+      ao: [
+        '1 áo thun có nền/hoạ tiết đen trắng thiết kế sẵn',
+        '1 bộ sticker in chuyển nhiệt (Bộ Ăn vặt hoặc Bộ Giáng sinh)',
+      ],
+      tui: [
+        '1 túi tote có nền/hoạ tiết đen trắng thiết kế sẵn',
+        '1 bộ sticker in chuyển nhiệt (Bộ Ăn vặt hoặc Bộ Giáng sinh)',
+      ],
     },
   },
 }

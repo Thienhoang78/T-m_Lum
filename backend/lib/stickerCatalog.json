@@ -1,0 +1,58 @@
+{
+ "an-vat": {
+  "name": "Bộ Ăn vặt",
+  "stickers": [
+   "an-vat-01",
+   "an-vat-02",
+   "an-vat-03",
+   "an-vat-04",
+   "an-vat-05",
+   "an-vat-06",
+   "an-vat-07",
+   "an-vat-08",
+   "an-vat-09",
+   "an-vat-10",
+   "an-vat-11",
+   "an-vat-12",
+   "an-vat-13",
+   "an-vat-14",
+   "an-vat-15",
+   "an-vat-16",
+   "an-vat-17",
+   "an-vat-18",
+   "an-vat-19",
+   "an-vat-20",
+   "an-vat-21",
+   "an-vat-22",
+   "an-vat-23",
+   "an-vat-24",
+   "an-vat-25"
+  ]
+ },
+ "giang-sinh": {
+  "name": "Bộ Giáng sinh",
+  "stickers": [
+   "giang-sinh-01",
+   "giang-sinh-02",
+   "giang-sinh-03",
+   "giang-sinh-04",
+   "giang-sinh-05",
+   "giang-sinh-06",
+   "giang-sinh-07",
+   "giang-sinh-08",
+   "giang-sinh-09",
+   "giang-sinh-10",
+   "giang-sinh-11",
+   "giang-sinh-12",
+   "giang-sinh-13",
+   "giang-sinh-14",
+   "giang-sinh-15",
+   "giang-sinh-16",
+   "giang-sinh-17",
+   "giang-sinh-18",
+   "giang-sinh-19",
+   "giang-sinh-20",
+   "giang-sinh-21"
+  ]
+ }
+}

@@ -1,34 +1,13 @@
-// Bộ sticker MẪU để chọn kèm Combo 1 và 2. Tên và hình sẽ thay khi có kho sticker thật.
-// Mỗi sticker: [hình, màu, chữ trên sticker]
-export const STICKER_SETS = [
-  {
-    key: 'tum-lum',
-    name: 'Bộ Tùm Lum',
-    stickers: [
-      ['star', 'var(--sun)'],
-      ['smile', 'var(--pink)'],
-      ['blob', 'var(--mint)', 'tùm lum'],
-      ['bolt', 'var(--brand-strong)'],
-    ],
-  },
-  {
-    key: 'de-thuong',
-    name: 'Bộ Dễ thương',
-    stickers: [
-      ['heart', 'var(--pink)'],
-      ['flower', 'var(--sun)'],
-      ['smile', 'var(--mint)'],
-      ['heart', 'var(--brand)'],
-    ],
-  },
-  {
-    key: 'duong-pho',
-    name: 'Bộ Đường phố',
-    stickers: [
-      ['bolt', 'var(--sun)'],
-      ['star', 'var(--navy)'],
-      ['blob', 'var(--pink)', 'yo!'],
-      ['flower', 'var(--brand-strong)'],
-    ],
-  },
-]
+// Bộ sticker của shop: chọn kèm Combo 1 (cách "bộ sticker có sẵn") và Combo 2 (bộ đi kèm), in cả tấm mua thêm.
+// Hình cắt từ tấm A4 gốc print/sticker-sets/<bộ>/sheet.png bằng scripts/stickers/build_sets.py;
+// danh mục (tên, ảnh, cỡ in thật) nằm ở stickerCatalog.json do script tạo ra, không sửa tay.
+// Mỗi bộ: { key, name, sheet: { src, w, h }, stickers: [{ id, name, src, w, h, x, y }] }
+// (w, h: cỡ in thật, cm; x, y: góc trên trái trên tấm, % bề ngang / cao tấm)
+import CATALOG from './stickerCatalog.json'
+
+export const STICKER_SETS = CATALOG
+
+const BY_ID = new Map(CATALOG.flatMap((set) => set.stickers.map((st) => [st.id, { ...st, set: set.key }])))
+// Sticker thư viện theo mã (vd. 'an-vat-03'); mã không còn trong danh mục thì null
+export const stickerArt = (id) => BY_ID.get(id) ?? null
+export const setOf = (key) => CATALOG.find((set) => set.key === key) ?? null

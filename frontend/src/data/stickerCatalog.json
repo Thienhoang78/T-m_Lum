@@ -1,0 +1,438 @@
+[
+ {
+  "key": "an-vat",
+  "name": "Bộ Ăn vặt",
+  "sheet": {
+   "src": "/stickers/an-vat/sheet.webp",
+   "w": 21.0,
+   "h": 29.7
+  },
+  "stickers": [
+   {
+    "id": "an-vat-01",
+    "name": "Kẹo gum",
+    "src": "/stickers/an-vat/01.webp",
+    "w": 5.62,
+    "h": 2.16,
+    "x": 3.09,
+    "y": 1.85
+   },
+   {
+    "id": "an-vat-02",
+    "name": "Kẹo dẻo dâu",
+    "src": "/stickers/an-vat/02.webp",
+    "w": 4.85,
+    "h": 1.98,
+    "x": 32.49,
+    "y": 2.94
+   },
+   {
+    "id": "an-vat-03",
+    "name": "Mì ramen",
+    "src": "/stickers/an-vat/03.webp",
+    "w": 4.41,
+    "h": 3.86,
+    "x": 57.95,
+    "y": 1.89
+   },
+   {
+    "id": "an-vat-04",
+    "name": "Bánh que ly xanh",
+    "src": "/stickers/an-vat/04.webp",
+    "w": 4.07,
+    "h": 7.75,
+    "x": 79.58,
+    "y": 3.39
+   },
+   {
+    "id": "an-vat-05",
+    "name": "Bỏng ngô",
+    "src": "/stickers/an-vat/05.webp",
+    "w": 6.03,
+    "h": 7.39,
+    "x": 3.72,
+    "y": 10.28
+   },
+   {
+    "id": "an-vat-06",
+    "name": "Bánh nấm socola",
+    "src": "/stickers/an-vat/06.webp",
+    "w": 3.83,
+    "h": 2.22,
+    "x": 31.41,
+    "y": 12.29
+   },
+   {
+    "id": "an-vat-07",
+    "name": "Bánh que socola",
+    "src": "/stickers/an-vat/07.webp",
+    "w": 5.35,
+    "h": 7.41,
+    "x": 50.63,
+    "y": 16.16
+   },
+   {
+    "id": "an-vat-08",
+    "name": "Socola trà xanh",
+    "src": "/stickers/an-vat/08.webp",
+    "w": 5.11,
+    "h": 5.77,
+    "x": 29.86,
+    "y": 22.69
+   },
+   {
+    "id": "an-vat-09",
+    "name": "Kem ốc quế",
+    "src": "/stickers/an-vat/09.webp",
+    "w": 2.27,
+    "h": 7.06,
+    "x": 83.64,
+    "y": 30.11
+   },
+   {
+    "id": "an-vat-10",
+    "name": "Bánh mì gối",
+    "src": "/stickers/an-vat/10.webp",
+    "w": 2.9,
+    "h": 5.54,
+    "x": 2.17,
+    "y": 33.98
+   },
+   {
+    "id": "an-vat-11",
+    "name": "Cà rốt",
+    "src": "/stickers/an-vat/11.webp",
+    "w": 2.35,
+    "h": 5.44,
+    "x": 71.22,
+    "y": 36.4
+   },
+   {
+    "id": "an-vat-12",
+    "name": "Bánh mì bơ",
+    "src": "/stickers/an-vat/12.webp",
+    "w": 4.13,
+    "h": 4.9,
+    "x": 17.85,
+    "y": 43.13
+   },
+   {
+    "id": "an-vat-13",
+    "name": "Pancake việt quất",
+    "src": "/stickers/an-vat/13.webp",
+    "w": 3.57,
+    "h": 3.42,
+    "x": 41.48,
+    "y": 41.11
+   },
+   {
+    "id": "an-vat-14",
+    "name": "Bánh que chấm kem",
+    "src": "/stickers/an-vat/14.webp",
+    "w": 2.11,
+    "h": 3.21,
+    "x": 59.61,
+    "y": 42.2
+   },
+   {
+    "id": "an-vat-15",
+    "name": "Pudding",
+    "src": "/stickers/an-vat/15.webp",
+    "w": 5.84,
+    "h": 5.6,
+    "x": 49.6,
+    "y": 54.53
+   },
+   {
+    "id": "an-vat-16",
+    "name": "Bánh sừng bò",
+    "src": "/stickers/an-vat/16.webp",
+    "w": 3.38,
+    "h": 2.91,
+    "x": 81.98,
+    "y": 57.8
+   },
+   {
+    "id": "an-vat-17",
+    "name": "Chai nước",
+    "src": "/stickers/an-vat/17.webp",
+    "w": 2.64,
+    "h": 6.18,
+    "x": 1.54,
+    "y": 61.31
+   },
+   {
+    "id": "an-vat-18",
+    "name": "Quả đào",
+    "src": "/stickers/an-vat/18.webp",
+    "w": 4.64,
+    "h": 2.67,
+    "x": 28.78,
+    "y": 60.38
+   },
+   {
+    "id": "an-vat-19",
+    "name": "Hot dog",
+    "src": "/stickers/an-vat/19.webp",
+    "w": 2.1,
+    "h": 3.8,
+    "x": 16.65,
+    "y": 64.49
+   },
+   {
+    "id": "an-vat-20",
+    "name": "Bó tulip",
+    "src": "/stickers/an-vat/20.webp",
+    "w": 6.38,
+    "h": 7.86,
+    "x": 67.68,
+    "y": 70.25
+   },
+   {
+    "id": "an-vat-21",
+    "name": "Lon nước ngọt",
+    "src": "/stickers/an-vat/21.webp",
+    "w": 2.74,
+    "h": 3.6,
+    "x": 26.83,
+    "y": 71.14
+   },
+   {
+    "id": "an-vat-22",
+    "name": "Bánh kem dâu",
+    "src": "/stickers/an-vat/22.webp",
+    "w": 4.25,
+    "h": 2.62,
+    "x": 42.73,
+    "y": 74.32
+   },
+   {
+    "id": "an-vat-23",
+    "name": "Sandwich",
+    "src": "/stickers/an-vat/23.webp",
+    "w": 4.11,
+    "h": 3.93,
+    "x": 5.26,
+    "y": 84.08
+   },
+   {
+    "id": "an-vat-24",
+    "name": "Bánh xốp",
+    "src": "/stickers/an-vat/24.webp",
+    "w": 5.03,
+    "h": 3.48,
+    "x": 31.52,
+    "y": 85.21
+   },
+   {
+    "id": "an-vat-25",
+    "name": "Bánh quy xoắn",
+    "src": "/stickers/an-vat/25.webp",
+    "w": 3.33,
+    "h": 2.88,
+    "x": 60.18,
+    "y": 87.55
+   }
+  ]
+ },
+ {
+  "key": "giang-sinh",
+  "name": "Bộ Giáng sinh",
+  "sheet": {
+   "src": "/stickers/giang-sinh/sheet.webp",
+   "w": 21.0,
+   "h": 29.7
+  },
+  "stickers": [
+   {
+    "id": "giang-sinh-01",
+    "name": "Gấu bông áo len",
+    "src": "/stickers/giang-sinh/01.webp",
+    "w": 5.85,
+    "h": 6.48,
+    "x": 4.18,
+    "y": 1.81
+   },
+   {
+    "id": "giang-sinh-02",
+    "name": "Hộp thư Giáng sinh",
+    "src": "/stickers/giang-sinh/02.webp",
+    "w": 4.54,
+    "h": 4.63,
+    "x": 32.55,
+    "y": 1.57
+   },
+   {
+    "id": "giang-sinh-03",
+    "name": "Quả châu hồng",
+    "src": "/stickers/giang-sinh/03.webp",
+    "w": 1.89,
+    "h": 2.57,
+    "x": 59.38,
+    "y": 5.88
+   },
+   {
+    "id": "giang-sinh-04",
+    "name": "Kẹo gậy",
+    "src": "/stickers/giang-sinh/04.webp",
+    "w": 5.03,
+    "h": 5.59,
+    "x": 73.34,
+    "y": 2.66
+   },
+   {
+    "id": "giang-sinh-05",
+    "name": "Quả cầu tuyết",
+    "src": "/stickers/giang-sinh/05.webp",
+    "w": 5.47,
+    "h": 5.54,
+    "x": 50.11,
+    "y": 17.98
+   },
+   {
+    "id": "giang-sinh-06",
+    "name": "Vòng nguyệt quế",
+    "src": "/stickers/giang-sinh/06.webp",
+    "w": 6.37,
+    "h": 7.12,
+    "x": 1.43,
+    "y": 24.91
+   },
+   {
+    "id": "giang-sinh-07",
+    "name": "Bông tuyết đỏ",
+    "src": "/stickers/giang-sinh/07.webp",
+    "w": 2.51,
+    "h": 2.52,
+    "x": 34.9,
+    "y": 24.63
+   },
+   {
+    "id": "giang-sinh-08",
+    "name": "Nơ chấm bi",
+    "src": "/stickers/giang-sinh/08.webp",
+    "w": 2.92,
+    "h": 2.86,
+    "x": 80.03,
+    "y": 22.69
+   },
+   {
+    "id": "giang-sinh-09",
+    "name": "Găng tay len",
+    "src": "/stickers/giang-sinh/09.webp",
+    "w": 3.36,
+    "h": 4.52,
+    "x": 81.18,
+    "y": 34.38
+   },
+   {
+    "id": "giang-sinh-10",
+    "name": "Chồng quà",
+    "src": "/stickers/giang-sinh/10.webp",
+    "w": 5.25,
+    "h": 5.06,
+    "x": 29.18,
+    "y": 40.27
+   },
+   {
+    "id": "giang-sinh-11",
+    "name": "Bánh gừng",
+    "src": "/stickers/giang-sinh/11.webp",
+    "w": 2.81,
+    "h": 3.03,
+    "x": 56.46,
+    "y": 39.14
+   },
+   {
+    "id": "giang-sinh-12",
+    "name": "Ngựa gỗ",
+    "src": "/stickers/giang-sinh/12.webp",
+    "w": 3.92,
+    "h": 4.28,
+    "x": 4.69,
+    "y": 51.27
+   },
+   {
+    "id": "giang-sinh-13",
+    "name": "Ông già Noel",
+    "src": "/stickers/giang-sinh/13.webp",
+    "w": 6.92,
+    "h": 10.15,
+    "x": 64.36,
+    "y": 46.55
+   },
+   {
+    "id": "giang-sinh-14",
+    "name": "Tất Noel",
+    "src": "/stickers/giang-sinh/14.webp",
+    "w": 3.11,
+    "h": 4.48,
+    "x": 46.22,
+    "y": 62.72
+   },
+   {
+    "id": "giang-sinh-15",
+    "name": "Nơ đỏ nhỏ",
+    "src": "/stickers/giang-sinh/15.webp",
+    "w": 1.29,
+    "h": 1.67,
+    "x": 3.83,
+    "y": 70.13
+   },
+   {
+    "id": "giang-sinh-16",
+    "name": "Cây thông",
+    "src": "/stickers/giang-sinh/16.webp",
+    "w": 4.79,
+    "h": 8.36,
+    "x": 4.63,
+    "y": 70.13
+   },
+   {
+    "id": "giang-sinh-17",
+    "name": "Chuông vàng",
+    "src": "/stickers/giang-sinh/17.webp",
+    "w": 3.87,
+    "h": 3.88,
+    "x": 24.66,
+    "y": 64.61
+   },
+   {
+    "id": "giang-sinh-18",
+    "name": "Người tuyết",
+    "src": "/stickers/giang-sinh/18.webp",
+    "w": 3.74,
+    "h": 4.57,
+    "x": 30.78,
+    "y": 79.12
+   },
+   {
+    "id": "giang-sinh-19",
+    "name": "Xe chở cây thông",
+    "src": "/stickers/giang-sinh/19.webp",
+    "w": 8.4,
+    "h": 5.51,
+    "x": 58.98,
+    "y": 80.05
+   },
+   {
+    "id": "giang-sinh-20",
+    "name": "Nơ đỏ",
+    "src": "/stickers/giang-sinh/20.webp",
+    "w": 1.96,
+    "h": 2.03,
+    "x": 85.47,
+    "y": 78.68
+   },
+   {
+    "id": "giang-sinh-21",
+    "name": "Bông tuyết xanh",
+    "src": "/stickers/giang-sinh/21.webp",
+    "w": 2.09,
+    "h": 2.11,
+    "x": 50.17,
+    "y": 85.65
+   }
+  ]
+ }
+]

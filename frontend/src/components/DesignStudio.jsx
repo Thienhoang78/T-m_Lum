@@ -4,11 +4,12 @@ import {
   PRODUCTS,
   cmToPct,
   maxWidthPctA4,
+  libraryPct,
   printArea,
   productFor,
-  stickerPct,
 } from '../data/products.js'
 import { insideArea, keepInArea, normalizeDesign, onSide, sideOf } from '../data/design.js'
+import { stickerArt } from '../data/stickerSets.js'
 import { priceOf, vnd } from '../data/pricing.js'
 import { MAX_CUSTOM_STICKERS } from '../data/consent.js'
 import { renderMockup } from '../data/mockup.js'
@@ -23,7 +24,8 @@ import { exportDrawing, initialBrush, loadMask, placeStrokes } from '../data/dra
 // hai ngón để phóng to / xoay trên điện thoại. Có hoàn tác / làm lại, đường căn giữa, khoá / ẩn lớp.
 // Dùng DOM + Pointer Events, không thêm thư viện vẽ.
 //
-// Phần tử (layer): { id, shape, color, label, set } (sticker trong thư viện)
+// Phần tử (layer): { id, art, set, ar } (sticker thư viện cắt từ tấm của bộ, cỡ in cố định theo tấm A4)
+//                  hoặc { id, shape, color, label, set } (sticker vẽ bằng hình, bản phối cũ)
 //                  hoặc { id, custom } (hình khách tự tải lên, ảnh lấy theo bản đang chọn: gốc / tách nền)
 //                  hoặc { id, custom, drawing: { strokes, box } } (hình khách tự vẽ: ảnh PNG đã tải lên như hình
 //                  tự tải lên, kèm các nét để mở ra sửa tiếp; box là vị trí lúc vẽ xong)
@@ -54,6 +56,7 @@ const SNAP = 1.2 // % khoảng hút vào đường giữa
 const HISTORY = 60
 
 let nextId = 1
+const fmtCm = (v) => v.toFixed(1).replace('.', ',')
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v))
 const withIds = (list) => list.map((it) => ({ ...it, id: it.id ?? nextId++ }))
 const strip = (list) => list.map(({ id: _id, ...it }) => it)
@@ -151,7 +154,7 @@ export default function DesignStudio({
   const fallbackTool = allowDraw ? 'draw' : allowUpload ? 'upload' : libraryOn ? 'library' : 'product'
   const activeTool = tools.some(([key]) => key === tool) ? tool : fallbackTool
   const shownSets = librarySets ? stickerSets.filter((st) => librarySets.includes(st.key)) : stickerSets
-  const srcOf = (it) => (it.custom ? customOf(it.custom)?.url : null)
+  const srcOf = (it) => (it.custom ? customOf(it.custom)?.url : it.art ? stickerArt(it.art)?.src : null)
   const live = items.filter((it) => !it.custom || customOf(it.custom))
   const here = onSide(live, side) // các lớp của mặt đang phối
   // Khung in A4 của từng mặt (% khung ảnh, theo thang cỡ của món)
@@ -162,7 +165,7 @@ export default function DesignStudio({
   // Cỡ hợp lệ: sticker thư viện giữ cỡ in thật; hình tự tải lên / vẽ không vượt khổ A4 và vừa khung
   const fitIn = useCallback(
     (s, it) => {
-      if (!it?.custom) return stickerPct(productKey, it?.shape)
+      if (!it?.custom) return libraryPct(productKey, it)
       const area = areaOf(sideOf(it))
       const ar = it.ar ?? 1
       return clamp(s, 3, Math.min(maxWidthPctA4(productKey, ar), area.w, area.h / ar))
@@ -261,14 +264,14 @@ export default function DesignStudio({
       x: a4c.x,
       y: a4c.y,
       r: 0,
-      s: base.custom ? fitIn(cmToPct(productKey, START_CM), base) : stickerPct(productKey, base.shape),
+      s: base.custom ? fitIn(cmToPct(productKey, START_CM), base) : libraryPct(productKey, base),
     })
     commit((list) => [...list, it])
     setSelected(it.id)
     return it
   }
-  const addSticker = (set, [shape, colorVar, label]) => {
-    add({ shape, color: colorVar, label, set: set.key })
+  const addSticker = (set, st) => {
+    add({ art: st.id, set: set.key, ar: st.h / st.w })
     onUseSet(set.key) // dùng sticker của bộ nào thì bộ đó được thêm vào đơn
   }
   // Hình tự tải lên: lấy tỉ lệ cao / ngang để giới hạn cỡ theo khổ A4
@@ -573,10 +576,12 @@ export default function DesignStudio({
       ? (customOf(it.custom)?.name.replace(/\.png$/, '') ?? 'Hình vẽ')
       : it.custom
         ? `Ảnh: ${customOf(it.custom)?.name ?? 'đã bỏ'}`
-        : `${SHAPE_NAMES[it.shape] ?? 'Sticker'}${it.label ? ` “${it.label}”` : ''}`
+        : it.art
+          ? (stickerArt(it.art)?.name ?? 'Sticker')
+          : `${SHAPE_NAMES[it.shape] ?? 'Sticker'}${it.label ? ` “${it.label}”` : ''}`
   const thumb = (it, w = 34) =>
-    it.custom ? (
-      <img src={srcOf(it)} alt="" style={{ width: w, height: w }} />
+    it.custom || it.art ? (
+      <img src={srcOf(it)} alt="" style={{ width: w, height: w, objectFit: 'contain' }} />
     ) : (
       <Sticker shape={it.shape} color={it.color} label={it.label} style={{ width: w }} />
     )
@@ -740,23 +745,29 @@ export default function DesignStudio({
                 {shownSets.map((set) => (
                   <div key={set.key} className="studio-set">
                     <p className="studio-set-head">
-                      <strong>
-                        {set.name} <small>(mẫu)</small>
-                      </strong>
+                      <strong>{set.name}</strong>
+                      <small>{set.stickers.length} sticker</small>
                       {chosenSets[set.key] > 0 && (
                         <span className="studio-tag">Bộ đi kèm × {chosenSets[set.key]}</span>
                       )}
                     </p>
                     <div className="studio-grid">
-                      {set.stickers.map((k, i) => (
+                      {set.stickers.map((st) => (
                         <button
-                          key={i}
+                          key={st.id}
                           type="button"
                           className="studio-tile"
-                          aria-label={`Thêm ${SHAPE_NAMES[k[0]] ?? 'sticker'} của ${set.name}`}
-                          onClick={() => addSticker(set, k)}
+                          title={`${st.name} · ${fmtCm(st.w)} × ${fmtCm(st.h)} cm`}
+                          aria-label={`Thêm ${st.name} (${fmtCm(st.w)} × ${fmtCm(st.h)} cm) của ${set.name}`}
+                          onClick={() => addSticker(set, st)}
                         >
-                          <Sticker shape={k[0]} color={k[1]} label={k[2]} />
+                          <img
+                            className="studio-tile-art"
+                            src={st.src}
+                            alt=""
+                            loading="lazy"
+                            draggable={false}
+                          />
                         </button>
                       ))}
                     </div>
@@ -1029,7 +1040,7 @@ export default function DesignStudio({
                       onPointerDown={(e) => startGesture(e, it, 'move')}
                       onFocus={() => setSelected(it.id)}
                     >
-                      {it.custom ? (
+                      {it.custom || it.art ? (
                         <img src={srcOf(it)} alt="" draggable={false} />
                       ) : (
                         <Sticker shape={it.shape} color={it.color} label={it.label} />

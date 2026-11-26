@@ -2,9 +2,10 @@ import mongoose from 'mongoose'
 
 const DesignItemSchema = new mongoose.Schema(
   // upload: vị trí trong customStickers khi là sticker khách tự tải lên
-  // set: bộ sticker của sticker thư viện
+  // set: bộ sticker của sticker thư viện; art: mã sticker cắt từ tấm của bộ (vd. 'an-vat-03')
   {
     side: { type: String, enum: ['front', 'back'], default: 'front' }, // mặt trước / mặt sau
+    art: String,
     shape: String,
     color: String,
     label: String,

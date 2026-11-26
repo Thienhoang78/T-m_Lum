@@ -1,7 +1,9 @@
-import { PRODUCTS, maxWidthPctA4, stickerPct } from './products.js'
+import { PRODUCTS, libraryPct, maxWidthPctA4 } from './products.js'
+import { setOf, stickerArt } from './stickerSets.js'
 
 // Bản phối: mỗi lớp thuộc một mặt ('front' | 'back'; lớp cũ chưa có mặt = mặt trước).
-// Sticker thư viện có cỡ in cố định: bề ngang luôn theo cỡ thật (STICKER_CM), chỉ đổi vị trí / góc xoay.
+// Sticker thư viện có cỡ in cố định: bề ngang luôn theo cỡ thật (cỡ trên tấm A4 / STICKER_CM), chỉ đổi vị trí /
+// góc xoay. Sticker cắt từ tấm (art) mang tỉ lệ cao / ngang (ar) theo danh mục; mã không còn trong danh mục thì bỏ.
 // Hình tự tải lên / hình vẽ đổi cỡ được nhưng không lớn hơn khổ A4.
 export const sideOf = (it) => (it.side === 'back' ? 'back' : 'front')
 export const onSide = (list, side) => list.filter((it) => sideOf(it) === side)
@@ -11,15 +13,23 @@ export function normalizeItem(it, productKey) {
     const max = maxWidthPctA4(productKey, it.ar ?? 1)
     return it.s > max ? { ...it, s: max } : it
   }
+  if (it.art) {
+    const art = stickerArt(it.art)
+    return art ? { ...it, set: art.set, ar: art.h / art.w, s: libraryPct(productKey, it) } : null
+  }
   if (!it.shape) return it
-  return { ...it, s: stickerPct(productKey, it.shape) }
+  if (it.set && !setOf(it.set)) return null // sticker của bộ mẫu cũ đã bỏ
+  return { ...it, s: libraryPct(productKey, it) }
 }
-export const normalizeDesign = (list, productKey) => list.map((it) => normalizeItem(it, productKey))
+export const normalizeDesign = (list, productKey) =>
+  list.map((it) => normalizeItem(it, productKey)).filter(Boolean)
+// Lớp có tỉ lệ cao / ngang riêng (hình tự tạo, sticker cắt từ tấm); sticker vẽ bằng hình thì vuông
+export const aspectOf = (it) => (it.custom || it.art ? (it.ar ?? 1) : 1)
 
-// Giữ lớp nằm gọn trong khung in A4 (area: % khung ảnh). Bề ngang / cao tính cả góc xoay; sticker thư viện vuông.
+// Giữ lớp nằm gọn trong khung in A4 (area: % khung ảnh). Bề ngang / cao tính cả góc xoay.
 // shrink: hình tự tạo lớn hơn khung (vd. đổi khung ngang → dọc, xoay nghiêng) thì thu nhỏ cho vừa.
 function extent(it) {
-  const h = it.s * (it.custom ? (it.ar ?? 1) : 1)
+  const h = it.s * aspectOf(it)
   const a = ((it.r ?? 0) * Math.PI) / 180
   const c = Math.abs(Math.cos(a))
   const s = Math.abs(Math.sin(a))

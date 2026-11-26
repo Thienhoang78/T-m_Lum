@@ -4,7 +4,7 @@
 // Combo cũ không còn trong danh sách được tắt (active: false), không xoá. Sửa rồi chạy: npm run seed
 import mongoose from 'mongoose'
 
-const STICKER = '1 bộ sticker in chuyển nhiệt'
+const STICKER = '1 bộ sticker in chuyển nhiệt (Bộ Ăn vặt hoặc Bộ Giáng sinh)'
 const CHOICE =
   'Sticker in chuyển nhiệt, chọn 1 trong 3: tự vẽ, tải hình của bạn hoặc 1 bộ sticker có sẵn của shop'
 

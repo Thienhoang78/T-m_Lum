@@ -1,3 +1,5 @@
+import CATALOG from './stickerCatalog.json'
+
 // Bảng giá: giữ cùng số liệu với frontend/src/data/pricing.js. Đơn hàng luôn được tính lại giá ở đây.
 // Bộ kit cơ bản – in chuyển nhiệt: áo 299.000₫ / túi 219.000₫. Sticker không tính tiền riêng; tấm sticker A5 / A4
 // mua thêm tính theo tấm; phí giao theo tỉnh. Mã giảm giá: SỐ MẪU. Bộ kit cao cấp in lụa đã ngừng bán.
@@ -7,7 +9,7 @@ export const PRICING = {
     tui: { 'combo-1': 219000, 'combo-2': 219000 },
   },
   // Combo 1: khách chọn 1 trong 3 cách làm sticker: tự vẽ ('ve'), tải hình của mình ('tai-len')
-  // hoặc 1 bộ sticker có sẵn của shop ('bo-sticker'). Combo 2: bộ sticker đi kèm có sẵn trong kit.
+  // hoặc 1 bộ sticker có sẵn của shop ('bo-sticker'). Combo 2: kèm 1 bộ sticker của shop, khách chọn bộ nào.
   choices: { 'combo-1': ['ve', 'tai-len', 'bo-sticker'] },
   chooseIncluded: ['combo-1'], // combo khách được chọn bộ sticker (khi chọn cách 'bo-sticker')
   uploads: ['combo-1'], // combo nhận hình khách tự vẽ / tải lên
@@ -72,11 +74,11 @@ export const VOUCHERS = {
   FREESHIP: { label: 'Miễn phí vận chuyển', freeShip: true },
 }
 
-export const STICKER_SETS = {
-  'tum-lum': 'Bộ Tùm Lum',
-  'de-thuong': 'Bộ Dễ thương',
-  'duong-pho': 'Bộ Đường phố',
-}
+// Bộ sticker của shop (khoá → tên) và mã từng sticker trong bộ: lấy từ stickerCatalog.json, file do
+// scripts/stickers/build_sets.py tạo cùng lúc với frontend/src/data/stickerCatalog.json
+export const STICKER_SETS = Object.fromEntries(Object.entries(CATALOG).map(([k, v]) => [k, v.name]))
+const ART_SET = new Map(Object.entries(CATALOG).flatMap(([k, v]) => v.stickers.map((id) => [id, k])))
+export const artSetOf = (id) => ART_SET.get(id) ?? null
 
 export const DELIVERY = { 'giao-hang': 'Giao tận nơi', studio: 'Nhận tại studio' }
 export const PAYMENTS = {

@@ -14,7 +14,7 @@ import {
   quote,
   vnd,
 } from '../data/pricing.js'
-import { STICKER_SETS } from '../data/stickerSets.js'
+import { STICKER_SETS, stickerArt } from '../data/stickerSets.js'
 import { WAIVER_VERSION } from '../data/consent.js'
 import { normalizeDesign, onSide } from '../data/design.js'
 import { useCustomStickers } from '../data/useCustomStickers.js'
@@ -176,9 +176,12 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
   const pickSet = choice === 'bo-sticker'
   const allowDraw = choice === 've'
   const allowUpload = choice === 'tai-len'
-  // Bộ sticker có sẵn: chọn đúng 1 bộ, mỗi áo / túi 1 bộ
-  const setKey = Object.keys(sets)[0] ?? null
-  const chosenSets = pickSet && setKey ? STICKER_SETS.filter((st) => st.key === setKey) : []
+  // Bộ sticker của shop: Combo 1 (cách bộ có sẵn) chọn đúng 1 bộ; Combo 2 kèm 1 bộ, mặc định bộ đầu tiên.
+  // Mỗi áo / túi 1 bộ
+  const setsOn = pickSet || !choices.length
+  const pickedKey = Object.keys(sets).find((k) => STICKER_SETS.some((st) => st.key === k)) ?? null
+  const setKey = setsOn ? (pickedKey ?? (choices.length ? null : (STICKER_SETS[0]?.key ?? null))) : null
+  const chosenSets = setKey ? STICKER_SETS.filter((st) => st.key === setKey) : []
   const setsQty = chosenSets.length ? qty : 0
   const chooseOneSet = (key) => setSets({ [key]: 1 })
   // Dùng sticker của một bộ trong trình phối: bộ đó thành bộ được chọn (Combo 1, cách bộ sticker có sẵn)
@@ -202,10 +205,17 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
   // Hình tự tải lên đã bị bỏ thì không hiện trên bản phối nữa; ảnh lấy theo bản đang chọn (gốc / tách nền)
   const customOf = (key) => custom.items.find((c) => c.key === key && c.status !== 'error' && ofChoice(c))
   // Chỉ hiện các lớp của cách làm sticker đang chọn: Combo 1 theo 1 trong 3; Combo 2 chỉ sticker có sẵn
-  const libraryOk = (it) => (choices.length ? pickSet && (!setKey || it.set === setKey) : true)
+  // Sticker thư viện chỉ hiện khi thuộc bộ đang chọn (cả Combo 1 lẫn Combo 2)
+  const libraryOk = (it) => setsOn && (!setKey || it.set === setKey)
   const shownDesign = design
     .filter((it) => (it.custom ? !!customOf(it.custom) : libraryOk(it)))
-    .map((it) => (it.custom ? { ...it, src: customOf(it.custom).url } : it))
+    .map((it) =>
+      it.custom
+        ? { ...it, src: customOf(it.custom).url }
+        : it.art
+          ? { ...it, src: stickerArt(it.art)?.src }
+          : it
+    )
   const visibleDesign = shownDesign.filter((it) => !it.hidden)
   const sideItems = (s) => onSide(visibleDesign, s)
   // Live mặc thử áo: Anywear (AI của Decart) nếu nạp được widget, không thì áo 3D tự làm
@@ -333,7 +343,11 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
         stickerSets: chosenSets.map((st) => ({ name: st.name, qty })),
         sheets: Object.entries(PRICING.sheets)
           .filter(([k]) => sheets[k])
-          .map(([k, s]) => ({ name: s.name, qty: sheets[k] })),
+          .map(([k, s]) => {
+            const v = choices.length ? null : (sheetSets[k] ?? 'combo')
+            const content = v && (v === 'combo' ? chosenSets[0] : STICKER_SETS.find((st) => st.key === v))
+            return { name: content ? `${s.name} · ${content.name}` : s.name, qty: sheets[k] }
+          }),
         customCount: needsWaiver ? myDone.length : 0,
         delivery:
           DELIVERY.find((d) => d.key === delivery).label +
@@ -553,39 +567,24 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
                   {errors.choice && <p className="field-err">{errors.choice}</p>}
 
                   {pickSet && (
-                    <div className="tee-sets" role="radiogroup" aria-label="Bộ sticker">
-                      {STICKER_SETS.map((st) => (
-                        <button
-                          key={st.key}
-                          type="button"
-                          className="tee-set"
-                          aria-pressed={setKey === st.key}
-                          onClick={() => {
-                            chooseOneSet(st.key)
-                            if (errors.choice) setErrors((e) => ({ ...e, choice: undefined }))
-                          }}
-                        >
-                          <span className="tee-set-art" aria-hidden="true">
-                            {st.stickers.map(([shape, c], i) => (
-                              <Sticker key={i} shape={shape} color={c} style={{ width: 26 }} />
-                            ))}
-                          </span>
-                          <span className="tee-set-name">
-                            {st.name} <small>(mẫu)</small>
-                          </span>
-                          <span className="tee-set-price">
-                            {setKey === st.key ? '✓ Đã chọn' : 'Chọn bộ này'}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
+                    <SetPicker
+                      value={setKey}
+                      onPick={(key) => {
+                        chooseOneSet(key)
+                        if (errors.choice) setErrors((e) => ({ ...e, choice: undefined }))
+                      }}
+                    />
                   )}
                   {pickSet && qty > 1 && <p className="upl-hint">Mỗi {unit} kèm 1 bộ đã chọn.</p>}
                 </OptionGroup>
               ) : (
-                <p className="kit-included">
-                  Đã gồm 1 bộ sticker in chuyển nhiệt cho mỗi {unit} trong {combo.name}.
-                </p>
+                <OptionGroup label="Bộ sticker đi kèm" note="chọn 1 bộ">
+                  <SetPicker value={setKey} onPick={chooseOneSet} />
+                  <p className="kit-included">
+                    Đã gồm 1 bộ sticker in chuyển nhiệt cho mỗi {unit} trong {combo.name}
+                    {qty > 1 ? ` (${qty} bộ ${chosenSets[0]?.name ?? ''})` : ''}.
+                  </p>
+                </OptionGroup>
               )}
 
               {/* 5b. Hình tự tải lên / tự vẽ + cam kết bản quyền (Combo 1, theo cách đã chọn) */}
@@ -645,7 +644,9 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
                           value={sheetSets[k] ?? 'combo'}
                           onChange={(ev) => setSheetSets((m) => ({ ...m, [k]: ev.target.value }))}
                         >
-                          <option value="combo">Bộ đi kèm {combo.name}</option>
+                          <option value="combo">
+                            Bộ đi kèm{chosenSets[0] ? ` (${chosenSets[0].name})` : ` ${combo.name}`}
+                          </option>
                           {STICKER_SETS.map((st) => (
                             <option key={st.key} value={st.key}>
                               {st.name}
@@ -1009,13 +1010,13 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
           onCombo={pickCombo}
           color={color}
           stickerSets={STICKER_SETS}
-          chosenSets={sets}
+          chosenSets={setKey ? { [setKey]: qty } : {}}
           onUseSet={useSet}
           custom={custom}
           allowUpload={allowUpload}
           allowDraw={allowDraw}
-          libraryOn={!choices.length || pickSet}
-          librarySets={pickSet && setKey ? [setKey] : null}
+          libraryOn={setsOn}
+          librarySets={setKey ? [setKey] : null}
           initial={design}
           onChange={setDesign}
           initialFrames={printFrame}
@@ -1034,6 +1035,37 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
           onClose={() => setStudio(false)}
         />
       )}
+    </div>
+  )
+}
+
+// Chọn 1 bộ sticker của shop: mỗi thẻ là ảnh xem trước cả tấm A4 của bộ
+function SetPicker({ value, onPick }) {
+  return (
+    <div className="tee-sets" role="radiogroup" aria-label="Bộ sticker">
+      {STICKER_SETS.map((st) => (
+        <button
+          key={st.key}
+          type="button"
+          role="radio"
+          className="tee-set"
+          aria-checked={value === st.key}
+          onClick={() => onPick(st.key)}
+        >
+          <img
+            className="tee-set-sheet"
+            src={st.sheet.src}
+            alt={`Cả tấm ${st.name}`}
+            width="700"
+            height="994"
+            loading="lazy"
+            draggable={false}
+          />
+          <span className="tee-set-name">{st.name}</span>
+          <span className="tee-set-price">{st.stickers.length} sticker · tấm A4</span>
+          <span className="tee-set-pick">{value === st.key ? '✓ Đã chọn' : 'Chọn bộ này'}</span>
+        </button>
+      ))}
     </div>
   )
 }

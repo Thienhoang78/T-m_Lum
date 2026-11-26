@@ -8,6 +8,7 @@ import {
   PRODUCT_RULES,
   STICKER_SETS,
   allowsUploads,
+  artSetOf,
   choicesOf,
   findVoucher,
   priceOf,
@@ -87,13 +88,13 @@ export async function POST(req) {
     : b.stickerSet
       ? [{ key: b.stickerSet, qty: b.stickerQty }]
       : []
-  // Combo 1: khách chọn đúng 1 trong 3 cách làm sticker; Combo 2: bộ sticker có sẵn, không chọn
+  // Combo 1: khách chọn đúng 1 trong 3 cách làm sticker; Combo 2: kèm 1 bộ sticker của shop (khách chọn bộ)
   const choices = choicesOf(combo.slug)
   const choice = choices.length ? b.choice : null
   if (choices.length && !choices.includes(choice))
     return bad(`${combo.name}: chọn 1 trong 3 cách làm sticker (tự vẽ, tải hình hoặc bộ sticker có sẵn).`)
   if (!choices.length && b.choice) return bad(`${combo.name} đã kèm sẵn bộ sticker.`)
-  if (wanted.length && choice !== 'bo-sticker')
+  if (wanted.length && choices.length && choice !== 'bo-sticker')
     return bad(`${combo.name} không chọn bộ sticker theo cách này.`)
   if (wanted.length > Object.keys(STICKER_SETS).length) return bad('Bộ sticker không hợp lệ.')
   const stickerSets = []
@@ -104,8 +105,9 @@ export async function POST(req) {
     if (!(sq >= 1 && sq <= 999)) return bad('Số bộ sticker từ 1 đến 999.')
     stickerSets.push({ key: w.key, name: STICKER_SETS[w.key], qty: sq })
   }
-  // Cách "bộ sticker có sẵn": đúng 1 bộ, mỗi áo / túi 1 bộ
-  if (choice === 'bo-sticker') {
+  // Cách "bộ sticker có sẵn" (Combo 1) và bộ đi kèm Combo 2: 1 bộ, mỗi áo / túi 1 bộ
+  // (Combo 2 không gửi bộ nào, như đơn từ trang cũ, thì studio chọn giúp)
+  if (choice === 'bo-sticker' || (!choices.length && stickerSets.length)) {
     if (stickerSets.length !== 1) return bad('Chọn 1 bộ sticker có sẵn của shop.')
     if (stickerSets[0].qty > qty)
       return bad(`Mỗi ${rules.name.toLowerCase()} kèm 1 bộ sticker: tối đa ${qty} bộ.`)
@@ -170,23 +172,26 @@ export async function POST(req) {
     .slice(0, 30)
     .filter(
       (it) =>
+        artSetOf(it?.art) ||
         SHAPES.includes(it?.shape) ||
         (Number.isInteger(it?.upload) && it.upload >= 0 && it.upload < customStickers.length)
     )
     .map((it) => ({
       side: it.side === 'back' ? 'back' : 'front',
-      ...(Number.isInteger(it.upload) && !SHAPES.includes(it.shape)
-        ? { upload: it.upload }
-        : {
-            shape: it.shape,
-            color: str(it.color, 40),
-            label: str(it.label, 20),
-            set: it.set in STICKER_SETS ? it.set : undefined,
-          }),
+      ...(artSetOf(it.art)
+        ? { art: it.art, set: artSetOf(it.art) }
+        : Number.isInteger(it.upload) && !SHAPES.includes(it.shape)
+          ? { upload: it.upload }
+          : {
+              shape: it.shape,
+              color: str(it.color, 40),
+              label: str(it.label, 20),
+              set: it.set in STICKER_SETS ? it.set : undefined,
+            }),
       x: num(it.x, 0, 100),
       y: num(it.y, 0, 100),
       r: num(it.r, -180, 180),
-      s: num(it.s, 4, 90),
+      s: num(it.s, 1, 90), // sticker nhỏ nhất của bộ chỉ ~1,3 cm
     }))
 
   // Khung in khổ A4 từng mặt khách đã chọn khi phối: 'doc' (21 × 29,7 cm) hoặc 'ngang'
