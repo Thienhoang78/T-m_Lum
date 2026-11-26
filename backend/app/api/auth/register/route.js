@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs'
 import { connectDB } from '@/lib/mongodb'
 import { createSession, publicUser } from '@/lib/auth'
 import User from '@/models/User'
+import { upsertFromUser } from '@/lib/customers'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -26,5 +27,7 @@ export async function POST(req) {
     passwordHash: await bcrypt.hash(password, 10),
   })
   await createSession(user)
+  // CRM: gắn tài khoản vào hồ sơ khách theo số điện thoại (lỗi ở đây không chặn đăng ký)
+  await upsertFromUser(user).catch((err) => console.error('CRM upsertFromUser', err))
   return Response.json({ user: publicUser(user) }, { status: 201 })
 }

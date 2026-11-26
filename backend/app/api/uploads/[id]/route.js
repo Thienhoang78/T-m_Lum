@@ -1,13 +1,13 @@
 import mongoose from 'mongoose'
 import { connectDB } from '@/lib/mongodb'
-import { requireAdmin } from '@/lib/admin'
+import { requireStaff } from '@/lib/admin'
 import Upload from '@/models/Upload'
 
 export const runtime = 'nodejs'
 
-// Studio xem / tải sticker khách đã gửi (cần header x-admin-token, xem lib/admin.js)
+// Studio xem / tải sticker khách đã gửi: tài khoản quản lý đang đăng nhập hoặc header x-admin-token (lib/admin.js)
 export async function GET(req, { params }) {
-  const denied = requireAdmin(req)
+  const { denied } = await requireStaff(req)
   if (denied) return denied
   const { id } = await params
   if (!mongoose.isValidObjectId(id)) return Response.json({ error: 'Không tìm thấy hình.' }, { status: 404 })

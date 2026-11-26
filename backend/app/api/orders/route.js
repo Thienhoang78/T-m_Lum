@@ -12,6 +12,7 @@ import {
   choicesOf,
   findVoucher,
   priceOf,
+  geoOf,
   provinceOf,
   quote,
 } from '@/lib/pricing'
@@ -20,6 +21,9 @@ import Combo from '@/models/Combo'
 import Order from '@/models/Order'
 import Upload from '@/models/Upload'
 import mongoose from 'mongoose'
+import { randomBytes } from 'node:crypto'
+import { upsertFromOrder } from '@/lib/customers'
+import { paymentInfo } from '@/lib/payments'
 
 const PHONE_RE = /^0\d{9}$/
 const SHAPES = ['star', 'heart', 'bolt', 'flower', 'smile', 'blob']
@@ -210,6 +214,8 @@ export async function POST(req) {
     previews[key] = id
   }
 
+  // Vị trí nhận hàng khách ghim trên bản đồ (không bắt buộc): khoảng cách tới studio luôn tính lại ở đây
+  const geo = b.delivery === 'giao-hang' ? geoOf(b.geo) : null
   const totals = quote({
     product: b.product,
     combo: b.combo,
@@ -218,6 +224,7 @@ export async function POST(req) {
     delivery: b.delivery,
     province: province?.key,
     voucher,
+    geo,
   })
 
   const doc = {
@@ -244,6 +251,7 @@ export async function POST(req) {
       note: str(b.customer?.note, 500),
     },
     delivery: b.delivery,
+    deliveryGeo: geo ? { ...geo, km: totals.distanceKm } : undefined,
     payment: b.payment,
     voucher,
     totals,
@@ -252,7 +260,8 @@ export async function POST(req) {
   // Mã đơn ngẫu nhiên, thử lại nếu trùng
   for (let i = 0; i < 5; i++) {
     try {
-      const order = await Order.create({ ...doc, code: orderCode() })
+      const accessKey = randomBytes(18).toString('base64url') // cho link theo dõi đơn của khách
+      const order = await Order.create({ ...doc, code: orderCode(), accessKey })
       // Gắn file vào đơn và bỏ hạn tự xoá
       const attach = [...ids, ...Object.values(previews)]
       if (attach.length)
@@ -260,7 +269,18 @@ export async function POST(req) {
           { _id: { $in: attach } },
           { $set: { order: order.code }, $unset: { expiresAt: '' } }
         )
-      return Response.json({ code: order.code, totals: order.totals, status: order.status }, { status: 201 })
+      // CRM: tạo / cập nhật hồ sơ khách theo số điện thoại (lỗi ở đây không làm hỏng đơn đã lưu)
+      await upsertFromOrder(order.toObject()).catch((err) => console.error('CRM upsertFromOrder', err))
+      return Response.json(
+        {
+          code: order.code,
+          key: accessKey,
+          totals: order.totals,
+          status: order.status,
+          pay: await paymentInfo(order),
+        },
+        { status: 201 }
+      )
     } catch (err) {
       if (err?.code !== 11000) throw err
     }

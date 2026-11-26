@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { createOrder, uploadSticker } from '../api.js'
 import { CHOICES, tierOf } from '../data/combos.js'
@@ -8,10 +8,12 @@ import {
   PAYMENTS,
   PRICING,
   PROVINCES,
+  STUDIO,
   choicesOf,
   findVoucher,
   priceOf,
   quote,
+  shipFee,
   vnd,
 } from '../data/pricing.js'
 import { STICKER_SETS, stickerArt } from '../data/stickerSets.js'
@@ -20,6 +22,8 @@ import { normalizeDesign, onSide } from '../data/design.js'
 import { useCustomStickers } from '../data/useCustomStickers.js'
 import { OptionGroup, Pills, SizeChart, Stepper } from '../components/ProductParts.jsx'
 import Sticker from '../components/Sticker.jsx'
+import PaymentBox from '../components/PaymentBox.jsx'
+import NearbyShip from '../components/NearbyShip.jsx'
 import ProductVisual from '../components/ProductVisual.jsx'
 import DesignStudio from '../components/DesignStudio.jsx'
 import LiveTryOn from '../components/LiveTryOn.jsx'
@@ -115,6 +119,7 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
   }))
   const [delivery, setDelivery] = useState('giao-hang')
   const [province, setProvince] = useState('')
+  const [geo, setGeo] = useState(null) // nơi nhận khách ghim trên bản đồ (miễn phí giao gần studio)
   const [payment, setPayment] = useState('cod')
   const [voucherInput, setVoucherInput] = useState('')
   const [voucher, setVoucher] = useState(null)
@@ -191,7 +196,8 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
   const myActive = custom.active.filter(ofChoice)
   const myDone = custom.done.filter(ofChoice)
   const sheetCount = Object.values(sheets).reduce((n, x) => n + (x || 0), 0)
-  const q = quote({ product: productKey, combo: combo.slug, qty, sheets, delivery, province, voucher })
+  const q = quote({ product: productKey, combo: combo.slug, qty, sheets, delivery, province, voucher, geo })
+  const nearStudio = delivery === 'giao-hang' && province === STUDIO.province // hiện ô ghim vị trí
   // Có hình tự tải lên / tự vẽ thì phải ký cam kết bản quyền; đang tải hình thì chưa cho đặt
   const needsWaiver = (allowDraw || allowUpload) && myActive.length > 0
   const waiverOk = waiver.accepted && waiver.signedName.trim() !== ''
@@ -317,6 +323,7 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
         sheetSets: choices.length ? undefined : sheetSets,
         delivery,
         province: delivery === 'giao-hang' ? province : undefined,
+        geo: nearStudio && geo ? geo : undefined,
         payment,
         voucher,
         customer: { ...customer, phone: customer.phone.replace(/\s/g, '') },
@@ -333,6 +340,8 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
       })
       setPlaced({
         code: res.code,
+        key: res.key,
+        pay: res.pay,
         totals: res.totals,
         comboName: combo.name,
         productName: product.name,
@@ -391,7 +400,9 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
 
   const shipText = `Đà Nẵng ${vnd(PRICING.shipping['da-nang'])} · miền Trung ${vnd(
     PRICING.shipping['mien-trung']
-  )} · tỉnh khác ${vnd(PRICING.shipping['con-lai'])}; miễn phí cho đơn từ ${vnd(PRICING.freeShipFrom)}`
+  )} · tỉnh khác ${vnd(PRICING.shipping['con-lai'])}; miễn phí cho đơn từ ${vnd(
+    PRICING.freeShipFrom
+  )} hoặc trong bán kính ${PRICING.freeShipRadiusKm} km quanh studio`
 
   return (
     <div className="page product tee-page">
@@ -716,6 +727,7 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
                           </p>
                         )}
                       </div>
+                      {nearStudio && <NearbyShip geo={geo} onChange={setGeo} q={q} fee={shipFee(province)} />}
                       {field('address', 'Địa chỉ nhận hàng (số nhà, đường, phường / xã)', {
                         autoComplete: 'street-address',
                       })}
@@ -735,7 +747,10 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
                           checked={payment === p.key}
                           onChange={() => setPayment(p.key)}
                         />
-                        <span>{p.label}</span>
+                        <span>
+                          {p.label}
+                          <small>{p.hint}</small>
+                        </span>
                       </label>
                     ))}
                   </div>
@@ -842,7 +857,13 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
                           Phí vận chuyển
                         </th>
                         <td>
-                          {q.shippingPending ? 'Chọn tỉnh' : q.shipping === 0 ? 'Miễn phí' : vnd(q.shipping)}
+                          {q.shippingPending
+                            ? 'Chọn tỉnh'
+                            : q.nearby
+                              ? `Miễn phí (trong ${PRICING.freeShipRadiusKm} km)`
+                              : q.shipping === 0
+                                ? 'Miễn phí'
+                                : vnd(q.shipping)}
                         </td>
                       </tr>
                       {q.discount > 0 && (
@@ -1072,6 +1093,7 @@ function SetPicker({ value, onPick }) {
 
 function OrderPlaced({ placed, panelRef, onAgain }) {
   const t = placed.totals
+  const access = useMemo(() => ({ k: placed.key }), [placed.key])
   return (
     <div className="tee-placed" ref={panelRef} tabIndex={-1} role="status">
       <Sticker shape="star" color="var(--sun)" className="tee-placed-star" style={{ width: 56 }} />
@@ -1080,8 +1102,13 @@ function OrderPlaced({ placed, panelRef, onAgain }) {
         Mã đơn <em>{placed.code}</em>
       </h2>
       <p className="tee-placed-sub">
-        Studio sẽ liên hệ số {placed.phone} để xác nhận đơn. Giữ lại mã đơn để tra cứu khi cần.
+        Studio sẽ liên hệ số {placed.phone} để xác nhận đơn. Lưu lại{' '}
+        <Link to={`/don-hang/${placed.code}?k=${encodeURIComponent(placed.key ?? '')}`}>
+          link theo dõi đơn
+        </Link>{' '}
+        để xem trạng thái và thanh toán bất cứ lúc nào.
       </p>
+      {placed.pay && <PaymentBox code={placed.code} access={access} pay={placed.pay} />}
       <dl className="tee-placed-sum">
         <div>
           <dt>
@@ -1126,7 +1153,13 @@ function OrderPlaced({ placed, panelRef, onAgain }) {
         </div>
         <div>
           <dt>Phí vận chuyển</dt>
-          <dd>{t.shipping === 0 ? 'Miễn phí' : vnd(t.shipping)}</dd>
+          <dd>
+            {t.nearby
+              ? `Miễn phí (trong ${PRICING.freeShipRadiusKm} km)`
+              : t.shipping === 0
+                ? 'Miễn phí'
+                : vnd(t.shipping)}
+          </dd>
         </div>
         {t.discount > 0 && (
           <div>
@@ -1140,8 +1173,11 @@ function OrderPlaced({ placed, panelRef, onAgain }) {
         </div>
       </dl>
       <div className="tee-actions">
-        <Link to="/" className="btn btn-glass">
-          Về trang chủ
+        <Link
+          to={`/don-hang/${placed.code}?k=${encodeURIComponent(placed.key ?? '')}`}
+          className="btn btn-glass"
+        >
+          Theo dõi đơn
         </Link>
         <button type="button" className="btn btn-brand" onClick={onAgain}>
           Đặt thêm đơn
