@@ -7,10 +7,12 @@ import Sticker from './Sticker.jsx'
 // Ảnh món nền trong khung vuông: dùng ảnh thật (thiếu file ảnh thì dùng hình vẽ trắng).
 // side: 'front' | 'back' (mặt sau của áo dựng từ ảnh mặt trước, túi dùng lại ảnh mặt trước).
 // design: sticker đặt theo toạ độ % của khung; chỉ hiện các lớp thuộc mặt đang xem.
+// patternArt: hoạ tiết in sẵn ở mặt trước (Combo 2, xem data/patterns.js), nằm dưới các sticker.
 export default function ProductVisual({
   productKey = 'ao',
   color,
   pattern = false,
+  patternArt = null,
   side = 'front',
   design = [],
   alt = '',
@@ -52,6 +54,20 @@ export default function ProductVisual({
   return (
     <div className={`tee-visual ${className}`}>
       {art}
+      {patternArt && side === 'front' && (
+        <img
+          src={patternArt.src}
+          alt=""
+          draggable={false}
+          className="tee-pattern"
+          style={{
+            left: `${patternArt.box.x}%`,
+            top: `${patternArt.box.y}%`,
+            width: `${patternArt.box.w}%`,
+            height: `${patternArt.box.h}%`,
+          }}
+        />
+      )}
       {onSide(design, side)
         .filter((it) => !it.hidden)
         .map((it, i) =>

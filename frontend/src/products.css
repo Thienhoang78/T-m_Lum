@@ -879,6 +879,13 @@
   translate: -50% -50%;
   pointer-events: none;
 }
+/* Hoạ tiết in sẵn (Combo 2): khít khung A4 mặt trước, dưới các sticker */
+.tee-pattern {
+  position: absolute;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
 .tee-badge {
   position: absolute;
   left: 14px;

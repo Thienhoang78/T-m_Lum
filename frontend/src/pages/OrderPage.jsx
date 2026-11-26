@@ -17,6 +17,7 @@ import {
   vnd,
 } from '../data/pricing.js'
 import { STICKER_SETS, stickerArt } from '../data/stickerSets.js'
+import { patternFor } from '../data/patterns.js'
 import { WAIVER_VERSION } from '../data/consent.js'
 import { normalizeDesign, onSide } from '../data/design.js'
 import { useCustomStickers } from '../data/useCustomStickers.js'
@@ -224,10 +225,12 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
     )
   const visibleDesign = shownDesign.filter((it) => !it.hidden)
   const sideItems = (s) => onSide(visibleDesign, s)
+  // Combo 2: áo / túi in sẵn hoạ tiết theo bộ sticker đi kèm (Bộ Ăn vặt → xe đẩy, Bộ Giáng sinh → cây thông)
+  const patternArt = patternFor(combo, productKey, setKey)
   // Live mặc thử áo: Anywear (AI của Decart) nếu nạp được widget, không thì áo 3D tự làm
   const tryOn = useAnywearTryOn({
     enabled: productKey === 'ao',
-    hasDesign: sideItems('front').length > 0,
+    hasDesign: !!patternArt || sideItems('front').length > 0,
     makeImage: () =>
       renderMockup(exportRefs.front.current.querySelector('.tee-visual'), sideItems('front'), 1000, {
         baseSrc: product.cutout,
@@ -237,7 +240,7 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
     onFallback: () => setLive(true),
   })
   const v = findVoucher(voucher)
-  const visual = { productKey, color, pattern: combo.patterned }
+  const visual = { productKey, color, pattern: combo.patterned, patternArt }
 
   // Combo lưu trên URL (?combo=combo-2), combo đầu tiên của gói thì để URL gọn
   function pickCombo(slug) {
@@ -419,7 +422,7 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
             {combo.patterned && (
               <span className="tee-badge">
                 <span className="tee-badge-swatch" aria-hidden="true" />
-                In sẵn hoạ tiết đen trắng
+                In sẵn hoạ tiết {patternArt ? patternArt.name : 'đen trắng'}
               </span>
             )}
             {visibleDesign.length > 0 && <span className="pp-view-tag">Bản phối của bạn</span>}
@@ -1030,6 +1033,7 @@ export default function OrderPage({ combos, combo, productKey, products, onProdu
           combo={combo}
           onCombo={pickCombo}
           color={color}
+          patternArt={patternArt}
           stickerSets={STICKER_SETS}
           chosenSets={setKey ? { [setKey]: qty } : {}}
           onUseSet={useSet}
