@@ -55,7 +55,7 @@ Combo 2 kèm 1 bộ sticker của shop, khách chọn bộ (mặc định bộ �
 tay đã gồm trong giá combo). Mua thêm **tấm sticker A5 20.000₫ / A4 30.000₫** ở mọi combo: Combo 1 in lại đúng nội dung đã chọn theo khổ;
 Combo 2 mặc định in bộ đi kèm, đổi sang bộ khác của shop cho từng khổ được (đơn lưu `choice`, `sheets`, `sheetSets`). **Phí giao** theo tỉnh
 (34 tỉnh, thành sau sắp xếp 2025, bảng `PROVINCES`): Đà Nẵng 15.000₫, miền Trung 20.000₫, tỉnh khác 25.000₫, miễn phí
-cho đơn từ 500.000₫; nhận tại studio không tính phí. Sticker thư viện có **cỡ in cố định** (chỉ đổi vị trí, góc xoay);
+cho đơn từ 500.000₫ hoặc **trong bán kính 3 km quanh studio** (xem dưới); nhận tại studio không tính phí. Sticker thư viện có **cỡ in cố định** (chỉ đổi vị trí, góc xoay);
 hình tự tải lên / hình vẽ đổi cỡ được, tối đa **khổ A4** (thang cỡ: ngang ngực áo tính 44 cm cho khung A4 cân đối, `widthCm` trong
 `frontend/src/data/products.js`; mặt túi 35 cm).
 
@@ -137,40 +137,136 @@ chuyển về áo 2.5D. Khi chạy dev có thể thử bằng dáng người gi�
 ![Live mặc thử áo 3D (người mẫu vẽ giả lập)](docs/screenshots/live-ao-3d.png)
 File chạy MediaPipe được chép vào `frontend/public/mediapipe` khi dev / build (`frontend/scripts/copy-vendor.mjs`).
 
+## Miễn phí giao trong bán kính 3 km
+
+Chọn giao tận nơi ở tỉnh của studio (Đà Nẵng) thì trang đặt hàng hiện ô **Miễn phí giao trong bán kính 3 km quanh
+studio**. Khách bấm _Ghim vị trí trên bản đồ_: ghim nằm giữa bản đồ, khách kéo bản đồ (chuột, chạm, phím mũi tên) hoặc
+bấm _Dùng vị trí của tôi_; hộp thoại báo luôn khoảng cách (đường chim bay) và có được miễn phí không. Bản đồ dùng Leaflet
+(BSD-2) + bản đồ OpenStreetMap, không cần API key, chỉ tải khi mở (`frontend/src/components/LocationPicker.jsx`).
+
+Server luôn tính lại khoảng cách từ vị trí ghim (`quote` trong hai file pricing), không tin số tiền từ trình duyệt.
+Đơn lưu vị trí ghim và số km (`deliveryGeo`); trang quản lý hiện khoảng cách và link mở Google Maps để studio đối chiếu
+với địa chỉ khi gọi xác nhận (khách có thể ghim sai vị trí).
+
+**Cần sửa vị trí studio:** hiện đặt tạm ở Cầu Rồng. Mở Google Maps, nhấp chuột phải vào studio, bấm dòng số
+`16.06…, 108.22…` để chép, rồi sửa `STUDIO` (`lat`, `lng`, đổi `placeholder` thành `false`) ở **cả**
+`frontend/src/data/pricing.js` và `backend/lib/pricing.js`. Bán kính: `PRICING.freeShipRadiusKm` (cả hai file).
+Trang quản lý nhắc khi vị trí còn là vị trí tạm.
+
+## Thanh toán
+
+Khách chọn 1 trong 3 cách ở trang đặt hàng (`PAYMENTS` trong `frontend/src/data/pricing.js`):
+
+| Cách                           | Sau khi đặt                                                                                 |
+| ------------------------------ | ------------------------------------------------------------------------------------------- |
+| Thanh toán khi nhận hàng (COD) | Studio chuyển đơn sang **Hoàn tất** thì trang quản lý tự ghi nhận đã thu đủ tiền            |
+| Chuyển khoản ngân hàng         | Hiện **mã VietQR** có sẵn số tiền và nội dung (mã đơn bỏ gạch ngang, vd. `TL251114AB12`)    |
+| Ví MoMo / ZaloPay              | Cùng mã VietQR đó: app MoMo / ZaloPay quét được mã VietQR để chuyển vào tài khoản ngân hàng |
+
+Mã VietQR được tạo ngay trên server theo chuẩn EMVCo của NAPAS (`backend/lib/vietqr.js`, thư viện `qrcode`), không gọi
+dịch vụ ngoài. Khách thấy mã ở màn hình đặt hàng thành công và ở **trang theo dõi đơn** `/don-hang/<mã đơn>?k=<mã bí mật>`
+(link riêng của từng đơn); có nút chép số tài khoản / số tiền / nội dung và nút lưu ảnh QR (PNG) để quét từ thư viện ảnh.
+Không có link thì tra cứu ở `/don-hang` bằng mã đơn + số điện thoại đặt hàng; khách đăng nhập thấy luôn các đơn của mình.
+
+**Cài tài khoản nhận tiền** (biến môi trường của backend, thiếu thì không hiện mã QR):
+
+| Biến                | Ví dụ                                                                                                                                |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `BANK_BIN`          | Mã BIN 6 số của ngân hàng: Vietcombank `970436`, MB `970422`, Techcombank `970407`, ACB `970416` (thêm trong `backend/.env.example`) |
+| `BANK_NAME`         | `Vietcombank` (chỉ để hiện cho khách)                                                                                                |
+| `BANK_ACCOUNT`      | Số tài khoản                                                                                                                         |
+| `BANK_ACCOUNT_NAME` | Tên chủ tài khoản (hiện cho khách đối chiếu)                                                                                         |
+
+**Tự xác nhận khi tiền về (tuỳ chọn, SePay):** không bật thì studio mở đơn trong trang quản lý và bấm _Ghi nhận đã thu_.
+Muốn tự động:
+
+1. Đăng ký https://sepay.vn, liên kết tài khoản ngân hàng nhận tiền ở trên.
+2. SePay → Webhooks → Thêm webhook: URL `https://<domain-backend>/api/payments/sepay`, sự kiện **Có tiền vào**, kiểu
+   chứng thực **API Key**, tự đặt một chuỗi bí mật dài.
+3. Đặt cùng chuỗi đó vào biến `SEPAY_API_KEY` của backend rồi Redeploy.
+
+Tiền vào có mã đơn trong nội dung thì đơn tự chuyển sang **Đã thanh toán** (trả thiếu thì **Đã trả một phần**, mã QR hiện
+số còn lại) và trang theo dõi đơn của khách tự cập nhật sau vài giây. Tiền vào không có mã đơn nằm ở tab **Giao dịch**
+của trang quản lý để gán tay. Webhook chỉ nhận tiền vào đúng `BANK_ACCOUNT`; SePay gửi lại cùng giao dịch thì bỏ qua.
+Mỗi giao dịch lưu ở collection `payments`; trạng thái thanh toán của đơn luôn tính lại từ các giao dịch
+(`backend/lib/payments.js`).
+
+Cổng thanh toán thẻ / ví trực tiếp (VNPay, MoMo, ZaloPay) cần studio đăng ký tài khoản doanh nghiệp với từng bên, chưa làm.
+
+## Trang quản lý bán hàng (CRM)
+
+`/quan-ly`, chỉ tài khoản có quyền quản lý (role `admin`) vào được; API `/api/admin/*` cũng kiểm tra lại ở server.
+Cấp quyền cho một tài khoản **đã đăng ký trên web** rồi đăng xuất, đăng nhập lại:
+
+```bash
+npm run make-admin -w backend -- email@cua-ban.com            # database trong backend/.env.local
+npm run make-admin -w backend -- email@cua-ban.com --thu-hoi  # thu hồi quyền
+MONGODB_URI="mongodb+srv://..." npm run make-admin:remote -w backend -- email@cua-ban.com   # database Atlas
+```
+
+Đăng nhập xong, menu tài khoản trên nav có **Trang quản lý (CRM)**. Trang này chỉ tải khi mở (khách mua hàng không phải
+tải).
+
+- **Tổng quan**: doanh thu (tiền đã thu), số đơn, giá trị đơn, số khách trong 30 ngày; biểu đồ cột theo ngày (doanh thu /
+  số đơn, rê chuột hoặc phím ← → để xem từng ngày, có bảng số liệu); việc cần làm (đơn chờ xác nhận, đơn chuyển khoản
+  chưa trả đủ, giao dịch chưa khớp) và khách tới hạn hẹn chăm sóc.
+- **Đơn hàng**: tìm theo mã đơn / SĐT / tên, lọc theo trạng thái, thanh toán, phương thức. Chi tiết đơn: sản phẩm, ảnh
+  mockup và hình khách tải lên / vẽ, cam kết bản quyền, đổi trạng thái kèm ghi chú nội bộ, ghi nhận thu tiền / hoàn
+  tiền, nút gọi / Zalo, link theo dõi đơn để gửi cho khách, nhật ký xử lý.
+- **Khách hàng**: mỗi số điện thoại là một khách (khách đặt hàng không cần tài khoản). Hồ sơ tự tạo khi có đơn mới hoặc
+  đăng ký tài khoản có số điện thoại; lần đầu mở tab tự dựng từ các đơn cũ (hoặc bấm _Đồng bộ từ đơn hàng_). Lọc nhóm:
+  cần chăm sóc, VIP (tổng giá trị đơn từ 1.000.000₫, `VIP_FROM` trong `backend/lib/customers.js`), mua từ 2 lần, mới 30
+  ngày, lâu chưa mua, chưa mua; lọc theo nhãn, sắp xếp theo chi tiêu / số đơn. Hồ sơ khách: số đơn, chi tiêu, lịch sử
+  đơn, nhãn tự đặt, hẹn chăm sóc lại, ghi chú chăm sóc (ghi chú / gọi điện / nhắn tin / gặp trực tiếp).
+- **Giao dịch**: tiền vào chưa khớp đơn (gán vào đơn), hoặc 100 giao dịch gần nhất.
+
 ## Lệnh hay dùng
 
-| Lệnh                                  | Việc                             |
-| ------------------------------------- | -------------------------------- |
-| `npm run dev`                         | Chạy frontend + backend cùng lúc |
-| `npm run dev:web` / `npm run dev:api` | Chạy riêng từng phần             |
-| `npm run build`                       | Build cả hai                     |
-| `npm run lint` / `npm run lint:fix`   | Kiểm tra / tự sửa lỗi ESLint     |
-| `npm run format`                      | Định dạng code bằng Prettier     |
-| `npm run seed`                        | Nạp combo mẫu vào MongoDB        |
-| `npm run db:up` / `npm run db:down`   | Bật / tắt MongoDB bằng Docker    |
+| Lệnh                                       | Việc                             |
+| ------------------------------------------ | -------------------------------- |
+| `npm run dev`                              | Chạy frontend + backend cùng lúc |
+| `npm run dev:web` / `npm run dev:api`      | Chạy riêng từng phần             |
+| `npm run build`                            | Build cả hai                     |
+| `npm run lint` / `npm run lint:fix`        | Kiểm tra / tự sửa lỗi ESLint     |
+| `npm run format`                           | Định dạng code bằng Prettier     |
+| `npm run seed`                             | Nạp combo mẫu vào MongoDB        |
+| `npm run db:up` / `npm run db:down`        | Bật / tắt MongoDB bằng Docker    |
+| `npm run make-admin -w backend -- <email>` | Cấp quyền vào trang quản lý      |
 
 VS Code: mở thư mục gốc, cài các extension được gợi ý (ESLint, Prettier, MongoDB). Code tự format khi lưu.
 
 ## API
 
-| Method      | Đường dẫn          | Mô tả                                             |
-| ----------- | ------------------ | ------------------------------------------------- |
-| GET         | /api/health        | Kiểm tra kết nối MongoDB                          |
-| GET         | /api/combos        | Danh sách combo đang bán                          |
-| POST        | /api/combos        | Tạo combo (cần header `x-admin-token`)            |
-| GET / PATCH | /api/combos/:slug  | Xem / sửa 1 combo (sửa cần `x-admin-token`)       |
-| POST        | /api/orders        | Đặt áo / túi: kiểm tra, tính lại giá, lưu đơn     |
-| POST        | /api/uploads       | Tải 1 sticker khách tự làm (PNG/JPG/WebP ≤ 4 MB)  |
-| GET         | /api/uploads/:id   | Xem sticker khách gửi (cần `x-admin-token`)       |
-| POST        | /api/tryon         | Lưu tạm ảnh áo cho live mặc thử Anywear (1 giờ)   |
-| GET         | /api/tryon/:token  | Ảnh áo đó, công khai cho widget (CORS `*`)        |
-| POST        | /api/auth/register | Đăng ký (họ tên, email, SĐT, mật khẩu ≥ 8 ký tự)  |
-| POST        | /api/auth/login    | Đăng nhập, đặt cookie phiên `tl_session` (7 ngày) |
-| POST        | /api/auth/logout   | Đăng xuất                                         |
-| GET         | /api/auth/me       | Người dùng đang đăng nhập (hoặc `null`)           |
+| Method      | Đường dẫn                        | Mô tả                                                                                    |
+| ----------- | -------------------------------- | ---------------------------------------------------------------------------------------- |
+| GET         | /api/health                      | Kiểm tra kết nối MongoDB                                                                 |
+| GET         | /api/combos                      | Danh sách combo đang bán                                                                 |
+| POST        | /api/combos                      | Tạo combo (cần header `x-admin-token`)                                                   |
+| GET / PATCH | /api/combos/:slug                | Xem / sửa 1 combo (sửa cần `x-admin-token`)                                              |
+| POST        | /api/orders                      | Đặt áo / túi: kiểm tra, tính lại giá, lưu đơn; trả mã đơn, mã bí mật theo dõi, mã VietQR |
+| GET         | /api/orders/:code                | Khách xem đơn (`?k=<mã bí mật>`, `?phone=<SĐT>` hoặc đăng nhập đúng tài khoản)           |
+| GET         | /api/orders/mine                 | Đơn của tài khoản đang đăng nhập                                                         |
+| POST        | /api/payments/sepay              | Webhook SePay báo tiền về (header `Authorization: Apikey <SEPAY_API_KEY>`)               |
+| GET         | /api/admin/summary               | Tổng quan trang quản lý                                                                  |
+| GET         | /api/admin/orders                | Danh sách đơn (`status`, `pay`, `method`, `q`, `page`)                                   |
+| GET / PATCH | /api/admin/orders/:code          | Chi tiết đơn / đổi trạng thái, ghi chú nội bộ                                            |
+| POST        | /api/admin/orders/:code/payments | Ghi nhận thu tiền / hoàn tiền tay                                                        |
+| GET / POST  | /api/admin/customers             | Danh sách khách (`q`, `tag`, `seg`, `sort`, `page`) / đồng bộ từ đơn hàng                |
+| GET / PATCH | /api/admin/customers/:phone      | Hồ sơ khách / sửa thông tin, nhãn, hẹn, ghi chú                                          |
+| GET         | /api/admin/payments              | Giao dịch (`filter=chua-khop`: chưa khớp đơn)                                            |
+| PATCH       | /api/admin/payments/:id          | Gán giao dịch chưa khớp vào đơn                                                          |
+| POST        | /api/uploads                     | Tải 1 sticker khách tự làm (PNG/JPG/WebP ≤ 4 MB)                                         |
+| GET         | /api/uploads/:id                 | Xem sticker khách gửi (tài khoản quản lý hoặc `x-admin-token`)                           |
+| POST        | /api/tryon                       | Lưu tạm ảnh áo cho live mặc thử Anywear (1 giờ)                                          |
+| GET         | /api/tryon/:token                | Ảnh áo đó, công khai cho widget (CORS `*`)                                               |
+| POST        | /api/auth/register               | Đăng ký (họ tên, email, SĐT, mật khẩu ≥ 8 ký tự)                                         |
+| POST        | /api/auth/login                  | Đăng nhập, đặt cookie phiên `tl_session` (7 ngày)                                        |
+| POST        | /api/auth/logout                 | Đăng xuất                                                                                |
+| GET         | /api/auth/me                     | Người dùng đang đăng nhập (hoặc `null`)                                                  |
 
 Mật khẩu được băm bằng bcrypt; phiên đăng nhập là JWT trong cookie httpOnly. Cần đặt `JWT_SECRET` trong `backend/.env.local`.
 API tạo / sửa combo chỉ chạy khi gửi header `x-admin-token` trùng biến `ADMIN_TOKEN`; để trống `ADMIN_TOKEN` thì các API này bị khoá.
+API `/api/admin/*` nhận tài khoản quản lý đang đăng nhập hoặc header `x-admin-token`.
 
 ## Triển khai (GitHub + Vercel + MongoDB Atlas)
 
@@ -211,12 +307,14 @@ $env:MONGODB_URI="mongodb+srv://..."; npm run seed:remote -w backend; Remove-Ite
 
 Vercel → Add New → Project → chọn repo → **Root Directory: `backend`** (Framework: Next.js). Thêm Environment Variables:
 
-| Biến              | Giá trị                                                                 |
-| ----------------- | ----------------------------------------------------------------------- |
-| `MONGODB_URI`     | chuỗi kết nối Atlas ở bước 2                                            |
-| `JWT_SECRET`      | chuỗi ngẫu nhiên dài (vd. `openssl rand -base64 32`)                    |
-| `FRONTEND_ORIGIN` | domain frontend, vd. `https://tum-lum.vercel.app` (cập nhật sau bước 4) |
-| `ADMIN_TOKEN`     | (tuỳ chọn) mã bí mật để tạo / sửa combo qua API                         |
+| Biến                                                         | Giá trị                                                                 |
+| ------------------------------------------------------------ | ----------------------------------------------------------------------- |
+| `MONGODB_URI`                                                | chuỗi kết nối Atlas ở bước 2                                            |
+| `JWT_SECRET`                                                 | chuỗi ngẫu nhiên dài (vd. `openssl rand -base64 32`)                    |
+| `FRONTEND_ORIGIN`                                            | domain frontend, vd. `https://tum-lum.vercel.app` (cập nhật sau bước 4) |
+| `ADMIN_TOKEN`                                                | (tuỳ chọn) mã bí mật để tạo / sửa combo qua API                         |
+| `BANK_BIN`, `BANK_NAME`, `BANK_ACCOUNT`, `BANK_ACCOUNT_NAME` | tài khoản nhận chuyển khoản (mã VietQR), xem mục Thanh toán             |
+| `SEPAY_API_KEY`                                              | (tuỳ chọn) bật tự xác nhận chuyển khoản qua webhook SePay               |
 
 Deploy xong, mở `https://<domain-backend>/api/health` để kiểm tra kết nối database.
 
@@ -234,5 +332,6 @@ npm workspaces, vào Settings → Build and Deployment của project đó, đặ
 
 - Giá bộ sticker, phí vận chuyển và mã giảm giá thật. Bảng giá nằm ở `frontend/src/data/pricing.js` và `backend/lib/pricing.js` (phải sửa cả hai).
 - Địa chỉ, giờ mở cửa, kênh liên hệ.
-- Kho sticker thật, trang quản lý đơn hàng, cổng thanh toán thật.
+- Kho sticker thật; cổng thanh toán thẻ / ví trực tiếp (VNPay, MoMo, ZaloPay) cần đăng ký doanh nghiệp.
+- Gửi email / Zalo báo trạng thái đơn cho khách (hiện khách xem ở trang theo dõi đơn).
 - Quên mật khẩu / xác minh email.

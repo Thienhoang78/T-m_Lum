@@ -16,6 +16,7 @@ const COLUMNS = [
   {
     title: 'Hỗ trợ',
     links: [
+      { label: 'Tra cứu đơn hàng', href: '/don-hang' },
       { label: 'Câu hỏi thường gặp', soon: true },
       { label: 'Chính sách đổi trả', soon: true },
       { label: 'Bảng size áo', soon: true },

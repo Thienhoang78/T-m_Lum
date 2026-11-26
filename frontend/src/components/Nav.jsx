@@ -1,6 +1,68 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { Link, useLocation } from 'react-router-dom'
 import CartButton from './CartButton.jsx'
+
+// Menu tài khoản: đơn của tôi, trang quản lý (tài khoản admin), đăng xuất
+function AccountMenu({ user, onLogout }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+  const { pathname } = useLocation()
+  useEffect(() => setOpen(false), [pathname])
+  useEffect(() => {
+    if (!open) return
+    const close = (e) => {
+      if (e.type === 'keydown' ? e.key === 'Escape' : !ref.current?.contains(e.target)) setOpen(false)
+    }
+    document.addEventListener('pointerdown', close)
+    document.addEventListener('keydown', close)
+    return () => {
+      document.removeEventListener('pointerdown', close)
+      document.removeEventListener('keydown', close)
+    }
+  }, [open])
+
+  return (
+    <div className="cart" ref={ref}>
+      <button
+        type="button"
+        className="nav-login acct-btn"
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+      >
+        Chào, {user.name.split(' ').pop()}
+        <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+          <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+      </button>
+      {open && (
+        <div className="cart-panel acct-panel">
+          <p className="acct-who">
+            <strong>{user.name}</strong>
+            <span>{user.email}</span>
+          </p>
+          <Link to="/don-hang" className="acct-link">
+            Đơn hàng của tôi
+          </Link>
+          {user.role === 'admin' && (
+            <Link to="/quan-ly" className="acct-link">
+              Trang quản lý (CRM)
+            </Link>
+          )}
+          <button
+            type="button"
+            className="acct-link"
+            onClick={() => {
+              setOpen(false)
+              onLogout()
+            }}
+          >
+            Đăng xuất
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
 
 // Nav kính dính trên cùng. Rê chuột / tab qua các link thì một viên sáng trượt theo link đó.
 // Trên nền tối của đầu trang chủ (html[data-nav-dark]) nav chuyển sang kính tối.
@@ -52,12 +114,7 @@ export default function Nav({ user, onLogin, onRegister, onLogout }) {
         <div className="nav-actions">
           <CartButton />
           {user ? (
-            <>
-              <span className="nav-user">Chào, {user.name.split(' ').pop()}</span>
-              <button type="button" className="btn btn-glass btn-sm" onClick={onLogout}>
-                Đăng xuất
-              </button>
-            </>
+            <AccountMenu user={user} onLogout={onLogout} />
           ) : (
             <>
               <button type="button" className="nav-login" onClick={onLogin}>

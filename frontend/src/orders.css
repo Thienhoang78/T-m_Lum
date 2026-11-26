@@ -1,0 +1,557 @@
+/* Thanh toán (mã VietQR), theo dõi đơn, tra cứu đơn. Huy hiệu trạng thái dùng chung với trang quản lý.
+   Dùng lại token của styles.css: bề mặt trắng, viền --line, xanh brand cho điểm nhấn. */
+
+/* ---------- Huy hiệu trạng thái: chữ navy trên nền nhạt, luôn có chữ (không chỉ màu) ---------- */
+.st {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0.2em 0.7em;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.5;
+  white-space: nowrap;
+  color: var(--navy);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  vertical-align: middle;
+}
+.st::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.55;
+}
+.st-sun {
+  background: #fff4d6;
+  border-color: #f0c75a;
+}
+.st-sun::before {
+  background: #c99000;
+  opacity: 1;
+}
+.st-brand {
+  background: var(--brand-soft);
+  border-color: var(--brand);
+}
+.st-brand::before {
+  background: var(--brand-strong);
+  opacity: 1;
+}
+.st-ok {
+  background: #e3f5ec;
+  border-color: #7cc9a2;
+}
+.st-ok::before {
+  background: var(--ok);
+  opacity: 1;
+}
+.st-mute {
+  color: var(--muted);
+}
+.st-danger {
+  background: var(--danger-soft);
+  border-color: #e8a19c;
+}
+.st-danger::before {
+  background: var(--danger);
+  opacity: 1;
+}
+.st-row {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* ---------- Hộp thanh toán ---------- */
+.pay-box {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+.pay-title {
+  margin: 0;
+  font-weight: 600;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.pay-text {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+.pay-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 16px;
+  align-items: start;
+}
+.pay-qr {
+  margin: 0;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+}
+.pay-qr img {
+  width: 200px;
+  height: 200px;
+  padding: 8px;
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+}
+.pay-qr figcaption {
+  font-size: 0.85rem;
+}
+.pay-info {
+  margin: 0;
+  display: grid;
+  gap: 8px;
+  font-size: 0.92rem;
+}
+.pay-info div {
+  display: grid;
+  gap: 2px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+}
+.pay-info div:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+.pay-info dt {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.pay-info dd {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  overflow-wrap: anywhere;
+}
+.pay-mono,
+.pay-ref {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+.pay-ref {
+  color: var(--navy);
+  background: #fff4d6;
+  padding: 0 0.35em;
+  border-radius: 6px;
+}
+.pay-copy {
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--brand-deep);
+  background: var(--brand-soft);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 0.15em 0.75em;
+  cursor: pointer;
+}
+.pay-copy:hover {
+  border-color: var(--brand);
+}
+.pay-wait {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.88rem;
+  font-weight: 500;
+}
+.pay-pulse {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--brand-strong);
+  animation: pay-pulse 1.4s ease-in-out infinite;
+}
+@keyframes pay-pulse {
+  50% {
+    transform: scale(0.6);
+    opacity: 0.4;
+  }
+}
+.pay-done {
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  background: #e3f5ec;
+  border-color: #7cc9a2;
+}
+.pay-done p {
+  margin: 2px 0 0;
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+.pay-check {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--ok);
+  color: #fff;
+  font-weight: 700;
+  font-size: 1.2rem;
+}
+.tee-placed .pay-box {
+  margin-top: 4px;
+}
+@media (max-width: 520px) {
+  .pay-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- Trang theo dõi / tra cứu đơn ---------- */
+.track-page {
+  display: grid;
+  gap: 14px;
+  padding-bottom: clamp(48px, 8vw, 96px);
+}
+.track-page > .display-sm {
+  margin-bottom: 8px;
+  overflow-wrap: anywhere;
+}
+.track-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+.track-card {
+  display: grid;
+  gap: 12px;
+  padding: clamp(18px, 3vw, 26px);
+  border-radius: 18px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+}
+.track-ask {
+  max-width: 520px;
+}
+.track-ask p {
+  margin: 0;
+}
+.track-h {
+  margin: 0;
+  font-size: 1.1rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.track-h:not(:first-child) {
+  margin-top: 10px;
+}
+.track-muted {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.track-hint {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--brand-soft);
+  font-size: 0.9rem;
+}
+.track-addr {
+  display: block;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+.track-steps {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  counter-reset: step;
+}
+.track-steps li {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+/* đường nối giữa các bước */
+.track-steps li + li::before {
+  content: '';
+  position: absolute;
+  top: 15px;
+  right: calc(50% + 18px);
+  width: calc(100% - 30px);
+  height: 2px;
+  background: var(--line);
+}
+.track-steps li.is-done + li::before {
+  background: var(--brand-strong);
+}
+.track-dot {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  background: var(--surface);
+  font-weight: 700;
+  color: var(--muted);
+}
+.track-steps .is-done .track-dot {
+  background: var(--brand-strong);
+  border-color: var(--brand-strong);
+  color: #fff;
+}
+.track-steps .is-now {
+  color: var(--navy);
+  font-weight: 600;
+}
+.track-steps .is-now .track-dot {
+  border-color: var(--brand-strong);
+  color: var(--navy);
+  box-shadow: 0 0 0 4px var(--brand-soft);
+}
+
+.my-orders {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.my-orders a {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  text-decoration: none;
+  transition: background 0.2s;
+}
+.my-orders a:hover {
+  background: var(--brand-soft);
+}
+.my-orders-main,
+.my-orders-side {
+  display: grid;
+  gap: 4px;
+}
+.my-orders-main span {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.my-orders-side {
+  justify-items: end;
+  text-align: right;
+}
+@media (max-width: 800px) {
+  .track-grid {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 420px) {
+  .my-orders a {
+    flex-direction: column;
+  }
+  .my-orders-side {
+    justify-items: start;
+    text-align: left;
+  }
+}
+
+/* ---------- Menu tài khoản trên nav ---------- */
+.acct-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.acct-panel {
+  gap: 4px;
+  width: min(260px, calc(100vw - 32px));
+  padding: 10px;
+}
+.acct-who {
+  margin: 0 0 6px;
+  padding: 6px 10px 10px;
+  display: grid;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.9rem;
+}
+.acct-who span {
+  color: var(--muted);
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+}
+.acct-link {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 9px 10px;
+  border-radius: 10px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 0.92rem;
+  color: var(--navy);
+  text-decoration: none;
+  cursor: pointer;
+}
+.acct-link:hover {
+  background: var(--brand-soft);
+}
+
+/* ---------- Miễn phí giao trong bán kính quanh studio + bản đồ ghim nơi nhận ---------- */
+.near-ship {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px dashed var(--brand-strong);
+  background: var(--brand-soft);
+}
+.near-ship.is-in {
+  border-style: solid;
+  border-color: #7cc9a2;
+  background: #e3f5ec;
+}
+.near-ship.is-out {
+  border-style: solid;
+  border-color: var(--line);
+  background: var(--surface);
+}
+.near-title {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+.near-text,
+.near-note {
+  margin: 0;
+  font-size: 0.86rem;
+  color: var(--muted);
+}
+.near-text strong {
+  color: var(--navy);
+}
+.near-actions {
+  margin: 2px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+.auth.map-dialog {
+  max-width: 720px;
+}
+.map-card {
+  gap: 10px;
+  padding: 24px 20px 20px;
+}
+.map-title {
+  margin: 0;
+  padding-right: 40px;
+  font-size: 1.25rem;
+}
+.map-sub {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+.map-wrap {
+  position: relative;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+}
+.map-canvas {
+  height: min(56vh, 420px);
+  background: #e8eef3;
+}
+/* ghim cố định ở tâm bản đồ: mũi ghim chạm đúng điểm giữa */
+.map-pin {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 500;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+.map-pin::before {
+  content: '';
+  position: absolute;
+  left: -14px;
+  top: -38px;
+  width: 28px;
+  height: 28px;
+  border: 3px solid #fff;
+  border-radius: 50% 50% 50% 0;
+  background: #e53935;
+  transform: rotate(-45deg);
+  box-shadow: 0 6px 12px rgba(13, 43, 69, 0.3);
+}
+.map-pin::after {
+  content: '';
+  position: absolute;
+  left: -4px;
+  top: -3px;
+  width: 8px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(13, 43, 69, 0.35);
+}
+.map-studio span {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--navy);
+  color: #fff;
+  font: 600 0.75rem var(--font-body);
+  white-space: nowrap;
+  box-shadow: 0 4px 10px rgba(13, 43, 69, 0.25);
+}
+.map-readout {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--bg);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.map-readout.is-in {
+  background: #e3f5ec;
+}
+.map-readout.is-out {
+  background: #fff4d6;
+}
+.map-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}

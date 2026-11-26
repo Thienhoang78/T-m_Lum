@@ -44,4 +44,10 @@ export async function clearSession() {
 }
 
 // Trả về thông tin user an toàn để gửi cho frontend (không có mật khẩu)
-export const publicUser = (u) => ({ id: String(u._id), name: u.name, email: u.email, phone: u.phone ?? '' })
+export const publicUser = (u) => ({
+  id: String(u._id),
+  name: u.name,
+  email: u.email,
+  phone: u.phone ?? '',
+  role: u.role ?? 'customer',
+})

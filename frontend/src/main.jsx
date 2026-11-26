@@ -9,6 +9,7 @@ import './kits.css'
 import './landing.css'
 import './fx.css'
 import './sections.css'
+import './orders.css'
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>

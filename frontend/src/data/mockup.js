@@ -72,6 +72,15 @@ export async function renderMockup(
     g.drawImage(baseImg, (size - w) / 2, (size - h) / 2, w, h)
   }
 
+  // Hoạ tiết in sẵn (Combo 2): là một phần bản in nên xuất cả khi bỏ ảnh nền (áo 3D)
+  const pattern = visualEl.querySelector(':scope > .tee-pattern')
+  if (pattern) {
+    const im = await loadImage(pattern.currentSrc || pattern.src)
+    const at = (v) => (parseFloat(v) / 100) * size
+    const { left, top, width, height } = pattern.style
+    g.drawImage(im, at(left), at(top), at(width), at(height))
+  }
+
   const nodes = visualEl.querySelectorAll(':scope > .tee-placed-sticker')
   for (let i = 0; i < design.length; i++) {
     const it = design[i]

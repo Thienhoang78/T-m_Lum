@@ -93,6 +93,7 @@ export default function DesignStudio({
   combo,
   onCombo,
   color,
+  patternArt = null, // hoạ tiết in sẵn trên áo (Combo 2), theo bộ sticker đi kèm
   stickerSets,
   chosenSets, // { [key]: số bộ }
   onUseSet,
@@ -1022,6 +1023,7 @@ export default function DesignStudio({
                 productKey={productKey}
                 color={color}
                 pattern={combo.patterned}
+                patternArt={patternArt}
                 side={side}
                 alt=""
               >
@@ -1210,6 +1212,7 @@ export default function DesignStudio({
               productKey={productKey}
               color={color}
               pattern={combo.patterned}
+              patternArt={patternArt}
               side={k}
               design={visibleForExport}
               className="studio-export-visual"

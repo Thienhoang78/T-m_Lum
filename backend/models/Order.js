@@ -67,6 +67,8 @@ const OrderSchema = new mongoose.Schema(
     previewBack: { type: mongoose.Schema.Types.ObjectId, ref: 'Upload' }, // ảnh mockup PNG mặt sau
     customer: { name: String, phone: String, province: String, address: String, note: String },
     delivery: { type: String, enum: ['giao-hang', 'studio'] },
+    // nơi nhận khách ghim trên bản đồ + khoảng cách đường chim bay tới studio (km), dùng cho miễn phí giao gần studio
+    deliveryGeo: { lat: Number, lng: Number, km: Number },
     payment: { type: String, enum: ['cod', 'chuyen-khoan', 'vi-dien-tu'] },
     voucher: String,
     totals: {
@@ -79,14 +81,40 @@ const OrderSchema = new mongoose.Schema(
       shipping: Number,
       discount: Number,
       total: Number,
+      nearby: Boolean, // miễn phí giao vì nơi nhận trong bán kính quanh studio
+      distanceKm: Number,
     },
     status: {
       type: String,
       enum: ['cho-xac-nhan', 'dang-lam', 'dang-giao', 'hoan-tat', 'da-huy'],
       default: 'cho-xac-nhan',
     },
+    // Mã bí mật trong link theo dõi đơn gửi cho khách (/don-hang/<mã đơn>?k=...)
+    accessKey: { type: String, select: false },
+    // Thanh toán: tính lại từ các giao dịch (collection payments) mỗi khi có giao dịch mới, xem lib/payments.js
+    paymentStatus: {
+      type: String,
+      enum: ['chua-thanh-toan', 'mot-phan', 'da-thanh-toan', 'hoan-tien'],
+      default: 'chua-thanh-toan',
+    },
+    paidAmount: { type: Number, default: 0 },
+    paidAt: Date,
+    // Nhật ký xử lý đơn trong trang quản lý (đổi trạng thái, ghi chú nội bộ, thanh toán)
+    history: [
+      {
+        _id: false,
+        at: { type: Date, default: Date.now },
+        by: String,
+        action: String, // 'trang-thai' | 'ghi-chu' | 'thanh-toan'
+        from: String,
+        to: String,
+        note: String,
+      },
+    ],
   },
   { timestamps: true }
 )
+OrderSchema.index({ 'customer.phone': 1, createdAt: -1 })
+OrderSchema.index({ createdAt: -1 })
 
 export default mongoose.models.Order || mongoose.model('Order', OrderSchema)

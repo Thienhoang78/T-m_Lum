@@ -16,9 +16,10 @@ export const PRODUCTS = {
     cutout: '/images/ao-trang-cat.webp', // cùng ảnh, khoét hẳn vùng cổ: dùng cho live mặc thử
     // Tâm thân áo theo % khung ảnh vuông: đường căn giữa và chỗ đặt sticker mới khi phối
     center: { x: 50, y: 55 },
-    // Thang cỡ trên ảnh áo: ngang ngực theo bảng size là 54 cm, nhưng tính 44 cm để khung A4 rộng cỡ nửa ngực
-    // cho cân đối khi phối (chủ shop chọn). Đổi số này là đổi cỡ khung A4, sticker và giới hạn hình trên áo.
-    widthCm: 44,
+    // Thang cỡ trên ảnh áo: ngang ngực theo bảng size là 54 cm, nhưng tính 25 cm để khung A4 dọc phủ gần hết
+    // thân áo trước (rộng ~82% thân, từ dưới cổ xuống gần gấu) cho dễ phối (chủ shop chọn). Khung A4 ngang khi đó
+    // rộng hơn thân áo một chút. Đổi số này là đổi cỡ khung A4, hoạ tiết in sẵn, sticker và giới hạn hình trên áo.
+    widthCm: 25,
     bodyFrac: 0.536,
     // Mặt sau dựng từ ảnh mặt trước (xem data/design.js): vùng cổ theo toạ độ 0..1 của ảnh
     backNeck: {
@@ -34,7 +35,7 @@ export const PRODUCTS = {
       fabric: [0.5, 0.32],
     },
     // Vùng in khổ A4: mép trên dưới đáy cổ trước một chút; mặt sau đặt cao hơn (cổ sau cao hơn cổ trước)
-    printArea: { cx: 50, top: { front: 23, back: 16 } },
+    printArea: { cx: 50, top: { front: 21, back: 16 } },
     colors: [{ key: 'trang', name: 'Trắng', fill: '#f7f4ee', seam: '#cfc7b8' }],
     sizes: ['S', 'M', 'L', 'XL', 'XXL'],
     extras: ['Tay trái', 'Tay phải', 'Nhãn áo tùy chỉnh'],
@@ -58,9 +59,11 @@ export const PRODUCTS = {
     photo: '/images/tui-trang.webp', // ảnh túi thật của studio, đã cắt nền
     cutout: '/images/tui-trang.webp', // vùng được vẽ: theo ảnh túi
     center: { x: 50, y: 70 }, // tâm thân túi (dưới quai)
-    printArea: { cx: 50, cy: 69 }, // vùng in khổ A4: giữa thân túi
+    printArea: { cx: 50, cy: 70.5 }, // vùng in khổ A4: giữa thân túi (thân túi trên ảnh: cao 46–95,6%)
     blurb: 'Túi tote vải canvas trắng, quai đeo vai, mặt túi phẳng để trang trí thoải mái.',
-    widthCm: 35,
+    // Thang cỡ trên ảnh túi: mặt túi rộng 35 cm nhưng tính 32 cm để khung A4 to nhất mà khung ngang vẫn nằm gọn
+    // trong mặt túi (khung dọc cao ~85% thân túi). Đổi số này là đổi cỡ khung A4, hoạ tiết, sticker trên túi.
+    widthCm: 32,
     bodyFrac: 0.4525,
     colors: [{ key: 'trang', name: 'Trắng', fill: '#f7f4ee', seam: '#cfc7b8' }],
     sizes: ['Một size'],
